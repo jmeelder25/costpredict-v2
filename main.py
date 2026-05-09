@@ -15,7 +15,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Set up templates
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # We are adding , context_processors=[] to fix the Python 3.14 compatibility issue
-templates = Jinja2Templates(directory=os.path.join(current_dir, "templates"))
+# This version explicitly avoids the dictionary-key error in Python 3.12+
+templates = Jinja2Templates(
+    directory=os.path.join(current_dir, "templates"),
+    context_processors=None
+)
 
 # Initialize the Gemini Client using your API Key environment variable
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
