@@ -155,47 +155,4 @@
             </select>
         </div>
 
-        <button id="predictBtn" onclick="getEstimate()">Get Predictive Analysis</button>
-
-        <div id="result"></div>
-    </div>
-
-    <script>
-        async function getEstimate() {
-            const btn = document.getElementById('predictBtn');
-            const resultDiv = document.getElementById('result');
-            
-            btn.disabled = true;
-            btn.innerHTML = 'Analyzing Market Trends<span class="loading-dots"></span>';
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = 'CP is calculating forecasts based on current regional data...';
-
-            try {
-                const response = await fetch('/estimate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        location: document.getElementById('location').value,
-                        purchase_date: document.getElementById('date').value,
-                        material_category: document.getElementById('category').value
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.prediction) {
-                    resultDiv.innerHTML = `<strong>CP Prediction:</strong><br>${data.prediction}`;
-                } else {
-                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'Connection failed.'}`;
-                }
-            } catch (err) {
-                resultDiv.innerHTML = "<strong>Error:</strong> Render server not responding.";
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Get Predictive Analysis';
-            }
-        }
-    </script>
-
-</body>
-</html>
+        <button id="predictBtn" onclick="getEstimate()">Get Predictive
