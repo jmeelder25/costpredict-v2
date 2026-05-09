@@ -32,19 +32,21 @@ def home():
 
 @app.post("/estimate")
 async def generate_prediction(query: ProjectQuery):
-    prompt = f"User is asking for a cost prediction. Location: {query.location}. Date: {query.purchase_date}. Category: {query.material_category}."
+    if not API_KEY:
+        raise HTTPException(status_code=500, detail="API Key is missing on the server.")
+    
+    prompt = f"Provide a predictive cost estimate. Location: {query.location}. Date: {query.purchase_date}. Category: {query.material_category}."
     
     try:
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            # CHANGED TO FLASH-LITE
+            model="gemini-2.0-flash-lite", 
             config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT
+                system_instruction="You are CP, a professional construction cost predictor. Keep it concise."
             ),
             contents=prompt
         )
-        return {
-            "status": "Success",
-            "prediction": response.text
-        }
+        return {"status": "Success", "prediction": response.text}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # If it still gives a 429, this will tell us exactly why
+        return {"status": "Error", "message": str(e)}
