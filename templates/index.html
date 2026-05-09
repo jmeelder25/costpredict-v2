@@ -5,99 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CostPredict | Pricing Made Predictive</title>
     <style>
-        :root {
-            --brand-navy: #1B3688;
-            --brand-yellow: #FFC20E;
-            --bg-gray: #f4f7f9;
-        }
-
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg-gray); 
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-        }
-
-        .card { 
-            background: white; 
-            padding: 40px; 
-            border-radius: 20px; 
-            box-shadow: 0 15px 35px rgba(27, 54, 136, 0.1); 
-            width: 100%; 
-            max-width: 450px; 
-            text-align: center;
-        }
-
-        .logo-container img {
-            max-width: 220px;
-            height: auto;
-            display: block;
-            margin: 0 auto 10px auto;
-        }
-
-        .tagline {
-            font-size: 12px;
-            font-weight: 700;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .form-group {
-            text-align: left;
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 11px;
-            font-weight: 800;
-            color: var(--brand-navy);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e1e8ed;
-            border-radius: 10px;
-            font-size: 15px;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 16px;
-            background-color: var(--brand-navy);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 10px;
-        }
-
+        :root { --brand-navy: #1B3688; --brand-yellow: #FFC20E; --bg-gray: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-gray); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(27,54,136,0.1); width: 100%; max-width: 450px; text-align: center; }
+        .logo-container img { max-width: 220px; height: auto; display: block; margin: 0 auto 10px auto; }
+        .tagline { font-size: 12px; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 2px; }
+        .form-group { text-align: left; margin-bottom: 20px; }
+        label { display: block; font-size: 11px; font-weight: 800; color: var(--brand-navy); margin-bottom: 8px; text-transform: uppercase; }
+        input, select { width: 100%; padding: 14px; border: 2px solid #e1e8ed; border-radius: 10px; font-size: 15px; box-sizing: border-box; }
+        button { width: 100%; padding: 16px; background-color: var(--brand-navy); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; margin-top: 10px; }
         button:hover { background-color: #152a6b; }
-
-        #result {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f8fbff;
-            border-left: 5px solid var(--brand-yellow);
-            border-radius: 8px;
-            text-align: left;
-            display: none;
-            color: #334e68;
-            font-size: 14px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-        }
+        #result { margin-top: 30px; padding: 20px; background-color: #f8fbff; border-left: 5px solid var(--brand-yellow); border-radius: 8px; text-align: left; display: none; color: #334e68; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -109,17 +27,17 @@
         </div>
 
         <div class="form-group">
-            <label for="location">Project Location</label>
+            <label>Project Location</label>
             <input type="text" id="location" placeholder="City, State or Zip Code">
         </div>
 
         <div class="form-group">
-            <label for="date">Projection Date</label>
+            <label>Projection Date</label>
             <input type="text" id="date" placeholder="e.g., December 2026">
         </div>
 
         <div class="form-group">
-            <label for="category">Material Category</label>
+            <label>Material Category</label>
             <select id="category">
                 <option value="Lumber & Structural">Lumber & Structural</option>
                 <option value="Exterior Construction">Exterior Construction</option>
@@ -130,7 +48,6 @@
         </div>
 
         <button id="predictBtn" onclick="runPrediction()">Get Pricing</button>
-
         <div id="result"></div>
     </div>
 
@@ -139,7 +56,6 @@
             const btn = document.getElementById('predictBtn');
             const resultDiv = document.getElementById('result');
             
-            // Show user that something is happening
             btn.disabled = true;
             btn.innerHTML = 'Analyzing...';
             resultDiv.style.display = 'block';
@@ -157,20 +73,18 @@
                 });
 
                 const data = await response.json();
-
                 if (data.prediction) {
                     resultDiv.innerHTML = `<strong>CP Prediction:</strong><br>${data.prediction}`;
                 } else {
                     resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'Check API Key'}`;
                 }
             } catch (err) {
-                resultDiv.innerHTML = "<strong>Error:</strong> Connection to server failed.";
+                resultDiv.innerHTML = "<strong>Error:</strong> Server connection failed.";
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Get Pricing';
             }
         }
     </script>
-
 </body>
 </html>
