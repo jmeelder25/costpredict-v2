@@ -32,32 +32,24 @@
         }
 
         .logo-container {
-            margin-bottom: 10px;
+            margin-bottom: 25px;
         }
 
-        /* Branding */
-        .brand-name {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--brand-navy);
-            margin: 0;
-            letter-spacing: -1px;
-        }
-
-        .brand-name span {
-            color: var(--brand-yellow);
+        .logo-container img {
+            max-width: 220px;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
         }
 
         .tagline {
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 700;
             color: #6c757d;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 30px;
         }
 
-        /* Form Styling */
         .form-group {
             text-align: left;
             margin-bottom: 20px;
@@ -65,8 +57,8 @@
 
         label {
             display: block;
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 800;
             color: var(--brand-navy);
             margin-bottom: 8px;
             text-transform: uppercase;
@@ -107,23 +99,18 @@
             transform: translateY(-2px);
         }
 
-        button:active {
-            transform: translateY(0);
-        }
-
-        /* Prediction Result Box */
         #result {
             margin-top: 30px;
             padding: 20px;
-            background-color: #f0f4f8;
+            background-color: #f8fbff;
             border-left: 5px solid var(--brand-yellow);
             border-radius: 8px;
             text-align: left;
             display: none;
             color: #334e68;
-            font-size: 15px;
+            font-size: 14px;
             line-height: 1.6;
-            white-space: pre-wrap; /* Maintains AI formatting */
+            white-space: pre-wrap;
         }
 
         .loading-dots:after {
@@ -143,7 +130,7 @@
 
     <div class="card">
         <div class="logo-container">
-            <h1 class="brand-name">Cost<span>Predict</span></h1>
+            <img src="/static/logo.png" alt="CostPredict Logo">
             <div class="tagline">Pricing Made Predictive</div>
         </div>
 
@@ -165,7 +152,6 @@
                 <option value="Interior Construction">Interior Construction</option>
                 <option value="Plumbing & Bath">Plumbing & Bath</option>
                 <option value="Cabinetry & Countertops">Cabinetry & Countertops</option>
-                <option value="Windows & Doors">Windows & Doors</option>
             </select>
         </div>
 
@@ -179,7 +165,6 @@
             const btn = document.getElementById('predictBtn');
             const resultDiv = document.getElementById('result');
             
-            // UI Feedback
             btn.disabled = true;
             btn.innerHTML = 'Analyzing Market Trends<span class="loading-dots"></span>';
             resultDiv.style.display = 'block';
@@ -201,10 +186,10 @@
                 if (data.prediction) {
                     resultDiv.innerHTML = `<strong>CP Prediction:</strong><br>${data.prediction}`;
                 } else {
-                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'The engine is busy. Please try again.'}`;
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'Connection failed.'}`;
                 }
             } catch (err) {
-                resultDiv.innerHTML = "<strong>Connection Error:</strong> Check your internet or Render status.";
+                resultDiv.innerHTML = "<strong>Error:</strong> Render server not responding.";
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Get Predictive Analysis';
