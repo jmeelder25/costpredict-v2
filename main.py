@@ -33,7 +33,11 @@ When given a Location, Date, and Category:
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    # Ensure the second argument is a clean dictionary
+    return templates.TemplateResponse(
+        name="index.html", 
+        context={"request": request}
+    )
 
 @app.post("/estimate")
 async def generate_prediction(query: ProjectQuery):
