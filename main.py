@@ -33,10 +33,11 @@ When given a Location, Date, and Category:
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    # Ensure the second argument is a clean dictionary
+    # In the latest FastAPI, 'request' must be passed explicitly like this:
     return templates.TemplateResponse(
+        request=request, 
         name="index.html", 
-        context={"request": request}
+        context={}
     )
 
 @app.post("/estimate")
