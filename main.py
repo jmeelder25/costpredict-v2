@@ -1,52 +1,56 @@
 import os
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from google import genai
 from google.genai import types
 
-app = FastAPI(title="CostPredict CP Assistant")
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
 # --- INITIALIZE GEMINI CLIENT ---
-# Render will get this from your Environment Variables
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+API_KEY = os.environ.get("GEMINI_API_KEY")
+if API_KEY:
+    client = genai.Client(api_key=API_KEY)
 
 class ProjectQuery(BaseModel):
     location: str
     purchase_date: str
     material_category: str
 
-# --- SYSTEM INSTRUCTION ---
+# --- SYSTEM INSTRUCTION (CP's Persona) ---
 SYSTEM_PROMPT = """
-You are 'CP', a professional AI predictive pricing assistant for CostPredict. 
-Your goal is to provide highly accurate cost estimates for construction materials.
+You are 'CP', the official predictive pricing assistant for CostPredict. 
+Your tagline is 'Pricing Made Predictive'.
+Your goal is to provide highly accurate, data-driven cost forecasts for construction materials.
 When given a Location, Date, and Category:
-1. Consider regional cost differences (e.g., Chicago is more expensive than rural areas).
-2. Predict future price fluctuations based on 2025-2026 economic trends (inflation, tariffs).
-3. Provide a 'Confidence Score' as a percentage.
-4. Keep the tone professional, helpful, and concise.
+1. Analyze regional economic factors for that specific location.
+2. Forecast price changes based on 2026 market trends, supply chain data, and inflation.
+3. Provide a 'Confidence Score' for your prediction.
+4. Keep your response structured, professional, and helpful.
 """
 
-@app.get("/")
-def home():
-    return {"message": "CP is online and connected to the predictive engine."}
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/estimate")
 async def generate_prediction(query: ProjectQuery):
     if not API_KEY:
-        raise HTTPException(status_code=500, detail="API Key is missing on the server.")
+        raise HTTPException(status_code=500, detail="API Key is missing.")
     
-    prompt = f"Provide a predictive cost estimate. Location: {query.location}. Date: {query.purchase_date}. Category: {query.material_category}."
+    prompt = f"User Request: {query.material_category} in {query.location} for {query.purchase_date}."
     
     try:
+        # UPDATED BACK TO FULL FLASH
         response = client.models.generate_content(
-            # CHANGED TO FLASH-LITE
-            model="gemini-2.0-flash-lite", 
+            model="gemini-2.0-flash",
             config=types.GenerateContentConfig(
-                system_instruction="You are CP, a professional construction cost predictor. Keep it concise."
+                system_instruction=SYSTEM_PROMPT
             ),
             contents=prompt
         )
-        return {"status": "Success", "prediction": response.text}
+        return {"prediction": response.text}
     except Exception as e:
-        # If it still gives a 429, this will tell us exactly why
-        return {"status": "Error", "message": str(e)}
+        return {"error": str(e)}
