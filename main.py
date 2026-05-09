@@ -2,12 +2,18 @@ import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from google import genai
-from google.genai import types
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+
+# This is the "bridge" that allows your HTML to see the logo in the static folder
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# This tells the app where your HTML files are kept
+current_dir = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(current_dir, "templates"))
 
 # --- INITIALIZE GEMINI CLIENT ---
 API_KEY = os.environ.get("GEMINI_API_KEY")
