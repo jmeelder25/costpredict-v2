@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostPredict | Pricing Made Predictive</title>
+    <style>
+        :root {
+            --brand-navy: #1B3688;
+            --brand-yellow: #FFC20E;
+            --bg-gray: #f4f7f9;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-gray); 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(27, 54, 136, 0.1); 
+            width: 100%; 
+            max-width: 450px; 
+            text-align: center;
+        }
+
+        .logo-container {
+            margin-bottom: 10px;
+        }
+
+        /* Branding */
+        .brand-name {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--brand-navy);
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        .brand-name span {
+            color: var(--brand-yellow);
+        }
+
+        .tagline {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        /* Form Styling */
+        .form-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--brand-navy);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--brand-yellow);
+            outline: none;
+            box-shadow: 0 0 8px rgba(255, 194, 14, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--brand-navy);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #152a6b;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Prediction Result Box */
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f0f4f8;
+            border-left: 5px solid var(--brand-yellow);
+            border-radius: 8px;
+            text-align: left;
+            display: none;
+            color: #334e68;
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Maintains AI formatting */
+        }
+
+        .loading-dots:after {
+            content: ' .';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { color: rgba(0,0,0,0); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); }
+            40% { color: var(--brand-navy); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); }
+            60% { text-shadow: .5em 0 0 var(--brand-navy), 1em 0 0 rgba(0,0,0,0); }
+            80%, 100% { text-shadow: .5em 0 0 var(--brand-navy), 1em 0 0 var(--brand-navy); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="logo-container">
+            <h1 class="brand-name">Cost<span>Predict</span></h1>
+            <div class="tagline">Pricing Made Predictive</div>
+        </div>
+
+        <div class="form-group">
+            <label for="location">Project Location</label>
+            <input type="text" id="location" placeholder="City, State or Zip Code">
+        </div>
+
+        <div class="form-group">
+            <label for="date">Projection Date</label>
+            <input type="text" id="date" placeholder="e.g., December 2026">
+        </div>
+
+        <div class="form-group">
+            <label for="category">Material Category</label>
+            <select id="category">
+                <option value="Lumber & Structural">Lumber & Structural</option>
+                <option value="Exterior Construction">Exterior Construction</option>
+                <option value="Interior Construction">Interior Construction</option>
+                <option value="Plumbing & Bath">Plumbing & Bath</option>
+                <option value="Cabinetry & Countertops">Cabinetry & Countertops</option>
+                <option value="Windows & Doors">Windows & Doors</option>
+            </select>
+        </div>
+
+        <button id="predictBtn" onclick="getEstimate()">Get Predictive Analysis</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function getEstimate() {
+            const btn = document.getElementById('predictBtn');
+            const resultDiv = document.getElementById('result');
+            
+            // UI Feedback
+            btn.disabled = true;
+            btn.innerHTML = 'Analyzing Market Trends<span class="loading-dots"></span>';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'CP is calculating forecasts based on current regional data...';
+
+            try {
+                const response = await fetch('/estimate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location: document.getElementById('location').value,
+                        purchase_date: document.getElementById('date').value,
+                        material_category: document.getElementById('category').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.prediction) {
+                    resultDiv.innerHTML = `<strong>CP Prediction:</strong><br>${data.prediction}`;
+                } else {
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'The engine is busy. Please try again.'}`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = "<strong>Connection Error:</strong> Check your internet or Render status.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Get Predictive Analysis';
+            }
+        }
+    </script>
+
+</body>
+</html>
