@@ -3,19 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CostPredict | Pricing Made Predictive</title>
+    <title>CostPredict | Professional Pricing Forecasts</title>
     <style>
-        :root { --brand-navy: #1B3688; --brand-yellow: #FFC20E; --bg-gray: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-gray); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(27,54,136,0.1); width: 100%; max-width: 450px; text-align: center; }
-        .logo-container img { max-width: 220px; height: auto; display: block; margin: 0 auto 10px auto; }
-        .tagline { font-size: 12px; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 2px; }
-        .form-group { text-align: left; margin-bottom: 20px; }
-        label { display: block; font-size: 11px; font-weight: 800; color: var(--brand-navy); margin-bottom: 8px; text-transform: uppercase; }
-        input, select { width: 100%; padding: 14px; border: 2px solid #e1e8ed; border-radius: 10px; font-size: 15px; box-sizing: border-box; }
-        button { width: 100%; padding: 16px; background-color: var(--brand-navy); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; margin-top: 10px; }
+        :root {
+            --brand-navy: #1B3688;
+            --brand-yellow: #FFC20E;
+            --bg-gray: #f4f7f9;
+            --text-dark: #334e68;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-gray); 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(27, 54, 136, 0.1); 
+            width: 100%; 
+            max-width: 480px; 
+            text-align: center;
+        }
+
+        .logo-container img {
+            max-width: 220px;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+        }
+
+        .tagline {
+            font-size: 12px;
+            font-weight: 700;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--brand-navy);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 15px;
+            box-sizing: border-box;
+            color: var(--text-dark);
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--brand-navy);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--brand-navy);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
         button:hover { background-color: #152a6b; }
-        #result { margin-top: 30px; padding: 20px; background-color: #f8fbff; border-left: 5px solid var(--brand-yellow); border-radius: 8px; text-align: left; display: none; color: #334e68; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+        button:disabled { background-color: #a1b0d0; cursor: not-allowed; }
+
+        #result {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f8fbff;
+            border-left: 5px solid var(--brand-yellow);
+            border-radius: 8px;
+            text-align: left;
+            display: none;
+            color: var(--text-dark);
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -27,27 +118,37 @@
         </div>
 
         <div class="form-group">
-            <label>Project Location</label>
-            <input type="text" id="location" placeholder="City, State or Zip Code">
+            <label for="location">Project Location</label>
+            <input type="text" id="location" placeholder="City, State or Zip Code" required>
         </div>
 
         <div class="form-group">
-            <label>Projection Date</label>
-            <input type="text" id="date" placeholder="e.g., December 2026">
+            <label for="date">Estimated Purchase Date</label>
+            <input type="text" id="date" placeholder="e.g., June 2026" required>
         </div>
 
         <div class="form-group">
-            <label>Material Category</label>
+            <label for="category">Material Category</label>
             <select id="category">
-                <option value="Lumber & Structural">Lumber & Structural</option>
-                <option value="Exterior Construction">Exterior Construction</option>
-                <option value="Interior Construction">Interior Construction</option>
-                <option value="Plumbing & Bath">Plumbing & Bath</option>
-                <option value="Cabinetry & Countertops">Cabinetry & Countertops</option>
+                <option value="Lumber & Composites">Lumber & Composites</option>
+                <option value="Metals & Structural Steel">Metals & Structural Steel</option>
+                <option value="Concrete, Cement & Masonry">Concrete, Cement & Masonry</option>
+                <option value="Drywall & Insulation">Drywall & Insulation</option>
+                <option value="Siding & Stone Veneer">Siding & Stone Veneer</option>
+                <option value="Roofing">Roofing</option>
+                <option value="Flooring">Flooring</option>
+                <option value="Cabinets & Vanities">Cabinets & Vanities</option>
+                <option value="Countertops">Countertops</option>
+                <option value="Doors & Windows">Doors & Windows</option>
+                <option value="Plumbing (Faucets, Sinks, Toilets)">Plumbing (Faucets, Sinks, Toilets)</option>
+                <option value="Electrical & Ventilation">Electrical & Ventilation</option>
+                <option value="Decking, Fencing & Gates">Decking, Fencing & Gates</option>
+                <option value="Tools & Material Handling">Tools & Material Handling</option>
             </select>
         </div>
 
         <button id="predictBtn" onclick="runPrediction()">Get Pricing</button>
+
         <div id="result"></div>
     </div>
 
@@ -55,36 +156,50 @@
         async function runPrediction() {
             const btn = document.getElementById('predictBtn');
             const resultDiv = document.getElementById('result');
+            const loc = document.getElementById('location').value;
+            const dt = document.getElementById('date').value;
+
+            if (!loc || !dt) {
+                alert("Please fill in both Location and Date.");
+                return;
+            }
             
+            // Set UI to Loading state
             btn.disabled = true;
-            btn.innerHTML = 'Analyzing...';
+            btn.innerHTML = 'Analyzing Market...';
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = 'CP is calculating forecasts...';
+            resultDiv.innerHTML = 'CP Engine is processing regional data...';
 
             try {
                 const response = await fetch('/estimate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        location: document.getElementById('location').value,
-                        purchase_date: document.getElementById('date').value,
+                        location: loc,
+                        purchase_date: dt,
                         material_category: document.getElementById('category').value
                     })
                 });
 
                 const data = await response.json();
+
                 if (data.prediction) {
-                    resultDiv.innerHTML = `<strong>CP Prediction:</strong><br>${data.prediction}`;
-                } else {
-                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'Check API Key'}`;
+                    // Success: Display the AI prediction
+                    resultDiv.innerHTML = `<strong>CostPredict Forecast:</strong><br>${data.prediction}`;
+                } else if (data.error) {
+                    // API Error (like Quota issues)
+                    resultDiv.innerHTML = `<strong>Market Access Busy:</strong> ${data.error}`;
                 }
             } catch (err) {
-                resultDiv.innerHTML = "<strong>Error:</strong> Server connection failed.";
+                // Connection/Server Error
+                resultDiv.innerHTML = "<strong>Error:</strong> Could not connect to the pricing server. Please try again in 60 seconds.";
             } finally {
+                // Reset Button
                 btn.disabled = false;
                 btn.innerHTML = 'Get Pricing';
             }
         }
     </script>
+
 </body>
 </html>
