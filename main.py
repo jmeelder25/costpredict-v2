@@ -5,62 +5,46 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from google import genai
+from google.genai import types
 
 app = FastAPI()
 
-# This is the "bridge" that allows your HTML to see the logo in the static folder
+# Mount the static folder so the logo displays
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# This tells the app where your HTML files are kept
+# Set up templates
 current_dir = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(current_dir, "templates"))
 
-# --- INITIALIZE GEMINI CLIENT ---
-API_KEY = os.environ.get("GEMINI_API_KEY")
-if API_KEY:
-    client = genai.Client(api_key=API_KEY)
+# Initialize the Gemini Client using your API Key environment variable
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-class ProjectQuery(BaseModel):
+class EstimateRequest(BaseModel):
     location: str
     purchase_date: str
     material_category: str
 
-# --- SYSTEM INSTRUCTION (CP's Persona) ---
-SYSTEM_PROMPT = """
-You are 'CP', the official predictive pricing assistant for CostPredict. 
-Your tagline is 'Pricing Made Predictive'.
-Your goal is to provide highly accurate, data-driven cost forecasts for construction materials.
-When given a Location, Date, and Category:
-1. Analyze regional economic factors for that specific location.
-2. Forecast price changes based on 2026 market trends, supply chain data, and inflation.
-3. Provide a 'Confidence Score' for your prediction.
-4. Keep your response structured, professional, and helpful.
-"""
-
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    # In the latest FastAPI, 'request' must be passed explicitly like this:
-    return templates.TemplateResponse(
-        request=request, 
-        name="index.html", 
-        context={}
-    )
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/estimate")
-async def generate_prediction(query: ProjectQuery):
-    if not API_KEY:
-        raise HTTPException(status_code=500, detail="API Key is missing.")
-    
-    prompt = f"User Request: {query.material_category} in {query.location} for {query.purchase_date}."
+async def get_estimate(req: EstimateRequest):
+    prompt = (
+        f"You are CostPredict (CP), an expert construction market analyst. "
+        f"Provide a predictive pricing forecast for {req.material_category} "
+        f"in {req.location} for the date {req.purchase_date}. "
+        f"Include estimated price trends (up/down %), regional factors, "
+        f"and a brief professional recommendation for a contractor."
+    )
     
     try:
-        # UPDATED BACK TO FULL FLASH
         response = client.models.generate_content(
             model="gemini-2.0-flash",
+            contents=prompt,
             config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT
-            ),
-            contents=prompt
+                temperature=0.7,
+            )
         )
         return {"prediction": response.text}
     except Exception as e:
