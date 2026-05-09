@@ -1,0 +1,39 @@
+name: Bi-Weekly Price Scraper
+
+on:
+  schedule:
+    # This "cron" syntax means: Run at 00:00 on every 14th day
+    - cron: '0 0 */14 * *'
+  workflow_dispatch: # This allows you to run it manually for testing
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        playwright install chromium
+
+    - name: Run Scraper
+      run: python scraper.py
+      env:
+        # If your scraper needs your Gemini Key to process data
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} 
+
+    - name: Commit and Push results
+      run: |
+        git config --global user.name "GitHub Action"
+        git config --global user.email "action@github.com"
+        git add price_history.csv
+        git commit -m "Automated price update" || exit 0
+        git push
