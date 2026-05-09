@@ -1,7 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from google import genai
@@ -9,19 +8,13 @@ from google.genai import types
 
 app = FastAPI()
 
-# Mount the static folder so the logo displays
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# 1. Mount the static folder so the logo displays correctly
+# Ensure your image is at static/logo.png on GitHub
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Set up templates
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# We are adding , context_processors=[] to fix the Python 3.14 compatibility issue
-# This version explicitly avoids the dictionary-key error in Python 3.12+
-templates = Jinja2Templates(
-    directory=os.path.join(current_dir, "templates"),
-    context_processors=None
-)
-
-# Initialize the Gemini Client using your API Key environment variable
+# 2. Initialize the Gemini Client
+# Make sure GEMINI_API_KEY is set in your Render Environment Variables
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 class EstimateRequest(BaseModel):
@@ -29,10 +22,19 @@ class EstimateRequest(BaseModel):
     purchase_date: str
     material_category: str
 
+# 3. Serving the Home Page
+# We use a manual read here to avoid the Jinja2 'unhashable dict' error
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def read_root():
+    template_path = "templates/index.html"
+    if not os.path.exists(template_path):
+        return HTMLResponse(content="Error: templates/index.html not found.", status_code=404)
+    
+    with open(template_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
 
+# 4. The Predictive Pricing Logic
 @app.post("/estimate")
 async def get_estimate(req: EstimateRequest):
     prompt = (
@@ -40,7 +42,8 @@ async def get_estimate(req: EstimateRequest):
         f"Provide a predictive pricing forecast for {req.material_category} "
         f"in {req.location} for the date {req.purchase_date}. "
         f"Include estimated price trends (up/down %), regional factors, "
-        f"and a brief professional recommendation for a contractor."
+        f"and a brief professional recommendation for a contractor. "
+        f"Keep the response concise and professional."
     )
     
     try:
@@ -53,4 +56,10 @@ async def get_estimate(req: EstimateRequest):
         )
         return {"prediction": response.text}
     except Exception as e:
+        # This will show the actual error in the browser if the AI call fails
         return {"error": str(e)}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
