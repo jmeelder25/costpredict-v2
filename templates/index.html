@@ -31,10 +31,6 @@
             text-align: center;
         }
 
-        .logo-container {
-            margin-bottom: 25px;
-        }
-
         .logo-container img {
             max-width: 220px;
             height: auto;
@@ -70,14 +66,7 @@
             border: 2px solid #e1e8ed;
             border-radius: 10px;
             font-size: 15px;
-            transition: all 0.3s ease;
             box-sizing: border-box;
-        }
-
-        input:focus, select:focus {
-            border-color: var(--brand-yellow);
-            outline: none;
-            box-shadow: 0 0 8px rgba(255, 194, 14, 0.2);
         }
 
         button {
@@ -90,14 +79,11 @@
             font-size: 16px;
             font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
+            transition: background-color 0.2s;
             margin-top: 10px;
         }
 
-        button:hover {
-            background-color: #152a6b;
-            transform: translateY(-2px);
-        }
+        button:hover { background-color: #152a6b; }
 
         #result {
             margin-top: 30px;
@@ -111,18 +97,6 @@
             font-size: 14px;
             line-height: 1.6;
             white-space: pre-wrap;
-        }
-
-        .loading-dots:after {
-            content: ' .';
-            animation: dots 1.5s steps(5, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { color: rgba(0,0,0,0); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); }
-            40% { color: var(--brand-navy); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); }
-            60% { text-shadow: .5em 0 0 var(--brand-navy), 1em 0 0 rgba(0,0,0,0); }
-            80%, 100% { text-shadow: .5em 0 0 var(--brand-navy), 1em 0 0 var(--brand-navy); }
         }
     </style>
 </head>
@@ -155,4 +129,48 @@
             </select>
         </div>
 
-        <button id="predictBtn" onclick="getEstimate()">Get Predictive
+        <button id="predictBtn" onclick="runPrediction()">Get Pricing</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function runPrediction() {
+            const btn = document.getElementById('predictBtn');
+            const resultDiv = document.getElementById('result');
+            
+            // Show user that something is happening
+            btn.disabled = true;
+            btn.innerHTML = 'Analyzing...';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'CP is calculating forecasts...';
+
+            try {
+                const response = await fetch('/estimate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location: document.getElementById('location').value,
+                        purchase_date: document.getElementById('date').value,
+                        material_category: document.getElementById('category').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.prediction) {
+                    resultDiv.innerHTML = `<strong>CP Prediction:</strong><br>${data.prediction}`;
+                } else {
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'Check API Key'}`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = "<strong>Error:</strong> Connection to server failed.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Get Pricing';
+            }
+        }
+    </script>
+
+</body>
+</html>
