@@ -3,3 +3,5 @@ uvicorn
 pydantic
 google-genai
 jinja2
+playwright
+asyncio
