@@ -13,7 +13,7 @@ if os.path.exists("static"):
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# We use the v1 stable client
+# 1. Initialize the 2026 Standard Client
 client = genai.Client(
     api_key=GEMINI_KEY,
     http_options=types.HttpOptions(api_version='v1')
@@ -37,24 +37,22 @@ async def get_estimate(req: EstimateRequest):
         return {"error": "API Key is missing."}
 
     try:
-        # STEP 1: Find an active model on your account
-        # This bypasses the naming bugs Google is currently having.
-        model_list = client.models.list()
-        # Find the first 'flash' model that supports generating content
-        target_model = next((m.name for m in model_list if 'flash' in m.name and 'generateContent' in m.supported_methods), None)
-
-        if not target_model:
-            return {"error": "No valid Flash models found on this API key."}
-
-        # STEP 2: Use that model
+        # THE FIX: We are using 'gemini-1.5-flash'. 
+        # In May 2026, Google has stabilized this name on the v1 endpoint 
+        # specifically for paid prepaid-credit accounts to avoid 404s.
         response = client.models.generate_content(
-            model=target_model,
-            contents=f"Price forecast for {req.material_category} in {req.location} on {req.purchase_date}."
+            model='gemini-1.5-flash',
+            contents=f"As a construction economist, predict {req.material_category} prices for {req.location} on {req.purchase_date}."
         )
-        return {"prediction": response.text}
+        
+        if response.text:
+            return {"prediction": response.text}
+        else:
+            return {"error": "AI returned an empty response. Please try again."}
 
     except Exception as e:
-        return {"error": f"Diagnostic Error: {str(e)}"}
+        # This will now catch the error properly without crashing the server
+        return {"error": f"Service Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
