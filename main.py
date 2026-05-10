@@ -59,9 +59,10 @@ async def get_estimate(req: EstimateRequest):
     )
     
     try:
-        # We use 'gemini-1.5-flash' directly to avoid the v1beta 404 error
+        # UPDATED: Changed from 'gemini-1.5-flash' to 'gemini-2.0-flash' 
+        # to resolve the 404 NOT_FOUND error.
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.7,
