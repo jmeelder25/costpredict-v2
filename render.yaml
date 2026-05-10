@@ -1,7 +1,0 @@
-jobs:
-  - name: bi-weekly-price-scrape
-    type: cron
-    plan: free # Or your current plan
-    schedule: "0 0 */14 * *" # This runs every 14 days at midnight
-    buildCommand: "pip install -r requirements.txt && playwright install chromium"
-    startCommand: "python scraper.py"
