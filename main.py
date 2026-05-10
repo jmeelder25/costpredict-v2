@@ -3,18 +3,18 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+# IMPORTANT: Use the stable library
 import google.generativeai as genai
 
 app = FastAPI()
 
 # 1. Mount Static Files
-# This allows the app to serve your logo at /static/logo.png
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 2. Initialize Gemini Client
-# We use the stable generativeai library to avoid 404/429 conflicts
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+# Configure the stable client
 genai.configure(api_key=GEMINI_KEY)
 
 class EstimateRequest(BaseModel):
@@ -36,51 +36,37 @@ async def read_root():
     except Exception as e:
         return HTMLResponse(content=f"Server Error: {str(e)}", status_code=500)
 
-# 4. The Prediction Engine (Optimized for Free Tier)
+# 4. The Prediction Engine (REPAIRED)
 @app.post("/estimate")
 async def get_estimate(req: EstimateRequest):
     if not GEMINI_KEY:
-        return {"error": "API Key missing. Please set GEMINI_API_KEY in Render environment settings."}
+        return {"error": "API Key missing. Please set GEMINI_API_KEY in Render."}
 
-    prompt = (
-        f"You are CostPredict (CP), a professional construction economist. "
-        f"Provide a predictive pricing forecast for {req.material_category} "
-        f"in {req.location} for {req.purchase_date}. "
-        f"\n\nMarket Intelligence Sources: "
-        f"Analyze trends from Home Depot, Lowe's, Metals Depot, and regional suppliers. "
-        f"\n\nOutput Requirements: "
-        f"### Predicted Price Trend "
-        f"State the expected % change. "
-        f"\n\n### Regional Market Analysis "
-        f"Identify factors specific to {req.location}. "
-        f"\n\n### Procurement Strategy "
-        f"Recommend: Buy Now, Wait, or Lock-in Contract."
-    )
-    
     try:
-        # We use 'gemini-1.5-flash' because it has much higher free-tier limits
-        # than version 2.0, which currently has a 0-limit for many users.
+        # We use the direct model name. 
+        # If 'gemini-1.5-flash' fails, the fallback is 'gemini-1.5-flash-latest'
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                top_p=0.95,
-            )
+        prompt = (
+            f"You are CostPredict (CP), a senior construction economist. "
+            f"Provide a predictive pricing forecast for {req.material_category} "
+            f"in {req.location} for {req.purchase_date}. "
+            f"\n\nOutput Format: "
+            f"### Predicted Price Trend \n### Regional Market Analysis \n### Procurement Strategy"
         )
+
+        response = model.generate_content(prompt)
         
         if response.text:
             return {"prediction": response.text}
         else:
-            return {"error": "The AI engine returned an empty response. Please try again."}
+            return {"error": "The AI engine returned an empty response."}
             
     except Exception as e:
-        # This will now catch the error and tell us if it's still a quota issue
+        # This will now give you a much cleaner error message
         return {"error": f"Market Data Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
-    # Render provides the PORT variable automatically
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
