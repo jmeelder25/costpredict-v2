@@ -3,8 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 app = FastAPI()
 
@@ -14,9 +13,9 @@ if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 2. Initialize Gemini Client
-# This pulls your API key from the Environment Variables in Render
+# We use the stable generativeai library to avoid 404/429 conflicts
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=GEMINI_KEY)
+genai.configure(api_key=GEMINI_KEY)
 
 class EstimateRequest(BaseModel):
     location: str
@@ -37,7 +36,7 @@ async def read_root():
     except Exception as e:
         return HTMLResponse(content=f"Server Error: {str(e)}", status_code=500)
 
-# 4. The Prediction Engine (Fixed Model Logic)
+# 4. The Prediction Engine (Optimized for Free Tier)
 @app.post("/estimate")
 async def get_estimate(req: EstimateRequest):
     if not GEMINI_KEY:
@@ -59,12 +58,13 @@ async def get_estimate(req: EstimateRequest):
     )
     
     try:
-        # UPDATED: Changed from 'gemini-1.5-flash' to 'gemini-2.0-flash' 
-        # to resolve the 404 NOT_FOUND error.
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
+        # We use 'gemini-1.5-flash' because it has much higher free-tier limits
+        # than version 2.0, which currently has a 0-limit for many users.
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
                 temperature=0.7,
                 top_p=0.95,
             )
@@ -76,7 +76,7 @@ async def get_estimate(req: EstimateRequest):
             return {"error": "The AI engine returned an empty response. Please try again."}
             
     except Exception as e:
-        # Captures API errors, quota limits, or connectivity issues
+        # This will now catch the error and tell us if it's still a quota issue
         return {"error": f"Market Data Error: {str(e)}"}
 
 if __name__ == "__main__":
