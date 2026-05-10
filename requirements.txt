@@ -1,6 +1,6 @@
 fastapi
 uvicorn
 pydantic
-google-generativeai
+google-genai>=1.0.0
 playwright
 asyncio
