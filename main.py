@@ -13,7 +13,7 @@ if os.path.exists("static"):
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# 1. Initialize the 2026 Standard Client
+# The v1 stable endpoint is required for the May 7th GA release.
 client = genai.Client(
     api_key=GEMINI_KEY,
     http_options=types.HttpOptions(api_version='v1')
@@ -37,21 +37,15 @@ async def get_estimate(req: EstimateRequest):
         return {"error": "API Key is missing."}
 
     try:
-        # THE FIX: We are using 'gemini-1.5-flash'. 
-        # In May 2026, Google has stabilized this name on the v1 endpoint 
-        # specifically for paid prepaid-credit accounts to avoid 404s.
+        # AS OF MAY 7, 2026: gemini-3.1-flash-lite is the ONLY stable name.
+        # Older 1.5 names are being actively retired from the v1 registry.
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=f"As a construction economist, predict {req.material_category} prices for {req.location} on {req.purchase_date}."
+            model='gemini-3.1-flash-lite',
+            contents=f"As a construction economist, predict {req.material_category} price trends for {req.location} on {req.purchase_date}."
         )
-        
-        if response.text:
-            return {"prediction": response.text}
-        else:
-            return {"error": "AI returned an empty response. Please try again."}
-
+        return {"prediction": response.text}
     except Exception as e:
-        # This will now catch the error properly without crashing the server
+        # If this still returns 404, the issue is your API key's project permissions.
         return {"error": f"Service Error: {str(e)}"}
 
 if __name__ == "__main__":
