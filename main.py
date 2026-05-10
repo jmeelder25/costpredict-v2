@@ -8,14 +8,12 @@ from google.genai import types
 
 app = FastAPI()
 
-# 1. Static file mounting
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 2. Paid Tier Client Initialization
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# The 'google-genai' library uses this Client structure for 2026 models
+# We use the v1 stable client
 client = genai.Client(
     api_key=GEMINI_KEY,
     http_options=types.HttpOptions(api_version='v1')
@@ -36,18 +34,27 @@ async def read_root():
 @app.post("/estimate")
 async def get_estimate(req: EstimateRequest):
     if not GEMINI_KEY:
-        return {"error": "API Key is missing from Render Environment Variables."}
+        return {"error": "API Key is missing."}
 
     try:
-        # We use the GA (General Availability) model name for May 2026
+        # STEP 1: Find an active model on your account
+        # This bypasses the naming bugs Google is currently having.
+        model_list = client.models.list()
+        # Find the first 'flash' model that supports generating content
+        target_model = next((m.name for m in model_list if 'flash' in m.name and 'generateContent' in m.supported_methods), None)
+
+        if not target_model:
+            return {"error": "No valid Flash models found on this API key."}
+
+        # STEP 2: Use that model
         response = client.models.generate_content(
-            model='gemini-1.5-flash', 
+            model=target_model,
             contents=f"Price forecast for {req.material_category} in {req.location} on {req.purchase_date}."
         )
         return {"prediction": response.text}
+
     except Exception as e:
-        # This will now give us a clear, non-cryptic error if something is still wrong
-        return {"error": f"Connection Error: {str(e)}"}
+        return {"error": f"Diagnostic Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
