@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -8,22 +8,22 @@ from google.genai import types
 
 app = FastAPI()
 
-# 1. Mount the static folder for the logo
-# Ensure your logo image is at static/logo.png on GitHub
+# 1. Mount Static Files
+# This ensures your logo.png displays correctly.
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 2. Initialize Gemini Client
-# We use gemini-1.5-flash for high reliability and speed
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+# The API key is pulled from your Render Environment Variables.
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+client = genai.Client(api_key=GEMINI_KEY)
 
 class EstimateRequest(BaseModel):
     location: str
     purchase_date: str
     material_category: str
 
-# 3. Serve Home Page
-# This manual method prevents the common Jinja2 'unhashable dict' error
+# 3. Serve the User Interface
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     template_path = "templates/index.html"
@@ -37,22 +37,27 @@ async def read_root():
     except Exception as e:
         return HTMLResponse(content=f"Server Error: {str(e)}", status_code=500)
 
-# 4. AI Pricing Logic (Synced with Spreadsheet Data)
+# 4. The Prediction Engine
 @app.post("/estimate")
 async def get_estimate(req: EstimateRequest):
-    # Professional prompt referencing your specific spreadsheet sources
+    if not GEMINI_KEY:
+        return {"error": "API Key missing. Please set GEMINI_API_KEY in Render."}
+
+    # Since there's no spreadsheet, we instruct the AI to use its 
+    # vast knowledge of regional market trends and supplier data.
     prompt = (
-        f"You are CostPredict (CP), a senior construction market analyst. "
-        f"Your goal is to provide a predictive pricing forecast for {req.material_category} "
-        f"in {req.location} for the target date {req.purchase_date}. "
-        f"\n\nMarket Intelligence Sources: "
-        f"Analyze trends from Home Depot, Lowe's, Metals Depot, LL Flooring, "
-        f"Wholesale Cabinets, Floor & Decor, and Menards. "
-        f"\n\nOutput Requirements: "
-        f"1. Predicted Price Trend: State the expected percentage change. "
-        f"2. Regional Analysis: Mention factors specific to {req.location}. "
-        f"3. Procurement Strategy: Advise whether to buy now or wait based on supply chain health. "
-        f"\n\nFormat the response professionally with clear headings."
+        f"You are CostPredict (CP), a professional construction economist. "
+        f"Generate a detailed pricing forecast for {req.material_category} "
+        f"in the {req.location} market for the date {req.purchase_date}. "
+        f"\n\nContextual Data Sources: "
+        f"Analyze trends from Home Depot, Lowe's, Metals Depot, and regional supply chains. "
+        f"\n\nRequired Output Format: "
+        f"### Predicted Price Trend "
+        f"(State expected % change) "
+        f"\n\n### Regional Market Analysis "
+        f"(Mention factors specific to {req.location}) "
+        f"\n\n### Procurement Strategy "
+        f"(Advise to 'Buy Now', 'Wait', or 'Lock-in Contract' based on volatility)."
     )
     
     try:
@@ -68,13 +73,14 @@ async def get_estimate(req: EstimateRequest):
         if response.text:
             return {"prediction": response.text}
         else:
-            return {"error": "The AI engine returned an empty response. Please try again."}
+            return {"error": "The AI engine is temporarily unresponsive. Please try again."}
             
     except Exception as e:
-        # Catching rate limits (429) or connection issues
-        return {"error": str(e)}
+        # This catches things like 'Quota Exceeded' or 'Invalid Key'
+        return {"error": f"Market Data Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
+    # Use the PORT environment variable provided by Render
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
