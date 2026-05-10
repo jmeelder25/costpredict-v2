@@ -13,10 +13,11 @@ if os.path.exists("static"):
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# The v1 stable endpoint is required for the May 7th GA release.
+# THE MAY 10 FIX: Using 'v1beta' instead of 'v1'
+# New models like 3.1 Flash-Lite often live here for the first 14 days of GA.
 client = genai.Client(
     api_key=GEMINI_KEY,
-    http_options=types.HttpOptions(api_version='v1')
+    http_options=types.HttpOptions(api_version='v1beta')
 )
 
 class EstimateRequest(BaseModel):
@@ -37,15 +38,14 @@ async def get_estimate(req: EstimateRequest):
         return {"error": "API Key is missing."}
 
     try:
-        # AS OF MAY 7, 2026: gemini-3.1-flash-lite is the ONLY stable name.
-        # Older 1.5 names are being actively retired from the v1 registry.
+        # Using the official stable name in the beta endpoint
         response = client.models.generate_content(
             model='gemini-3.1-flash-lite',
             contents=f"As a construction economist, predict {req.material_category} price trends for {req.location} on {req.purchase_date}."
         )
         return {"prediction": response.text}
     except Exception as e:
-        # If this still returns 404, the issue is your API key's project permissions.
+        # This will now capture the specific reason if v1beta also rejects it
         return {"error": f"Service Error: {str(e)}"}
 
 if __name__ == "__main__":
