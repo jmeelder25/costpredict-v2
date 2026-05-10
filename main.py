@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-# IMPORTANT: Use the stable library
+# IMPORTANT: Use this specific stable library
 import google.generativeai as genai
 
 app = FastAPI()
@@ -43,8 +43,8 @@ async def get_estimate(req: EstimateRequest):
         return {"error": "API Key missing. Please set GEMINI_API_KEY in Render."}
 
     try:
-        # We use the direct model name. 
-        # If 'gemini-1.5-flash' fails, the fallback is 'gemini-1.5-flash-latest'
+        # Using the direct model name with the stable library
+        # resolves the v1beta 404 error.
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = (
@@ -63,10 +63,10 @@ async def get_estimate(req: EstimateRequest):
             return {"error": "The AI engine returned an empty response."}
             
     except Exception as e:
-        # This will now give you a much cleaner error message
         return {"error": f"Market Data Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
+    # Render provides the PORT variable automatically
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
