@@ -1,11 +1,9 @@
 import os
 import base64
-from flask import Flask, send_file, abort
+from flask import Flask, render_template, request, send_file
 from weasyprint import HTML
 
-# --- 1. INITIALIZE FLASK (CRITICAL FOR GUNICORN) ---
-# This 'app' variable is what Gunicorn looks for. 
-# Do not move or indent this line.
+# --- 1. INITIALIZE FLASK ---
 app = Flask(__name__)
 
 # --- 2. CONFIGURATION & BRANDING ---
@@ -14,7 +12,7 @@ CP_YELLOW = "#FFC113"
 LOGO_FILE = "CostPredict_Logo_White.png"
 
 def get_base64_logo():
-    """Safely encodes logo for PDF embedding on Render."""
+    """Safely encodes logo for PDF embedding."""
     if os.path.exists(LOGO_FILE):
         try:
             with open(LOGO_FILE, "rb") as f:
@@ -23,12 +21,9 @@ def get_base64_logo():
             return ""
     return ""
 
-# --- 3. THE ANTI-OVERRUN ENGINE ---
+# --- 3. THE ANTI-OVERRUN ENGINE (LOGIC) ---
 def calculate_project_assembly(sq_ft, material_price, labor_price):
-    """
-    Automated logic to include 'Hidden Incidentals' often missed by 
-    competitors, reducing the risk of project cost overruns.
-    """
+    """Calculates main materials + automated incidentals."""
     # Main Material (with 10% waste buffer)
     items = [{
         "code": "09 65 19",
@@ -105,28 +100,23 @@ def generate_predictive_report(project_data, output_path):
             .content {{ padding: 30px; }}
             .total-box {{ width: 300px; margin-left: auto; margin-top: 20px; border-top: 3px solid {CP_BLUE}; padding-top: 10px; }}
             .notice-box {{ background: #fef2f2; border: 1px solid #fee2e2; padding: 15px; margin-top: 30px; font-size: 8.5pt; color: #991b1b; }}
-            .footer {{ position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 8pt; color: #94a3b8; }}
         </style>
     </head>
     <body>
         <div class="header">{logo_html}</div>
         <div class="content">
-            <h2 style="color:{CP_BLUE}; margin-bottom: 20px;">Predictive Pricing Report</h2>
+            <h2 style="color:{CP_BLUE};">Predictive Pricing Report</h2>
             <div style="margin-bottom: 20px; font-size: 10pt;">
                 <strong>Project:</strong> {project_data['name']} | <strong>Location:</strong> {project_data['location']}
             </div>
             {item_rows}
             <div class="total-box">
-                <div style="display:flex; justify-content:space-between;"><span>Material Subtotal:</span><span>${subtotal_mat:,.2f}</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>Labor Subtotal:</span><span>${subtotal_lab:,.2f}</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>Sales Tax (10.25%):</span><span>${tax:,.2f}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Material:</span><span>${subtotal_mat:,.2f}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Labor:</span><span>${subtotal_lab:,.2f}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Tax:</span><span>${tax:,.2f}</span></div>
                 <div style="display:flex; justify-content:space-between; font-weight:bold; color:{CP_BLUE}; font-size:14pt; margin-top:10px;">
-                    <span>Project Total:</span><span>${grand_total:,.2f}</span>
+                    <span>Total:</span><span>${grand_total:,.2f}</span>
                 </div>
-            </div>
-            <div class="notice-box">
-                <strong>LOGISTICS & PROFESSIONAL NOTICE:</strong><br>
-                Shipping and freight costs are not included. Sourcing data cited from Google Business and Maps.
             </div>
         </div>
     </body>
@@ -137,24 +127,30 @@ def generate_predictive_report(project_data, output_path):
 # --- 5. WEB ROUTES ---
 @app.route('/')
 def index():
-    """Default route to trigger PDF generation and download."""
-    # /tmp is the only writable directory on Render's ephemeral disk
-    output_file = "/tmp/CostPredict_Final_Report.pdf" 
-    data = {
-        "name": "Residential Remodel - Michigan Ave",
+    """Shows the input form to the user."""
+    return render_template('index.html')
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    """Processes form data and returns the PDF."""
+    output_file = "/tmp/CostPredict_Report.pdf"
+    
+    # Extract data from the index.html form
+    project_data = {
+        "name": request.form.get('name'),
         "location": "Chicago, IL",
-        "sq_ft": 1200,
-        "mat_rate": 3.50,
-        "lab_rate": 2.25
+        "sq_ft": float(request.form.get('sq_ft', 0)),
+        "mat_rate": float(request.form.get('mat_rate', 0)),
+        "lab_rate": float(request.form.get('lab_rate', 0))
     }
+    
     try:
-        generate_predictive_report(data, output_file)
+        generate_predictive_report(project_data, output_file)
         return send_file(output_file, as_attachment=True)
     except Exception as e:
-        return f"Error generating report: {str(e)}", 500
+        return f"Error: {str(e)}", 500
 
 # --- 6. RUNNER ---
 if __name__ == "__main__":
-    # This part runs during local testing
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
