@@ -97,4 +97,31 @@ def generate():
             <h3 style="color: {CP_BLUE}; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; font-size: 11pt; margin-bottom: 10px;">Itemized Project Assembly Scope</h3>
             {item_rows}
             
-            <div class="total-box
+            <div class="total-box">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Material Accumulated Subtotal:</span><span>${data['totals']['mat']:,.2f}</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Labor Accumulated Subtotal:</span><span>${data['totals']['lab']:,.2f}</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Regional Regulatory Tax:</span><span>${data['totals']['tax']:,.2f}</span></div>
+                <div style="display: flex; justify-content: space-between; font-weight: bold; color: {CP_BLUE}; font-size: 13pt; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 6px;">
+                    <span>Grand Total Valuation:</span><span>${data['totals']['grand']:,.2f}</span>
+                </div>
+            </div>
+
+            <div class="notice-box">
+                <strong>SYSTEM COMPLIANCE LOGIC PROTOCOL:</strong><br>
+                Quantities displayed inside this cost artifact utilize predictive waste matrices based directly on national estimators. Sourcing variables optimize proximity vectors using integrated local datasets. Final freight scheduling terms apply at verification.
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    try:
+        HTML(string=html_template).write_pdf(output_file)
+        return send_file(output_file, as_attachment=True)
+    except Exception as e:
+        return f"PDF Compilation Engine Error: {str(e)}", 500
+
+# --- 5. LOCAL DEVELOPMENT ENGINE RUNNER ---
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
