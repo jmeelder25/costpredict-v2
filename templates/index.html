@@ -2,91 +2,135 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CostPredict Pro | Multi-Component Scoping Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CostPredict Pro | Mobile Scope Builder</title>
     <style>
         :root {
             --cp-blue: #23408A;
             --cp-yellow: #FFC113;
-            --cp-bg: #f1f5f9;
+            --cp-bg: #f8fafc;
             --cp-text: #0f172a;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--cp-bg);
             color: var(--cp-text);
             margin: 0;
-            padding: 20px;
+            padding: 12px;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .container {
-            max-width: 1100px;
+        .wrapper {
+            max-width: 540px;
             margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-
-        @media (max-width: 900px) {
-            .container { grid-template-columns: 1fr; }
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .header-banner {
-            grid-column: 1 / -1;
             background: var(--cp-blue);
             color: white;
-            padding: 20px 30px;
-            border-radius: 8px;
-            border-bottom: 6px solid var(--cp-yellow);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            border-bottom: 5px solid var(--cp-yellow);
+            text-align: center;
         }
 
-        .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -1px; }
+        .logo-text { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
         .logo-text span { color: var(--cp-yellow); }
+        .tagline { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
 
         .card {
             background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            height: fit-content;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04);
+            border: 1px solid #e2e8f0;
         }
 
-        h2 { color: var(--cp-blue); font-size: 18px; margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;}
-        
-        .form-group { margin-bottom: 15px; }
-        .form-row { display: flex; gap: 15px; }
+        .results-card {
+            display: none; 
+            border-top: 4px solid var(--cp-blue);
+        }
+
+        h2 { color: var(--cp-blue); font-size: 16px; margin-top: 0; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; font-weight: 700;}
+        h2.section-break { margin-top: 12px; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-row { display: flex; gap: 10px; }
         .form-row .form-group { flex: 1; }
 
-        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #475569; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; background: white;}
-        input:focus, select:focus { outline: none; border-color: var(--cp-blue); box-shadow: 0 0 0 3px rgba(35,64,138,0.1); }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-size: 16px; 
+            background: #ffffff;
+            color: var(--cp-text);
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
 
-        button.btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 14px; border-radius: 6px; font-weight: 700; cursor: pointer; text-transform: uppercase; transition: background 0.2s; }
-        button.btn-primary:hover { background: #1a3069; }
-        button.btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 12px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; text-transform: uppercase; transition: opacity 0.2s; display: none; margin-top: 20px; width: 100%; }
-        button.btn-secondary:hover { opacity: 0.9; }
-
-        .component-item { border-left: 4px solid var(--cp-blue); background: #f8fafc; padding: 12px; margin-bottom: 10px; border-radius: 0 6px 6px 0; font-size: 0.9rem; }
-        .component-meta { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+        button.btn-primary { 
+            width: 100%; 
+            background: var(--cp-blue); 
+            color: white; 
+            border: none; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            font-size: 15px;
+            cursor: pointer; 
+            text-transform: uppercase; 
+            margin-top: 8px;
+        }
         
-        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
-        .grand-total { font-size: 1.3rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 10px; }
+        button.btn-secondary { 
+            background: var(--cp-yellow); 
+            color: var(--cp-blue); 
+            border: none; 
+            padding: 16px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            font-size: 15px;
+            cursor: pointer; 
+            text-transform: uppercase; 
+            width: 100%; 
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(255, 193, 19, 0.2);
+        }
+
+        .component-item { 
+            border-left: 4px solid var(--cp-blue); 
+            background: #f8fafc; 
+            padding: 12px; 
+            margin-bottom: 8px; 
+            border-radius: 4px; 
+            font-size: 0.85rem; 
+        }
+        .component-meta { font-size: 0.75rem; color: #64748b; margin-top: 3px; }
+        
+        .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
+        .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
+        
+        .footer-note { text-align: center; font-size: 10px; color: #94a3b8; margin: 15px 0 10px 0; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="wrapper">
     <div class="header-banner">
         <div class="logo-text">COST<span>PREDICT</span> PRO</div>
-        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Scope Builder Console</div>
+        <div class="tagline">Mobile Estimation Console</div>
     </div>
 
     <div class="card">
-        <h2>Project Metadata</h2>
+        <h2>1. Project Description</h2>
         <div class="form-row">
             <div class="form-group">
                 <label>Project Type</label>
@@ -98,25 +142,16 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Project Location</label>
+                <label>Market Location</label>
                 <input type="text" id="location" value="Chicago, IL">
             </div>
         </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Est. Start Date</label>
-                <input type="date" id="start_date">
-            </div>
-            <div class="form-group">
-                <label>Labor Configuration</label>
-                <select id="labor_required">
-                    <option value="Yes">Include Installation Labor</option>
-                    <option value="No">Material Supply Only</option>
-                </select>
-            </div>
+        <div class="form-group">
+            <label>Est. Start Date</label>
+            <input type="date" id="start_date">
         </div>
 
-        <h2>Component Sourcing Configuration</h2>
+        <h2 class="section-break">2. Project Details</h2>
         <div class="form-group">
             <label>Main Material Category</label>
             <select id="main_category" onchange="updateSubcategories()">
@@ -133,54 +168,59 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Takeoff Quantity Needed (SF)</label>
-            <input type="number" id="quantity" placeholder="e.g. 1200" min="1">
+            <label>Quantity Needed</label>
+            <input type="number" id="quantity" pattern="[0-9]*" inputmode="numeric" placeholder="e.g. 1200" min="1">
+        </div>
+        <div class="form-group">
+            <label>Is Labor Required?</label>
+            <select id="labor_required">
+                <option value="Yes">Yes (Include Labor)</option>
+                <option value="No">No (Supply Only)</option>
+            </select>
         </div>
 
-        <button class="btn-primary" onclick="addComponent()">Add Component to Scope</button>
+        <button class="btn-primary" onclick="addComponent()">Add to Project</button>
     </div>
 
-    <div class="card">
-        <h2>Live Project Bill of Quantities</h2>
-        <div id="components_list" style="min-height: 120px; color: #94a3b8; font-size: 0.9rem; padding: 10px 0;">
-            No components added to the scope assembly yet.
-        </div>
+    <div class="card results-card" id="results_panel">
+        <h2>Live Bill of Quantities</h2>
+        <div id="components_list" style="margin-bottom: 20px;"></div>
 
         <h2>On-Screen Cost Evaluation</h2>
         <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
         <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
-        <div class="summary-row"><span>Regional Regulatory Tax (10.25%):</span><span id="lbl_tax">$0.00</span></div>
-        <div class="summary-row grand-total"><span>Project Total Estimation:</span><span id="lbl_total">$0.00</span></div>
+        <div class="summary-row"><span>Regional Tax (10.25%):</span><span id="lbl_tax">$0.00</span></div>
+        <div class="summary-row grand-total"><span>Project Estimation:</span><span id="lbl_total">$0.00</span></div>
 
         <form id="pdf_form" action="/generate" method="post">
             <input type="hidden" name="payload" id="payload_input">
-            <button type="submit" class="btn-secondary" id="btn_print">Export Final Verified PDF Report</button>
+            <button type="submit" class="btn-secondary">Export Verified PDF Report</button>
         </form>
     </div>
+    
+    <div class="footer-note">CostPredict Engine v2.5 © 2026</div>
 </div>
 
 <script>
-    // System Data Matrix containing industry baseline values
     const dataMatrix = {
         "Flooring": {
-            "Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19" },
-            "Porcelain/Ceramic Tile": { mat: 5.50, lab: 7.00, code: "09 30 13" },
-            "Commercial Carpet Tile": { mat: 2.75, lab: 1.50, code: "09 68 13" }
+            "Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF" },
+            "Porcelain/Ceramic Tile": { mat: 5.50, lab: 7.00, code: "09 30 13", unit: "SF" },
+            "Commercial Carpet Tile": { mat: 2.75, lab: 1.50, code: "09 68 13", unit: "SF" }
         },
         "Walls": {
-            "1/2\" Standard Gypsum Board": { mat: 0.65, lab: 1.85, code: "09 29 00" },
-            "5/8\" Fire-Rated Type X": { mat: 0.85, lab: 2.10, code: "09 29 13" },
-            "Moisture-Resistant Greenboard": { mat: 0.95, lab: 2.00, code: "09 29 20" }
+            "1/2\" Standard Gypsum Board": { mat: 0.65, lab: 1.85, code: "09 29 00", unit: "SF" },
+            "5/8\" Fire-Rated Type X": { mat: 0.85, lab: 2.10, code: "09 29 13", unit: "SF" },
+            "Moisture-Resistant Greenboard": { mat: 0.95, lab: 2.00, code: "09 29 20", unit: "SF" }
         },
         "Ceilings": {
-            "2x2 Acoustic Ceiling Grid": { mat: 2.10, lab: 3.25, code: "09 51 13" },
-            "2x4 Industrial Ceiling Grid": { mat: 1.85, lab: 2.90, code: "09 51 23" }
+            "2x2 Acoustic Ceiling Grid": { mat: 2.10, lab: 3.25, code: "09 51 13", unit: "SF" },
+            "2x4 Industrial Ceiling Grid": { mat: 1.85, lab: 2.90, code: "09 51 23", unit: "SF" }
         }
     };
 
     let projectScope = [];
 
-    // Triggered instantly when user shifts the parent category
     function updateSubcategories() {
         const mainCat = document.getElementById('main_category').value;
         const subSelect = document.getElementById('sub_category');
@@ -195,7 +235,6 @@
         });
     }
 
-    // Handles calculation array generation dynamically on screen
     function addComponent() {
         const main = document.getElementById('main_category').value;
         const sub = document.getElementById('sub_category').value;
@@ -203,50 +242,44 @@
         const laborReq = document.getElementById('labor_required').value === "Yes";
 
         if (!main || !sub || isNaN(qty) || qty <= 0) {
-            alert("Please complete the Component Sourcing configurations before adding.");
+            alert("Please input a valid quantity.");
             return;
         }
 
         const baseline = dataMatrix[main][sub];
-        
-        // Calculate dynamic incidentals instantly
         let lineItems = [];
         let wasteFactor = sub.includes("Tile") ? 1.15 : 1.10;
         let finalQty = Math.ceil(qty * wasteFactor);
 
-        // Core component line
         lineItems.push({
             code: baseline.code,
             desc: sub,
             qty: finalQty,
-            unit: "SF",
+            unit: baseline.unit,
             mat_cost: finalQty * baseline.mat,
             lab_cost: laborReq ? (finalQty * baseline.lab) : 0
         });
 
-        // Auto-inject explicit incidentals based on rules
         if (sub === "Luxury Vinyl Plank (LVP)") {
             let tstrips = Math.max(1, Math.ceil(qty / 300));
-            lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transition Strips", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
+            lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
         } else if (sub === "Porcelain/Ceramic Tile") {
             let thinset = Math.max(1, Math.ceil(qty / 60));
-            lineItems.push({ code: "09 30 05", desc: "Polymer-Modified Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0 });
+            lineItems.push({ code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0 });
         }
 
         projectScope.push(...lineItems);
         renderProjectState();
         
-        // Reset element inputs for multi-item stacking flow
         document.getElementById('quantity').value = '';
+        
+        const resultsPanel = document.getElementById('results_panel');
+        resultsPanel.style.display = 'block';
+        resultsPanel.scrollIntoView({ behavior: 'smooth' });
     }
 
     function renderProjectState() {
         const listDiv = document.getElementById('components_list');
-        if (projectScope.length === 0) {
-            listDiv.innerHTML = "No components added to the scope assembly yet.";
-            return;
-        }
-
         listDiv.innerHTML = '';
         let totalMat = 0, totalLab = 0;
 
@@ -257,10 +290,9 @@
             let div = document.createElement('div');
             div.className = 'component-item';
             div.innerHTML = `
-                <strong>${item.desc}</strong> <span style="float:right; font-family:monospace; color:#64748b;">${item.code}</span>
+                <div style="font-weight:700;">${item.desc} <span style="float:right; font-family:monospace; color:#64748b; font-size:11px;">${item.code}</span></div>
                 <div class="component-meta">Qty: ${item.qty} ${item.unit} | Mat: $${item.mat_cost.toFixed(2)} | Lab: $${item.lab_cost.toFixed(2)}</div>
             `;
-            listDiv.appendChild(item);
             listDiv.appendChild(div);
         });
 
@@ -273,20 +305,17 @@
         document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('lbl_total').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-        // Prepare context data block for backend transmittal
         const fullPayload = {
             metadata: {
                 project_type: document.getElementById('project_type').value,
                 location: document.getElementById('location').value,
-                start_date: document.getElementById('start_date').value,
-                labor_required: document.getElementById('labor_required').value
+                start_date: document.getElementById('start_date').value
             },
             line_items: projectScope,
             totals: { mat: totalMat, lab: totalLab, tax: computedTax, grand: grandTotal }
         };
 
         document.getElementById('payload_input').value = JSON.stringify(fullPayload);
-        document.getElementById('btn_print').style.display = 'block';
     }
 </script>
 </body>
