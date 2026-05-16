@@ -29,7 +29,6 @@
             gap: 16px;
         }
 
-        /* BRAND NEW COMPLIANT LIGHT HEADER CONTAINER */
         .header-banner {
             background: #ffffff; 
             padding: 16px;
@@ -155,7 +154,7 @@
     </div>
 
     <div class="card">
-        <h2>1. Project Description</h2>
+        <h2>Step 1. Project Description</h2>
         <div class="form-row">
             <div class="form-group">
                 <label>Project Type</label>
@@ -176,33 +175,33 @@
             <input type="date" id="start_date">
         </div>
 
-        <h2 class="section-break">2. Project Details</h2>
+        <h2 class="section-break">Step 2. Project Details</h2>
         
         <div class="form-group">
-            <label>Search Category / Tab</label>
-            <input type="text" id="category_search" class="search-input" placeholder="Type to filter e.g. Wood, Concrete..." onkeyup="filterCategories()">
+            <label>Search Category / Material</label>
+            <input type="text" id="category_search" class="search-input" placeholder="Type to filter e.g. Flooring, Cabinets..." onkeyup="filterCategories()">
         </div>
 
         <div class="form-group">
-            <label>Main Material Category (Spreadsheet Tab)</label>
+            <label>Main Material Category (Menu)</label>
             <select id="main_category" onchange="updateSubcategories()">
                 <option value="" disabled selected>Select category...</option>
-                <option value="GeneralConditions">Tab 1: General Conditions</option>
-                <option value="Concrete">Tab 2: Concrete & Foundations</option>
-                <option value="Masonry">Tab 3: Masonry Divisions</option>
-                <option value="Metals">Tab 4: Structural Metals</option>
-                <option value="WoodPlasticComposites">Tab 5: Wood, Plastics & Composites</option>
-                <option value="ThermalMoistureProtection">Tab 6: Thermal & Moisture Protection</option>
-                <option value="Openings">Tab 7: Openings (Doors & Windows)</option>
-                <option value="Finishes">Tab 8: Finishes & Drywall Systems</option>
-                <option value="Specialties">Tab 9: Specialties & Equipment</option>
-                <option value="ConveyingEquipment">Tab 10: Conveying Systems</option>
+                <option value="GeneralConditions">Project Setup & Supervision</option>
+                <option value="Concrete">Concrete & Foundation Work</option>
+                <option value="Masonry">Brick & Concrete Block Work</option>
+                <option value="Metals">Structural Steel & Iron Work</option>
+                <option value="WoodPlasticComposites">Wood Framing & Structural Panels</option>
+                <option value="ThermalMoistureProtection">Insulation & Roofing Membranes</option>
+                <option value="Openings">Doors & Windows</option>
+                <option value="Finishes">Drywall, Flooring & Wall Finishes</option>
+                <option value="Specialties">Specialties & Equipment Compartments</option>
+                <option value="ConveyingEquipment">Elevators & Lifts</option>
             </select>
         </div>
         <div class="form-group">
             <label>Exact Material Subcategory (Table Item)</label>
             <select id="sub_category" disabled>
-                <option value="">Select main tab first...</option>
+                <option value="">Select main category first...</option>
             </select>
         </div>
         <div class="form-group">
@@ -240,7 +239,7 @@
 </div>
 
 <script>
-    // Complete Multi-Tab Workspace Construction Matrix Dataset
+    // Unified Matrix Mapping back to descriptive categories
     const dataMatrix = {
         "GeneralConditions": {
             "Project Management & Supervision": { mat: 0.00, lab: 85.00, code: "01 31 00", unit: "HR" },
@@ -279,12 +278,12 @@
         "Finishes": {
             "1/2\" Standard Gypsum Drywall Board": { mat: 0.65, lab: 1.85, code: "09 29 00", unit: "SF" },
             "5/8\" Fire-Rated Type X Gypsum Board": { mat: 0.85, lab: 2.10, code: "09 29 13", unit: "SF" },
-            "Commercial Grade Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF" },
+            "Commercial Grade Luxury Vinyl Plank (LVP) Flooring": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF" },
             "Premium Porcelain Interior Floor Tile": { mat: 5.50, lab: 7.00, code: "09 30 13", unit: "SF" }
         },
         "Specialties": {
             "Visual Display Markerboards": { mat: 120.00, lab: 45.00, code: "10 11 00", unit: "PCS" },
-            "Solid Phenolic Toilet Compartments": { mat: 450.00, lab: 180.00, code: "10 21 13", unit: "PCS" }
+            "Solid Phenolic Toilet Compartments / Cabinets": { mat: 450.00, lab: 180.00, code: "10 21 13", unit: "PCS" }
         },
         "ConveyingEquipment": {
             "Hydraulic Passenger Elevator (3-Stop)": { mat: 65000.00, lab: 22000.00, code: "14 24 00", unit: "EA" }
@@ -297,7 +296,6 @@
         originalOptions = Array.from(select.options);
     });
 
-    // JavaScript Live Input Dynamic Filter
     function filterCategories() {
         const text = document.getElementById('category_search').value.toLowerCase();
         const select = document.getElementById('main_category');
@@ -355,10 +353,10 @@
             lab_cost: laborReq ? (finalQty * baseline.lab) : 0
         });
 
-        if (sub === "Commercial Grade Luxury Vinyl Plank (LVP)") {
+        if (sub.includes("LVP")) {
             let tstrips = Math.max(1, Math.ceil(qty / 300));
             lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
-        } else if (sub === "Premium Porcelain Interior Floor Tile") {
+        } else if (sub.includes("Tile")) {
             let thinset = Math.max(1, Math.ceil(qty / 60));
             lineItems.push({ code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0 });
         }
