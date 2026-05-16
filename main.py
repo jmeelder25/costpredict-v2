@@ -1,127 +1,164 @@
 import os
+import glob
 import json
-import base64
-from flask import Flask, render_template, request, send_file
-from weasyprint import HTML
+import pandas as pd
+from flask import Flask, render_template, request, jsonify
 
-# --- 1. INITIALIZE FLASK ---
 app = Flask(__name__)
 
-# --- 2. CONFIGURATION & BRANDING ---
-CP_BLUE = "#23408A"
-CP_YELLOW = "#FFC113"
-LOGO_FILE = "CostPredict_Logo_White.png"
+# Global memory cache to serve the dynamic search engine instantly
+MASTER_DATA_CACHE = {}
 
-def get_base64_logo():
-    """Safely encodes the company logo to embed directly into the PDF."""
-    if os.path.exists(LOGO_FILE):
+def load_master_data():
+    """
+    Scans the data directory, parses all 38 category CSV spreadsheets, 
+    and packages them into a structured object for the frontend search bar.
+    """
+    master_data = {}
+    
+    # Locate all exported CSV sheets inside the data folder
+    csv_files = glob.glob(os.path.join("data", "*.csv"))
+    
+    # Standard Master Division CSI Code mappings for construction structural accuracy
+    csi_codes = {
+        "Concrete": "03 30 00",
+        "Cabinets": "06 41 16",
+        "Vanities": "06 41 20",
+        "Countertops": "12 36 00",
+        "Toilets": "22 41 00",
+        "Flooring": "09 65 19",
+        "Drywall": "09 29 00",
+        "Doors": "08 14 16",
+        "Windows": "08 51 13",
+        "Paint": "09 91 00"
+    }
+
+    for file_path in csv_files:
+        filename = os.path.basename(file_path)
+        
+        # Parse the raw sheet filename back into a clean primary category name
+        # Handles both clean names ('Windows.csv') and workbook exports ('Building Materials Spreadsheet.xlsx - Windows.csv')
+        category_name = filename.replace("Building Materials Spreadsheet.xlsx - ", "").replace(".csv", "")
+        
+        # Omit internal metadata sheets or retail store configurations
+        if category_name in ["Stores", "Summary"]:
+            continue
+            
         try:
-            with open(LOGO_FILE, "rb") as f:
-                return base64.b64encode(f.read()).decode('utf-8')
-        except Exception:
-            return ""
-    return ""
+            df = pd.read_csv(file_path)
+            if df.empty:
+                continue
+                
+            # Read the first column containing item/subcategory string structures
+            first_column = df.columns[0]
+            items_list = df[first_column].dropna().unique().tolist()
+            
+            # Formatting sanitation: strip extra spaces and drop row matching the header itself
+            clean_items = [str(i).strip() for i in items_list if str(i).strip() and str(i).strip() != category_name]
+            
+            if clean_items:
+                master_data[category_name] = {
+                    "code": csi_codes.get(category_name, "09 00 00"),
+                    "unit": "SF" if category_name in ["Flooring", "Drywall", "Countertops", "Concrete"] else "PCS",
+                    "items": sorted(clean_items)
+                }
+        except Exception as e:
+            print(f"[ERROR] Failed parsing spreadsheet file {filename}: {e}")
+            
+    return master_data
 
-# --- 3. WEB INTERFACE ROUTE ---
+def append_to_category_sheet(category_name, new_item_name):
+    """
+    Appends a uniquely crawled search engine scrape or manual user override line item
+    safely to the correct corresponding master file spreadsheet column.
+    """
+    category_clean = category_name.strip()
+    item_clean = new_item_name.strip()
+    
+    if not category_clean or not item_clean:
+        return False, "Category or item field parameters are invalid."
+
+    # Look for both naming variants of the spreadsheet file
+    possible_filenames = [
+        f"{category_clean}.csv",
+        f"Building Materials Spreadsheet.xlsx - {category_clean}.csv"
+    ]
+    
+    file_path = None
+    for fname in possible_filenames:
+        target = os.path.join("data", fname)
+        if os.path.exists(target):
+            file_path = target
+            break
+            
+    # Fallback: Create a clean category file structure if it doesn't exist
+    if not file_path:
+        file_path = os.path.join("data", f"{category_clean}.csv")
+        df = pd.DataFrame(columns=[category_clean])
+        df.to_csv(file_path, index=False)
+
+    try:
+        # Load existing spreadsheet
+        df = pd.read_csv(file_path)
+        first_column = df.columns[0]
+        
+        # De-duplication filter evaluation running in lowercase comparison
+        existing_items = df[first_column].dropna().astype(str).str.lower().str.strip().tolist()
+        if item_clean.lower() in existing_items:
+            return True, "Item already indexed in the master data directory."
+            
+        # Append the refinement data row cleanly to the dataframe
+        new_row = pd.DataFrame([{first_column: item_clean}])
+        df = pd.concat([df, new_row], ignore_index=True)
+        
+        # Overwrite back out to disc safely
+        df.to_csv(file_path, index=False)
+        print(f"[REFINEMENT PIPELINE] Added '{item_clean}' to {file_path}")
+        
+        # Hot-reload the core data cache instantly for live search querying
+        global MASTER_DATA_CACHE
+        MASTER_DATA_CACHE = load_master_data()
+        
+        return True, "Spreadsheet successfully updated and re-compiled."
+        
+    except Exception as e:
+        return False, f"Failed updating file row: {str(e)}"
+
+
+# --- SERVER RUNTIME INITIALIZATION ---
+
+# Pre-compile the spreadsheet structures when the server boots
+MASTER_DATA_CACHE = load_master_data()
+
 @app.route('/')
 def index():
-    """Renders the interactive dynamic scoping form."""
-    return render_template('index.html')
+    """
+    Serves the primary mobile scope-builder page, passing down 
+    the active Master Data cache payload as safe JSON text.
+    """
+    return render_template('index.html', master_data=json.dumps(MASTER_DATA_CACHE))
 
-# --- 4. PDF GENERATION CONTROLLER ---
-@app.route('/generate', methods=['POST'])
-def generate():
+
+@app.route('/api/refine', methods=['POST'])
+def refine_master_file():
     """
-    Accepts the compiled project scope JSON from the frontend cart,
-    builds the professional invoice layout, and returns a printable PDF.
+    API Receiver Hook endpoint. Receives payloads from automated search engine web-scrapes
+    or manual user layout overrides to push items down into the dataset sheets.
     """
-    # /tmp is the only writable directory on Render's ephemeral container disk
-    output_file = "/tmp/CostPredict_Multi_Report.pdf"
+    payload = request.get_json() or {}
+    category = payload.get('category')
+    item_name = payload.get('item_name')
     
-    # Extract the full project payload built by the JavaScript cart
-    raw_payload = request.form.get('payload')
-    if not raw_payload:
-        return "Error: Project scope state is completely empty.", 400
+    if not category or not item_name:
+        return jsonify({"status": "error", "message": "Missing category or item_name string values."}), 400
         
-    try:
-        data = json.loads(raw_payload)
-    except Exception as e:
-        return f"Error parsing scope data: {str(e)}", 400
+    success, message = append_to_category_sheet(category, item_name)
     
-    # Setup logo asset or fallback text header
-    logo_b64 = get_base64_logo()
-    logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="height:50px;">' if logo_b64 else '<h1>CostPredict</h1>'
-    
-    # Build the HTML table rows dynamically based on what was calculated on-screen
-    item_rows = ""
-    for item in data['line_items']:
-        lab_str = f"| Lab: ${item['lab_cost']:,.2f}" if item['lab_cost'] > 0 else "| Labor: Excluded"
-        item_rows += f"""
-        <div style="border-bottom: 1px solid #e2e8f0; padding: 12px 0; font-size: 9.5pt;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                <span>{item['desc']}</span>
-                <span style="font-family: monospace; color: #64748b;">{item['code']}</span>
-            </div>
-            <div style="font-size: 8.5pt; color: #4a5568; margin-top: 4px;">
-                Quantity Structure: {item['qty']} {item['unit']} | Mat: ${item['mat_cost']:,.2f} {lab_str}
-            </div>
-        </div>
-        """
+    if success:
+        return jsonify({"status": "success", "message": message}), 200
+    return jsonify({"status": "error", "message": message}), 500
 
-    # Executive-level PDF template matching corporate colors exactly
-    html_template = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            @page {{ size: A4; margin: 0; }}
-            body {{ font-family: 'Helvetica', sans-serif; margin: 0; padding: 0; color: #0f172a; }}
-            .header {{ background: {CP_BLUE}; color: white; padding: 25px; border-bottom: 6px solid {CP_YELLOW}; }}
-            .content {{ padding: 35px; }}
-            .meta-grid {{ display: flex; flex-wrap: wrap; background: #f8fafc; padding: 12px; border-radius: 6px; margin-bottom: 25px; font-size: 9pt; gap: 20px; border: 1px solid #e2e8f0; }}
-            .total-box {{ width: 320px; margin-left: auto; margin-top: 25px; border-top: 3px solid {CP_BLUE}; padding-top: 10px; font-size: 10pt; }}
-            .notice-box {{ background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; margin-top: 40px; font-size: 8.5pt; color: #92400e; line-height: 1.4; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">{logo_html}</div>
-        <div class="content">
-            <h2 style="color: {CP_BLUE}; margin-top: 0; margin-bottom: 15px; font-size: 16pt;">Scope Alignment & Predictive Cost Report</h2>
-            
-            <div class="meta-grid">
-                <div><strong>Sector Classification:</strong> {data['metadata']['project_type']}</div>
-                <div><strong>Target Market:</strong> {data['metadata']['location']}</div>
-                <div><strong>Planned Mobilization:</strong> {data['metadata']['start_date'] if data['metadata']['start_date'] else 'Not Specified'}</div>
-            </div>
 
-            <h3 style="color: {CP_BLUE}; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; font-size: 11pt; margin-bottom: 10px;">Itemized Project Assembly Scope</h3>
-            {item_rows}
-            
-            <div class="total-box">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Material Accumulated Subtotal:</span><span>${data['totals']['mat']:,.2f}</span></div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Labor Accumulated Subtotal:</span><span>${data['totals']['lab']:,.2f}</span></div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Regional Regulatory Tax:</span><span>${data['totals']['tax']:,.2f}</span></div>
-                <div style="display: flex; justify-content: space-between; font-weight: bold; color: {CP_BLUE}; font-size: 13pt; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 6px;">
-                    <span>Grand Total Valuation:</span><span>${data['totals']['grand']:,.2f}</span>
-                </div>
-            </div>
-
-            <div class="notice-box">
-                <strong>SYSTEM COMPLIANCE LOGIC PROTOCOL:</strong><br>
-                Quantities displayed inside this cost artifact utilize predictive waste matrices based directly on national estimators. Sourcing variables optimize proximity vectors using integrated local datasets. Final freight scheduling terms apply at verification.
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    
-    try:
-        HTML(string=html_template).write_pdf(output_file)
-        return send_file(output_file, as_attachment=True)
-    except Exception as e:
-        return f"PDF Compilation Engine Error: {str(e)}", 500
-
-# --- 5. LOCAL DEVELOPMENT ENGINE RUNNER ---
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == '__main__':
+    # Starts local testing server infrastructure
+    app.run(host='0.0.0.0', port=5000, debug=True)
