@@ -29,12 +29,13 @@
             gap: 16px;
         }
 
+        /* BRAND NEW COMPLIANT LIGHT HEADER CONTAINER */
         .header-banner {
-            background: var(--cp-blue);
-            color: white;
-            padding: 20px 16px;
+            background: #ffffff; 
+            padding: 16px;
             border-radius: 12px;
-            border-bottom: 5px solid var(--cp-yellow);
+            border-bottom: 4px solid var(--cp-blue); 
+            box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04);
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -43,7 +44,7 @@
         }
 
         .brand-logo {
-            height: 38px;
+            height: 42px; 
             width: auto;
             max-width: 90%;
             object-fit: contain;
@@ -51,13 +52,13 @@
         }
 
         .tagline { 
-            font-size: 10.5px; 
+            font-size: 10px; 
             font-weight: 700;
-            color: #ffffff;
+            color: var(--cp-blue); 
             letter-spacing: 1.75px; 
             margin-top: 8px;
             text-transform: uppercase;
-            opacity: 0.9;
+            opacity: 0.85;
         }
 
         .card {
@@ -94,7 +95,6 @@
         }
         input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
 
-        /* Highlighted style for the active search bar */
         .search-input {
             border-color: #94a3b8;
             background-color: #f8fafc;
@@ -150,7 +150,7 @@
 
 <div class="wrapper">
     <div class="header-banner">
-        <img src="/static/CostPredict_Logo_White.png" alt="CostPredict" class="brand-logo">
+        <img src="/static/logo.png" alt="CostPredict" class="brand-logo">
         <div class="tagline">PRICING MADE PREDICTIVE</div>
     </div>
 
@@ -240,6 +240,7 @@
 </div>
 
 <script>
+    // Complete Multi-Tab Workspace Construction Matrix Dataset
     const dataMatrix = {
         "GeneralConditions": {
             "Project Management & Supervision": { mat: 0.00, lab: 85.00, code: "01 31 00", unit: "HR" },
@@ -253,4 +254,166 @@
         },
         "Masonry": {
             "8\"x8\"x16\" Standard Concrete CMU Block": { mat: 2.85, lab: 6.50, code: "04 22 00", unit: "PCS" },
-            "Modular Exterior Face Brick": { mat: 0.95, lab: 2.25, code: "
+            "Modular Exterior Face Brick": { mat: 0.95, lab: 2.25, code: "04 21 13", unit: "PCS" },
+            "Type S High-Strength Masonry Mortar": { mat: 14.50, lab: 0.00, code: "04 05 13", unit: "BAGS" }
+        },
+        "Metals": {
+            "W10x22 Structural Steel Wide-Flange Beam": { mat: 48.00, lab: 35.00, code: "05 12 00", unit: "LNFT" },
+            "#4 Deformed Grade 60 Reinforcing Rebar": { mat: 11.25, lab: 8.00, code: "03 21 00", unit: "LNFT" },
+            "Metal Decking Open-Web Joists": { mat: 6.50, lab: 4.75, code: "05 21 00", unit: "SF" }
+        },
+        "WoodPlasticComposites": {
+            "2x4x8 Standard Dimensional Stud Framing": { mat: 4.25, lab: 3.15, code: "06 11 00", unit: "BF" },
+            "2x6x16 Premium Structural Rafter Framing": { mat: 12.50, lab: 5.50, code: "06 11 10", unit: "BF" },
+            "3/4\" OSB Tongue & Groove Subfloor": { mat: 28.00, lab: 14.50, code: "06 16 23", unit: "SF" }
+        },
+        "ThermalMoistureProtection": {
+            "R-13 Kraft Faced Fiberglass Insulation Batt": { mat: 0.75, lab: 0.65, code: "07 21 16", unit: "SF" },
+            "4-Mil Polyethylene Interior Vapor Barrier": { mat: 0.15, lab: 0.20, code: "07 26 00", unit: "SF" },
+            "Commercial Grade Elastomeric Roof Membrane": { mat: 4.50, lab: 6.00, code: "07 50 00", unit: "SF" }
+        },
+        "Openings": {
+            "36\"x80\" Solid Core Flush Wood Interior Door": { mat: 185.00, lab: 110.00, code: "08 14 16", unit: "PCS" },
+            "3'0\" x 4'0\" Insulated Vinyl Windows": { mat: 245.00, lab: 135.00, code: "08 51 13", unit: "PCS" }
+        },
+        "Finishes": {
+            "1/2\" Standard Gypsum Drywall Board": { mat: 0.65, lab: 1.85, code: "09 29 00", unit: "SF" },
+            "5/8\" Fire-Rated Type X Gypsum Board": { mat: 0.85, lab: 2.10, code: "09 29 13", unit: "SF" },
+            "Commercial Grade Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF" },
+            "Premium Porcelain Interior Floor Tile": { mat: 5.50, lab: 7.00, code: "09 30 13", unit: "SF" }
+        },
+        "Specialties": {
+            "Visual Display Markerboards": { mat: 120.00, lab: 45.00, code: "10 11 00", unit: "PCS" },
+            "Solid Phenolic Toilet Compartments": { mat: 450.00, lab: 180.00, code: "10 21 13", unit: "PCS" }
+        },
+        "ConveyingEquipment": {
+            "Hydraulic Passenger Elevator (3-Stop)": { mat: 65000.00, lab: 22000.00, code: "14 24 00", unit: "EA" }
+        }
+    };
+
+    let originalOptions = [];
+    window.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('main_category');
+        originalOptions = Array.from(select.options);
+    });
+
+    // JavaScript Live Input Dynamic Filter
+    function filterCategories() {
+        const text = document.getElementById('category_search').value.toLowerCase();
+        const select = document.getElementById('main_category');
+        
+        select.innerHTML = '';
+        let matched = originalOptions.filter(opt => opt.text.toLowerCase().includes(text) || opt.value === "");
+        
+        matched.forEach(opt => select.appendChild(opt));
+        if (matched.length > 1 && select.selectedIndex <= 0) {
+            select.disabled = false;
+        }
+    }
+
+    let projectScope = [];
+
+    function updateSubcategories() {
+        const mainCat = document.getElementById('main_category').value;
+        const subSelect = document.getElementById('sub_category');
+        subSelect.innerHTML = '';
+        subSelect.disabled = false;
+
+        if(!dataMatrix[mainCat]) return;
+
+        Object.keys(dataMatrix[mainCat]).forEach(sub => {
+            let opt = document.createElement('option');
+            opt.value = sub;
+            opt.innerHTML = sub;
+            subSelect.appendChild(opt);
+        });
+    }
+
+    function addComponent() {
+        const main = document.getElementById('main_category').value;
+        const sub = document.getElementById('sub_category').value;
+        const qty = parseFloat(document.getElementById('quantity').value);
+        const laborReq = document.getElementById('labor_required').value === "Yes";
+
+        if (!main || !sub || isNaN(qty) || qty <= 0) {
+            alert("Please input a valid quantity.");
+            return;
+        }
+
+        const baseline = dataMatrix[main][sub];
+        let lineItems = [];
+        
+        let wasteFactor = (main === "Concrete" || main === "Masonry" || sub.includes("Tile")) ? 1.15 : 1.10;
+        let finalQty = Math.ceil(qty * wasteFactor);
+
+        lineItems.push({
+            code: baseline.code,
+            desc: sub,
+            qty: finalQty,
+            unit: baseline.unit,
+            mat_cost: finalQty * baseline.mat,
+            lab_cost: laborReq ? (finalQty * baseline.lab) : 0
+        });
+
+        if (sub === "Commercial Grade Luxury Vinyl Plank (LVP)") {
+            let tstrips = Math.max(1, Math.ceil(qty / 300));
+            lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
+        } else if (sub === "Premium Porcelain Interior Floor Tile") {
+            let thinset = Math.max(1, Math.ceil(qty / 60));
+            lineItems.push({ code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0 });
+        }
+
+        projectScope.push(...lineItems);
+        renderProjectState();
+        
+        document.getElementById('quantity').value = '';
+        document.getElementById('category_search').value = '';
+        filterCategories(); 
+        
+        const resultsPanel = document.getElementById('results_panel');
+        resultsPanel.style.display = 'block';
+        resultsPanel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderProjectState() {
+        const listDiv = document.getElementById('components_list');
+        listDiv.innerHTML = '';
+        let totalMat = 0, totalLab = 0;
+
+        projectScope.forEach(item => {
+            totalMat += item.mat_cost;
+            totalLab += item.lab_cost;
+
+            let div = document.createElement('div');
+            div.className = 'component-item';
+            div.innerHTML = `
+                <div style="font-weight:700;">${item.desc} <span style="float:right; font-family:monospace; color:#64748b; font-size:11px;">${item.code}</span></div>
+                <div class="component-meta">Qty: ${item.qty} ${item.unit} | Mat: $${item.mat_cost.toFixed(2)} | Lab: $${item.lab_cost.toFixed(2)}</div>
+            `;
+            listDiv.appendChild(div);
+        });
+
+        let taxRate = document.getElementById('location').value.includes("Chicago") ? 0.1025 : 0.08;
+        let computedTax = totalMat * taxRate;
+        let grandTotal = totalMat + totalLab + computedTax;
+
+        document.getElementById('lbl_mat').innerHTML = `$${totalMat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_lab').innerHTML = `$${totalLab.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_total').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        const fullPayload = {
+            metadata: {
+                project_type: document.getElementById('project_type').value,
+                location: document.getElementById('location').value,
+                start_date: document.getElementById('start_date').value
+            },
+            line_items: projectScope,
+            totals: { mat: totalMat, lab: totalLab, tax: computedTax, grand: grandTotal }
+        };
+
+        document.getElementById('payload_input').value = JSON.stringify(fullPayload);
+    }
+</script>
+</body>
+</html>
