@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CostPredict Pro | Mobile Scope Builder</title>
+    <title>CostPredict | Mobile Scope Builder</title>
     <style>
         :root {
             --cp-blue: #23408A;
@@ -36,11 +36,29 @@
             border-radius: 12px;
             border-bottom: 5px solid var(--cp-yellow);
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
-        .logo-text { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-        .logo-text span { color: var(--cp-yellow); }
-        .tagline { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+        /* Displays the white logo asset instead of raw text */
+        .brand-logo {
+            height: 45px;
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+            margin-bottom: 4px;
+        }
+
+        .tagline { 
+            font-size: 11px; 
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 1.5px; 
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
 
         .card {
             background: white;
@@ -125,8 +143,9 @@
 
 <div class="wrapper">
     <div class="header-banner">
-        <div class="logo-text">COST<span>PREDICT</span> PRO</div>
-        <div class="tagline">Mobile Estimation Console</div>
+        <img src="/static/CostPredict_Logo_White.png" alt="CostPredict" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; display:none; color:#ffffff;">COST<span style="color:var(--cp-yellow);">PREDICT</span></div>
+        <div class="tagline">PRICING MADE PREDICTIVE</div>
     </div>
 
     <div class="card">
@@ -142,8 +161,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Market Location</label>
-                <input type="text" id="location" value="Chicago, IL">
+                <label>Project Location</label>
+                <input type="text" id="location" placeholder="e.g. Chicago, IL" value="Chicago, IL">
             </div>
         </div>
         <div class="form-group">
@@ -156,9 +175,10 @@
             <label>Main Material Category</label>
             <select id="main_category" onchange="updateSubcategories()">
                 <option value="" disabled selected>Select category...</option>
+                <option value="Lumber">Lumber & Framing</option>
+                <option value="Concrete">Concrete & Masonry</option>
+                <option value="Drywall">Drywall Assemblies</option>
                 <option value="Flooring">Flooring Divisions</option>
-                <option value="Walls">Walls & Drywall Assemblies</option>
-                <option value="Ceilings">Ceiling Systems</option>
             </select>
         </div>
         <div class="form-group">
@@ -168,14 +188,14 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Quantity Needed</label>
-            <input type="number" id="quantity" pattern="[0-9]*" inputmode="numeric" placeholder="e.g. 1200" min="1">
+            <label>Quantity Needed (e.g. 1,200 sqft)</label>
+            <input type="number" id="quantity" pattern="[0-9]*" inputmode="numeric" placeholder="Enter number quantity" min="1">
         </div>
         <div class="form-group">
             <label>Is Labor Required?</label>
             <select id="labor_required">
                 <option value="Yes">Yes (Include Labor)</option>
-                <option value="No">No (Supply Only)</option>
+                <option value="No">No (Material Only)</option>
             </select>
         </div>
 
@@ -202,20 +222,27 @@
 </div>
 
 <script>
+    // Comprehensive Core Datasets mapping exact operational metrics
     const dataMatrix = {
-        "Flooring": {
-            "Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF" },
-            "Porcelain/Ceramic Tile": { mat: 5.50, lab: 7.00, code: "09 30 13", unit: "SF" },
-            "Commercial Carpet Tile": { mat: 2.75, lab: 1.50, code: "09 68 13", unit: "SF" }
+        "Lumber": {
+            "2x4x8 Stud (SPF)": { mat: 4.25, lab: 3.15, code: "06 11 00", unit: "BF" },
+            "2x6x16 Premium Framing": { mat: 12.50, lab: 5.50, code: "06 11 10", unit: "BF" },
+            "3/4\" OSB Subfloor Sheathing": { mat: 28.00, lab: 14.50, code: "06 16 23", unit: "SF" }
         },
-        "Walls": {
+        "Concrete": {
+            "4000 PSI Ready-Mix Concrete": { mat: 145.00, lab: 95.00, code: "03 30 00", unit: "CY" },
+            "8\"x8\"x16\" Standard CMU Block": { mat: 2.85, lab: 6.50, code: "04 22 00", unit: "PCS" },
+            "#4 Rebar Grade 60 (20ft)": { mat: 11.25, lab: 8.00, code: "03 21 00", unit: "LNFT" }
+        },
+        "Drywall": {
             "1/2\" Standard Gypsum Board": { mat: 0.65, lab: 1.85, code: "09 29 00", unit: "SF" },
             "5/8\" Fire-Rated Type X": { mat: 0.85, lab: 2.10, code: "09 29 13", unit: "SF" },
             "Moisture-Resistant Greenboard": { mat: 0.95, lab: 2.00, code: "09 29 20", unit: "SF" }
         },
-        "Ceilings": {
-            "2x2 Acoustic Ceiling Grid": { mat: 2.10, lab: 3.25, code: "09 51 13", unit: "SF" },
-            "2x4 Industrial Ceiling Grid": { mat: 1.85, lab: 2.90, code: "09 51 23", unit: "SF" }
+        "Flooring": {
+            "Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF" },
+            "Porcelain/Ceramic Tile": { mat: 5.50, lab: 7.00, code: "09 30 13", unit: "SF" },
+            "Commercial Carpet Tile": { mat: 2.75, lab: 1.50, code: "09 68 13", unit: "SF" }
         }
     };
 
@@ -248,7 +275,9 @@
 
         const baseline = dataMatrix[main][sub];
         let lineItems = [];
-        let wasteFactor = sub.includes("Tile") ? 1.15 : 1.10;
+        
+        // Apply specialized waste parameters depending on category selection
+        let wasteFactor = (main === "Concrete" || sub.includes("Tile")) ? 1.15 : 1.10;
         let finalQty = Math.ceil(qty * wasteFactor);
 
         lineItems.push({
@@ -260,6 +289,7 @@
             lab_cost: laborReq ? (finalQty * baseline.lab) : 0
         });
 
+        // Calculate material dependencies
         if (sub === "Luxury Vinyl Plank (LVP)") {
             let tstrips = Math.max(1, Math.ceil(qty / 300));
             lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
