@@ -2,587 +2,504 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CostPredict | Mobile Scope Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostPredict - Construction Pricing Made Predictive</title>
     <style>
         :root {
-            --cp-blue: #23408A;
-            --cp-yellow: #FFC113;
-            --cp-bg: #f8fafc;
-            --cp-text: #0f172a;
+            --cp-blue: #2563eb;
+            --cp-blue-hover: #1d4ed8;
+            --cp-slate-900: #0f172a;
+            --cp-slate-700: #334155;
+            --cp-slate-400: #94a3b8;
+            --cp-slate-100: #f1f5f9;
+            --card-radius: 12px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--cp-bg);
-            color: var(--cp-text);
-            margin: 0;
-            padding: 12px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .wrapper {
-            max-width: 540px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .header-banner {
-            background: #ffffff; 
-            padding: 16px;
-            border-radius: 12px;
-            border-bottom: 4px solid var(--cp-blue); 
-            box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04);
-            text-align: center;
+            background-color: #f8fafc;
+            color: var(--cp-slate-900);
+            padding: 1rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            min-height: 100vh;
         }
 
-        .brand-logo {
-            height: 42px; 
-            width: auto;
-            max-width: 90%;
-            object-fit: contain;
-            display: block;
+        .container {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 1rem;
         }
 
-        .tagline { 
-            font-size: 10px; 
-            font-weight: 700;
-            color: var(--cp-blue); 
-            letter-spacing: 1.75px; 
-            margin-top: 8px;
-            text-transform: uppercase;
-            opacity: 0.85;
+        /* Hero Header Styling */
+        .hero-section {
+            text-align: center;
+            margin-bottom: 2rem;
         }
 
+        .hero-section h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--cp-slate-900);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .hero-section p {
+            color: var(--cp-slate-700);
+            font-size: 14px;
+        }
+
+        /* Card Layouts */
         .card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04);
-            border: 1px solid #e2e8f0;
-        }
-
-        .results-card {
-            display: none; 
-            border-top: 4px solid var(--cp-blue);
-        }
-
-        h2 { color: var(--cp-blue); font-size: 16px; margin-top: 0; margin-bottom: 14px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; font-weight: 700;}
-        h2.section-break { margin-top: 12px; }
-
-        .form-group { margin-bottom: 14px; position: relative; }
-        .form-row { display: flex; gap: 10px; }
-        .form-row .form-group { flex: 1; }
-
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
-        input, select { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 8px; 
-            box-sizing: border-box; 
-            font-size: 16px; 
             background: #ffffff;
-            color: var(--cp-text);
-            transition: border-color 0.2s;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--card-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 1rem;
         }
-        input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
 
+        .card-header {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--cp-slate-900);
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 1.25rem;
+            position: relative;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--cp-slate-700);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background-color: #ffffff;
+            color: var(--cp-slate-900);
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--cp-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Autocomplete Box Dropdown */
         .autocomplete-suggestions {
             position: absolute;
-            z-index: 999;
             top: 100%;
             left: 0;
             right: 0;
-            background: white;
+            background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             max-height: 200px;
             overflow-y: auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            display: none;
+            z-index: 1000;
+            box-shadow: var(--shadow-md);
+            margin-top: 4px;
         }
-        .autocomplete-suggestion {
-            padding: 12px;
-            cursor: pointer;
+
+        .suggestion-item {
+            padding: 0.75rem;
             font-size: 14px;
+            cursor: pointer;
             border-bottom: 1px solid #f1f5f9;
         }
-        .autocomplete-suggestion:hover { background-color: #f1f5f9; }
 
-        button.btn-primary { 
-            width: 100%; 
-            background: var(--cp-blue); 
-            color: white; 
-            border: none; 
-            padding: 15px; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            font-size: 15px;
-            cursor: pointer; 
-            text-transform: uppercase; 
-            margin-top: 8px;
-        }
-        
-        button.btn-secondary { 
-            background: var(--cp-yellow); 
-            color: var(--cp-blue); 
-            border: none; 
-            padding: 16px; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            font-size: 15px;
-            cursor: pointer; 
-            text-transform: uppercase; 
-            width: 100%; 
-            margin-top: 15px;
-            box-shadow: 0 4px 10px rgba(255, 193, 19, 0.2);
+        .suggestion-item:last-child {
+            border-bottom: none;
         }
 
-        /* Interactive Confirmation Flow Overlay styling */
-        .prompt-box {
-            background: #eff6ff;
-            border: 2px solid var(--cp-blue);
+        .suggestion-item:hover {
+            background-color: var(--cp-slate-100);
+            color: var(--cp-blue);
+            font-weight: 600;
+        }
+
+        /* Interactive Buttons */
+        .btn-primary {
+            width: 100%;
+            background-color: var(--cp-blue);
+            color: #ffffff;
+            padding: 0.85rem;
+            font-size: 14px;
+            font-weight: 700;
+            border: none;
             border-radius: 8px;
-            padding: 14px;
-            margin: 14px 0;
-            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: var(--shadow-sm);
         }
-        .prompt-btn-group { display: flex; gap: 8px; margin-top: 10px; justify-content: center; }
-        .btn-inline { padding: 8px 16px; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; text-transform: uppercase; font-size: 13px; }
-        .btn-inline-yes { background: var(--cp-blue); color: white; }
-        .btn-inline-no { background: #cbd5e1; color: var(--cp-text); }
 
-        .component-item { 
-            border-left: 4px solid var(--cp-blue); 
-            background: #f8fafc; 
-            padding: 12px; 
-            margin-bottom: 8px; 
-            border-radius: 4px; 
-            font-size: 0.85rem; 
+        .btn-primary:hover {
+            background-color: var(--cp-blue-hover);
         }
-        .component-meta { font-size: 0.75rem; color: #64748b; margin-top: 3px; }
-        
-        .variance-grid {
+
+        .btn-secondary {
+            width: 100%;
+            background-color: #ffffff;
+            color: var(--cp-slate-700);
+            padding: 0.85rem;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 0.75rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--cp-slate-100);
+        }
+
+        /* Category Selector Grid */
+        .category-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            margin: 12px 0 16px 0;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .category-btn {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1rem;
             text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
         }
-        .variance-box { padding: 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-        .v-min { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-        .v-avg { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 700; }
-        .v-max { background: #fdf2f8; color: #9d174d; border: 1px solid #fbcfe8; }
-        .v-price { font-size: 1rem; display: block; margin-top: 4px; font-family: monospace; }
 
-        .confidence-container { background: #f1f5f9; border-radius: 20px; height: 12px; width: 100%; margin: 6px 0 16px 0; overflow: hidden; }
-        .confidence-bar { height: 100%; background: linear-gradient(90deg, var(--cp-yellow) 0%, #22c55e 100%); width: 0%; transition: width 0.6s ease-in-out; }
-
-        .kitting-box { background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 8px; padding: 12px; margin-top: 14px; font-size: 0.85rem; }
-        .kitting-title { font-weight: 700; color: #b45309; margin-bottom: 6px; }
-
-        .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
-        .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
-        
-        /* Fixed, Compliant Legal Disclaimers Banner */
-        .legal-disclaimer-box {
-            font-size: 11px;
-            color: #64748b;
-            line-height: 1.4;
-            background: #f1f5f9;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 12px;
-            border-left: 3px solid #94a3b8;
-            text-align: justify;
+        .category-btn:hover {
+            border-color: var(--cp-blue);
+            color: var(--cp-blue);
+            transform: translateY(-1px);
         }
-        .footer-note { text-align: center; font-size: 10px; color: #94a3b8; margin: 20px 0 10px 0; }
+
+        /* Summary Dashboard Items */
+        .summary-box {
+            background-color: var(--cp-slate-100);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 14px;
+        }
+
+        .summary-row:last-child {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
 
-<div class="wrapper">
-    <div class="header-banner">
-        <img src="/static/logo.png" alt="CostPredict" class="brand-logo">
-        <div class="tagline">PRICING MADE PREDICTIVE</div>
-    </div>
-
-    <div class="card" id="input_card">
-        <h2>Step 1. Project Description</h2>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Project Type (Select One)</label>
-                <select id="project_type">
-                    <option value="Residential">Residential</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Mixed-Use">Mixed-Use</option>
-                    <option value="Industrial">Industrial</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Project Location</label>
-                <input type="text" id="location" placeholder="City, State or Zip Code" value="Chicago, IL">
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Est. Start Date</label>
-            <input type="date" id="start_date">
-        </div>
-
-        <h2 class="section-break">Step 2. Project Details</h2>
+    <div class="container">
         
-        <div class="form-group">
-            <label>Main Material Category (Menu)</label>
-            <input type="text" id="main_category_input" placeholder="Start typing category... (e.g. Flooring, Wood)">
-            <input type="hidden" id="main_category_value">
-            <div id="main_suggestions" class="autocomplete-suggestions"></div>
+        <div class="hero-section" style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">Construction Pricing Made Predictive</h1>
+            <p style="color: #64748b; font-size: 14px;">Streamline your project estimates with data-driven confidence.</p>
         </div>
 
-        <div class="form-group">
-            <label>Exact Material Subcategory (Table Item)</label>
-            <input type="text" id="sub_category_input" placeholder="Select a main category first..." disabled>
-            <input type="hidden" id="sub_category_value">
-            <div id="sub_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>Quantity Needed (1,200)</label>
-                <input type="number" id="quantity" pattern="[0-9]*" inputmode="numeric" placeholder="Enter number quantity" min="1">
-            </div>
-            <div class="form-group">
-                <label>Is Labor Required?</label>
-                <select id="labor_required">
-                    <option value="Yes">Yes (Include Labor)</option>
-                    <option value="No">No (Material Only)</option>
-                </select>
+        <div id="category_card" class="card">
+            <div class="card-header">Step 1: Select Category Group</div>
+            <div class="category-grid">
+                <button class="category-btn" onclick="selectCategory('Cabinets')">📁 Cabinets</button>
+                <button class="category-btn" onclick="selectCategory('Concrete')">🧱 Concrete</button>
+                <button class="category-btn" onclick="selectCategory('Flooring')">🪵 Flooring</button>
+                <button class="category-btn" onclick="selectCategory('Paint')">🎨 Paint</button>
             </div>
         </div>
 
-        <button class="btn-primary" onclick="addComponent()">Add to Project</button>
-    </div>
-
-    <div class="card" id="add_more_prompt_card" style="display:none;">
-        <div class="prompt-box">
-            <div style="font-weight:700; color:var(--cp-blue); font-size:15px;">Would you like to add any additional material items to this predictive pricing scope before finalizing?</div>
-            <div class="prompt-btn-group">
-                <button class="btn-inline btn-inline-yes" onclick="returnToInput()">Yes, Add More</button>
-                <button class="btn-inline btn-inline-no" onclick="finalizeProject()">No, Show Prediction</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="card results-card" id="results_panel">
-        <h2>Project Pricing Prediction</h2>
-        <div id="components_list" style="margin-bottom: 16px;"></div>
-
-        <h2>Market Variance Evaluation</h2>
-        <div class="variance-grid">
-            <div class="variance-box v-min">Minimum Market<span id="lbl_min" class="v-price">$0.00</span></div>
-            <div class="variance-box v-avg">Target Average<span id="lbl_avg" class="v-price">$0.00</span></div>
-            <div class="variance-box v-max">Maximum Market<span id="lbl_max" class="v-price">$0.00</span></div>
-        </div>
-
-        <h2>Data Confidence Rating: <span id="lbl_conf_text" style="color:#22c55e;">0%</span></h2>
-        <div class="confidence-container">
-            <div id="confidence_bar" class="confidence-bar"></div>
-        </div>
-
-        <div id="kitting_panel" class="kitting-box" style="display:none;">
-            <div class="kitting-title">⚠️ Recommended Additional Items Added:</div>
-            <div id="kitting_items_list"></div>
-        </div>
-
-        <h2 class="section-break" style="margin-top:20px;">Financial Breakdown Summary</h2>
-        <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
-        <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
-        <div class="summary-row"><span>Regional Tax (10.25%):</span><span id="lbl_tax">$0.00</span></div>
-        <div class="summary-row grand-total"><span>Project Prediction Total:</span><span id="lbl_total">$0.00</span></div>
-
-        <div class="legal-disclaimer-box">
-            <strong>PREDICTIVE DATA DISCLAIMER:</strong> This estimation represents a localized statistical variance matrix based on regional algorithms. Actual material conditions, local supplier adjustments, or seasonal market corrections may impact final figures. This output does not constitute an explicit execution contract.
-        </div>
-
-        <form id="pdf_form" action="/generate" method="post">
-            <input type="hidden" name="payload" id="payload_input">
-            <button type="submit" class="btn-secondary">Print Full Predictive Pricing Report</button>
-        </form>
-    </div>
-    
-    <div class="legal-disclaimer-box" style="background:none; border:none; padding:0 8px; text-align:center;">
-        CostPredict structural estimates are derived from predictive algorithms and regional indices. All localized values serve purely for pre-construction planning.
-    </div>
-    <div class="footer-note">CostPredict Engine v2.5 © 2026</div>
-</div>
-
-<script>
-    // Unified Predictive Matrix with Supplier-Kitted Retail Networks
-    const dataMatrix = {
-        "GeneralConditions": {
-            "label": "Project Setup & Supervision",
-            "items": {
-                "Project Management & Supervision": { mat: 0.00, lab: 85.00, code: "01 31 00", unit: "HR", vendors: ["Procore Marketplace", "Local PM Agencies"] },
-                "Temporary Facilities & Utilities": { mat: 450.00, lab: 120.00, code: "01 50 00", unit: "MTH", vendors: ["United Rentals", "Sunbelt Rentals"] },
-                "Final Site Post-Construction Cleanup": { mat: 75.00, lab: 180.00, code: "01 74 13", unit: "DAY", vendors: ["Waste Management", "Local Commercial Cleaners"] }
-            }
-        },
-        "Concrete": {
-            "label": "Concrete & Foundation Work",
-            "items": {
-                "4000 PSI Ready-Mix Foundation Concrete": { mat: 145.00, lab: 95.00, code: "03 30 00", unit: "CY", vendors: ["Ozinga Ready Mix", "Prairie Material", "Local Batch Plants"] },
-                "Grade 60 #4 Welded Wire Mesh Sheeting": { mat: 0.45, lab: 0.60, code: "03 22 00", unit: "SF", vendors: ["Gerdau Steel", "Wholesale Construction Supply"] },
-                "Concrete Formwork Assemblies": { mat: 3.25, lab: 5.50, code: "03 11 00", unit: "SF", vendors: ["Doka USA", "Symons Formwork"] }
-            }
-        },
-        "Masonry": {
-            "label": "Brick & Concrete Block Work",
-            "items": {
-                "8\"x8\"x16\" Standard Concrete CMU Block": { mat: 2.85, lab: 6.50, code: "04 22 00", unit: "PCS", vendors: ["Illinois Brick Company", "County Materials"] },
-                "Modular Exterior Face Brick": { mat: 0.95, lab: 2.25, code: "04 21 13", unit: "PCS", vendors: ["Belden Brick", "Illinois Brick Company"] },
-                "Type S High-Strength Masonry Mortar": { mat: 14.50, lab: 0.00, code: "04 05 13", unit: "BAGS", vendors: ["QUIKRETE Distributors", "SPEC MIX Supplies"] }
-            }
-        },
-        "WoodPlasticComposites": {
-            "label": "Wood Framing & Structural Panels",
-            "items": {
-                "2x4x8 Standard Dimensional Stud Framing": { mat: 4.25, lab: 3.15, code: "06 11 00", unit: "BF", vendors: ["Edward Hines Lumber", "Menards Commercial", "Home Depot Pro"] },
-                "2x6x16 Premium Structural Rafter Framing": { mat: 12.50, lab: 5.50, code: "06 11 10", unit: "BF", vendors: ["Edward Hines Lumber", "Weyerhaeuser Core Distribution"] },
-                "3/4\" OSB Tongue & Groove Subfloor": { mat: 28.00, lab: 14.50, code: "06 16 23", unit: "SF", vendors: ["Georgia-Pacific Lumber Yards", "LP Building Solutions"] }
-            }
-        },
-        "Openings": {
-            "label": "Doors & Windows",
-            "items": {
-                "36\"x80\" Solid Core Flush Wood Interior Door": { mat: 185.00, lab: 110.00, code: "08 14 16", unit: "PCS", vendors: ["Eggers Industries", "JELD-WEN Commercial Options"] },
-                "3'0\" x 4'0\" Insulated Vinyl Windows": { mat: 245.00, lab: 135.00, code: "08 51 13", unit: "PCS", vendors: ["Pella EFCO Solutions", "Andersen Windows Windows"] }
-            }
-        },
-        "Finishes": {
-            "label": "Drywall, Flooring & Wall Finishes",
-            "items": {
-                "1/2\" Standard Gypsum Drywall Board": { mat: 0.65, lab: 1.85, code: "09 29 00", unit: "SF", vendors: ["USG Sheetrock Supplies", "National Gypsum Center"] },
-                "5/8\" Fire-Rated Type X Gypsum Board": { mat: 0.85, lab: 2.10, code: "09 29 13", unit: "SF", vendors: ["USG Sheetrock Systems", "CertainTeed Distribution"] },
-                "Commercial Grade Luxury Vinyl Plank (LVP) Flooring": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF", vendors: ["Mohawk Group Flooring", "Armstrong Flooring Solutions", "Shaw Contract"] },
-                "Premium Porcelain Interior Floor Tile": { mat: 5.50, lab: 7.00, code: "09 30 13", unit: "SF", vendors: ["Daltile Centers", "Marazzi Tile Distribution", "Tile Shop Pro"] }
-            }
-        },
-        "Specialties": {
-            "label": "Specialties & Equipment Compartments (Cabinets)",
-            "items": {
-                "Pre-Assembled Solid Wood Shaker Kitchen Cabinets": { mat: 380.00, lab: 140.00, code: "10 21 00", unit: "LNFT", vendors: ["MasterBrand Cabinets", "KraftMaid Commercial Systems", "Studio Full-Cabinet Distributors"] },
-                "Commercial Modular Solid Phenolic Toilet Compartments": { mat: 450.00, lab: 180.00, code: "10 21 13", unit: "PCS", vendors: ["Bobrick Washroom Equipment", "Bradley Corp Systems"] }
-            }
-        }
-    };
-
-    setupAutocomplete('main_category_input', 'main_suggestions', 'main_category_value', 
-        Object.keys(dataMatrix).map(key => ({ id: key, text: dataMatrix[key].label })), 
-        onSelectMainCategory
-    );
-
-    function setupAutocomplete(inputId, suggestionsId, hiddenId, dataList, onSelectCallback) {
-        const input = document.getElementById(inputId);
-        const suggestionsBox = document.getElementById(suggestionsId);
-        
-        input.addEventListener('input', function() {
-            const val = this.value.toLowerCase();
-            suggestionsBox.innerHTML = '';
-            if (!val) { suggestionsBox.style.display = 'none'; return; }
+        <div id="input_card" class="card" style="display: none; margin-bottom: 1rem;">
+            <div class="card-header">Step 2: Project Details</div>
             
-            const matches = dataList.filter(item => item.text.toLowerCase().includes(val));
-            if (matches.length === 0) { suggestionsBox.style.display = 'none'; return; }
-            
-            matches.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'autocomplete-suggestion';
-                div.innerHTML = item.text;
-                div.addEventListener('click', () => {
-                    input.value = item.text;
-                    document.getElementById(hiddenId).value = item.id;
-                    suggestionsBox.style.display = 'none';
-                    if(onSelectCallback) onSelectCallback(item.id);
-                });
-                suggestionsBox.appendChild(div);
-            });
-            suggestionsBox.style.display = 'block';
-        });
+            <div class="form-group">
+                <label>Category Group</label>
+                <input type="text" id="main_category_input" readonly style="background-color: #f1f5f9; color: #64748b;">
+                <input type="hidden" id="main_category_value">
+            </div>
 
-        document.addEventListener('click', (e) => {
-            if (e.target !== input) suggestionsBox.style.display = 'none';
-        });
-    }
+            <div class="form-group">
+                <label>Select Specific Material/Item</label>
+                <input type="text" id="sub_category_input" placeholder="Type to search items...">
+                <input type="hidden" id="sub_category_value">
+                <div id="search_results" class="autocomplete-suggestions"></div>
+            </div>
 
-    function onSelectMainCategory(mainCatId) {
-        const subInput = document.getElementById('sub_category_input');
-        subInput.disabled = false;
-        subInput.value = '';
-        document.getElementById('sub_category_value').value = '';
-        subInput.placeholder = "Type to search items... (e.g. Tile, Concrete)";
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Quantity Needed</label>
+                    <input type="number" id="quantity" pattern="[0-9]*" inputmode="numeric" placeholder="e.g. 1200" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Is Labor Required?</label>
+                    <select id="labor_required">
+                        <option value="Yes">Yes (Include Labor)</option>
+                        <option value="No">No (Material Only)</option>
+                    </select>
+                </div>
+            </div>
 
-        const itemsObj = dataMatrix[mainCatId].items;
-        const formattedSubList = Object.keys(itemsObj).map(key => ({ id: key, text: key }));
-        
-        setupAutocomplete('sub_category_input', 'sub_suggestions', 'sub_category_value', formattedSubList, null);
-    }
+            <div class="form-group">
+                <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span>Material Waste Factor</span>
+                    <span style="color: var(--cp-blue); font-weight: 800;"><span id="waste_val_display">10</span>%</span>
+                </label>
+                <input type="range" id="waste_factor" min="0" max="30" value="10" step="1" 
+                       oninput="document.getElementById('waste_val_display').innerText = this.value"
+                       style="width: 100%; cursor: pointer; accent-color: var(--cp-blue);">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 4px;">
+                    <span>0% (Exact)</span>
+                    <span>Standard (10-15%)</span>
+                    <span>30% (High Waste)</span>
+                </div>
+            </div>
 
-    let projectScope = [];
-    let autoKittedItems = [];
+            <button class="btn-primary" onclick="addComponent()">Add to Project</button>
+            <button class="btn-secondary" onclick="resetToCategories()">Back to Step 1</button>
+        </div>
 
-    function addComponent() {
-        const main = document.getElementById('main_category_value').value;
-        const sub = document.getElementById('sub_category_value').value;
-        const qty = parseFloat(document.getElementById('quantity').value);
-        const laborReq = document.getElementById('labor_required').value === "Yes";
+        <div id="add_more_prompt_card" class="card" style="display: none;">
+            <div class="card-header" style="color: var(--cp-blue);">✓ Item Added Successfully</div>
+            <p style="font-size: 14px; color: var(--cp-slate-700); margin-bottom: 1.25rem; line-height: 1.5;">
+                Your item calculations have been processed. Would you like to add another material line item to this estimate, or finalize your predictive estimation document?
+            </p>
+            <button class="btn-primary" onclick="returnToInput()">+ Add Another Item</button>
+            <button class="btn-secondary" onclick="generateEstimateDashboard()" style="border-color: var(--cp-blue); color: var(--cp-blue);">Calculate & View Summary</button>
+        </div>
 
-        if (!main || !sub || isNaN(qty) || qty <= 0) {
-            alert("Please input a valid quantity.");
-            return;
-        }
+        <div id="summary_card" class="card" style="display: none;">
+            <div class="card-header">Project Summary Estimate</div>
+            <div class="summary-box">
+                <div class="summary-row"><strong>Total Compiled Scope Items:</strong> <span id="summary_count">0</span></div>
+                <div class="summary-row"><strong>Est. Raw Materials Subtotal:</strong> <span id="summary_mat">0.00</span></div>
+                <div class="summary-row"><strong>Est. Field Labor Subtotal:</strong> <span id="summary_lab">0.00</span></div>
+                <div class="summary-row" style="border-top: 1px dashed #cbd5e1; margin-top: 0.5rem; padding-top: 0.5rem; font-size: 16px;">
+                    <strong>Predictive Total Project Cost:</strong> <span id="summary_total" style="color: var(--cp-blue); font-weight: 800;">$0.00</span>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="window.print()">Print Estimate PDF</button>
+            <button class="btn-secondary" onclick="location.reload()">Start New Estimate</button>
+        </div>
 
-        const baseline = dataMatrix[main].items[sub];
-        let lineItems = [];
-        
-        let wasteFactor = (main === "Concrete" || main === "Masonry" || sub.includes("Tile")) ? 1.15 : 1.10;
-        let finalQty = Math.ceil(qty * wasteFactor);
+    </div>
 
-        lineItems.push({
-            code: baseline.code,
-            desc: sub,
-            qty: finalQty,
-            unit: baseline.unit,
-            mat_cost: finalQty * baseline.mat,
-            lab_cost: laborReq ? (finalQty * baseline.lab) : 0,
-            is_accessory: false,
-            // Attaching the verified retail vendors list to the line item data block
-            recommended_vendors: baseline.vendors || ["Standard Local Trade Distributors"]
-        });
-
-        if (sub.includes("Luxury Vinyl Plank")) {
-            let tstrips = Math.max(1, Math.ceil(qty / 300));
-            lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0, is_accessory: true, recommended_vendors: ["Mohawk Yards", "Shaw Contract Lines"] });
-            autoKittedItems.push(`${tstrips}x Matching T-Mold Transitions`);
-        } else if (sub.includes("Tile")) {
-            let thinset = Math.max(1, Math.ceil(qty / 60));
-            lineItems.push({ code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0, is_accessory: true, recommended_vendors: ["Custom Building Products", "Laticrete Distribution"] });
-            autoKittedItems.push(`${thinset}x Bags of Polymer Thinset Mortar`);
-        } else if (sub.includes("Shaker Kitchen Cabinets")) {
-            let hinges = Math.ceil(qty * 2.5);
-            lineItems.push({ code: "10 21 02", desc: "Soft-Close Concealed Cabinet Hinges", qty: hinges, unit: "PCS", mat_cost: hinges * 8, lab_cost: laborReq ? (hinges * 4) : 0, is_accessory: true, recommended_vendors: ["Blum Hardware", "Salice Commercial Supplies"] });
-            autoKittedItems.push(`${hinges}x Soft-Close Concealed Cabinet Hinges`);
-        }
-
-        projectScope.push(...lineItems);
-        
-        // INTERACTIVE RETENTION STEP: Hide data console inputs, open the confirmation portal card
-        document.getElementById('input_card').style.display = 'none';
-        document.getElementById('add_more_prompt_card').style.display = 'block';
-    }
-
-    function returnToInput() {
-        // Reset specific inputs cleanly for consecutive workflow loop additions
-        document.getElementById('quantity').value = '';
-        document.getElementById('sub_category_input').value = '';
-        document.getElementById('sub_category_value').value = '';
-        
-        document.getElementById('add_more_prompt_card').style.display = 'none';
-        document.getElementById('input_card').style.display = 'block';
-        document.getElementById('input_card').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function finalizeProject() {
-        document.getElementById('add_more_prompt_card').style.display = 'none';
-        document.getElementById('input_card').style.display = 'block'; // Keeps form ready if they audit later
-        
-        renderProjectState();
-        
-        const resultsPanel = document.getElementById('results_panel');
-        resultsPanel.style.display = 'block';
-        resultsPanel.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function renderProjectState() {
-        const listDiv = document.getElementById('components_list');
-        const kittingPanel = document.getElementById('kitting_panel');
-        const kittingListDiv = document.getElementById('kitting_items_list');
-        
-        listDiv.innerHTML = '';
-        kittingListDiv.innerHTML = '';
-        
-        let totalMat = 0, totalLab = 0;
-
-        projectScope.forEach(item => {
-            if(!item.is_accessory) {
-                totalMat += item.mat_cost;
-                totalLab += item.lab_cost;
-
-                let div = document.createElement('div');
-                div.className = 'component-item';
-                div.innerHTML = `
-                    <div style="font-weight:700;">${item.desc} <span style="float:right; font-family:monospace; color:#64748b; font-size:11px;">${item.code}</span></div>
-                    <div class="component-meta">Qty: ${item.qty.toLocaleString()} ${item.unit} | Mat: $${item.mat_cost.toLocaleString('en-US', {minimumFractionDigits:2})} | Lab: $${item.lab_cost.toLocaleString('en-US', {minimumFractionDigits:2})}</div>
-                `;
-                listDiv.appendChild(div);
-            } else {
-                totalMat += item.mat_cost;
-                totalLab += item.lab_cost;
-            }
-        });
-
-        if (autoKittedItems.length > 0) {
-            autoKittedItems.forEach(txt => {
-                let li = document.createElement('div');
-                li.innerHTML = `• Added <strong>${txt}</strong> to the project subtotal.`;
-                kittingListDiv.appendChild(li);
-            });
-            kittingPanel.style.display = "block";
-        } else {
-            kittingPanel.style.display = "none";
-        }
-
-        let taxRate = document.getElementById('location').value.includes("Chicago") ? 0.1025 : 0.08;
-        let computedTax = totalMat * taxRate;
-        let grandTotal = totalMat + totalLab + computedTax;
-
-        let minMarketVal = grandTotal * 0.91;
-        let maxMarketVal = grandTotal * 1.14;
-
-        let baseConfidence = 78;
-        if (projectScope.length > 3) baseConfidence += 11;
-        if (document.getElementById('location').value.length > 4) baseConfidence += 6;
-        let finalConfidence = Math.min(98, baseConfidence);
-
-        document.getElementById('lbl_min').innerHTML = `$${minMarketVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_avg').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_max').innerHTML = `$${maxMarketVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-
-        document.getElementById('lbl_conf_text').innerHTML = `${finalConfidence}%`;
-        document.getElementById('confidence_bar').style.width = `${finalConfidence}%`;
-
-        document.getElementById('lbl_mat').innerHTML = `$${totalMat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_lab').innerHTML = `$${totalLab.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_total').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-
-        // Packing payload structure with attached vendors data array for backend report printing loop
-        const fullPayload = {
-            metadata: {
-                project_type: document.getElementById('project_type').value,
-                location: document.getElementById('location').value,
-                start_date: document.getElementById('start_date').value
+    <script>
+        // Core Static Predictive Matrix Framework Database
+        const dataMatrix = {
+            "Cabinets": {
+                items: {
+                    "Shaker Cabinets": { code: "06 41 00", mat: 185.00, lab: 75.00, unit: "LF", vendors: ["Wholesale Cabinets Depot", "Regional Architectural Millwork"] },
+                    "Raised Panel Cabinets": { code: "06 41 02", mat: 210.00, lab: 75.00, unit: "LF", vendors: ["Premium Cabinet Liners"] }
+                }
             },
-            line_items: projectScope,
-            totals: { mat: totalMat, lab: totalLab, tax: computedTax, grand: grandTotal, min: minMarketVal, max: maxMarketVal, confidence: finalConfidence }
+            "Concrete": {
+                items: {
+                    "Concrete Mix (Standard 4000 PSI)": { code: "03 30 00", mat: 145.00, lab: 95.00, unit: "CY", vendors: ["Local Aggregates Distributor", "Ready-Mix Fleet Network"] }
+                }
+            },
+            "Flooring": {
+                items: {
+                    "Ceramic Tile": { code: "09 30 13", mat: 4.50, lab: 6.50, unit: "SF", vendors: ["Tile Supply Outlet", "National Surface Distributors"] },
+                    "Porcelain Tile": { code: "09 30 16", mat: 5.75, lab: 7.00, unit: "SF", vendors: ["National Surface Distributors"] },
+                    "Indoor Carpet": { code: "09 68 16", mat: 3.20, lab: 2.10, unit: "SF", vendors: ["Commercial Textile Mills", "Regional Carpet Wholesale"] }
+                }
+            },
+            "Paint": {
+                items: {
+                    "Interior Paint (Premium Latex)": { code: "09 91 23", mat: 45.00, lab: 65.00, unit: "GAL", vendors: ["Sherwin-Williams Store", "PPG Distribution Points"] },
+                    "Exterior Paint": { code: "09 91 13", mat: 55.00, lab: 85.00, unit: "GAL", vendors: ["Sherwin-Williams Store"] }
+                }
+            }
         };
 
-        document.getElementById('payload_input').value = JSON.stringify(fullPayload);
-    }
-</script>
+        let projectScope = [];
+        let autoKittedItems = [];
+
+        // UI Handlers
+        function selectCategory(categoryName) {
+            document.getElementById('category_card').style.display = 'none';
+            document.getElementById('main_category_input').value = categoryName;
+            document.getElementById('main_category_value').value = categoryName;
+            document.getElementById('input_card').style.display = 'block';
+            
+            setupAutocomplete(categoryName);
+        }
+
+        function resetToCategories() {
+            document.getElementById('input_card').style.display = 'none';
+            document.getElementById('category_card').style.display = 'block';
+            document.getElementById('sub_category_input').value = '';
+            document.getElementById('sub_category_value').value = '';
+            document.getElementById('quantity').value = '';
+        }
+
+        // Fuzzy Autocomplete Processing Logic
+        function setupAutocomplete(category) {
+            const input = document.getElementById('sub_category_input');
+            const resultsBox = document.getElementById('search_results');
+            const itemsList = Object.keys(dataMatrix[category].items);
+
+            input.oninput = function() {
+                let val = this.value.toLowerCase();
+                resultsBox.innerHTML = '';
+                if (!val) return;
+
+                let matches = itemsList.filter(item => item.toLowerCase().includes(val));
+                matches.forEach(match => {
+                    let div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = match;
+                    div.onclick = function() {
+                        input.value = match;
+                        document.getElementById('sub_category_value').value = match;
+                        resultsBox.innerHTML = '';
+                    };
+                    resultsBox.appendChild(div);
+                });
+            };
+
+            // Clear suggestion overlays if user clicks outward away from inputs
+            document.onclick = function(e) {
+                if (e.target !== input) {
+                    resultsBox.innerHTML = '';
+                }
+            };
+        }
+
+        // Processing Logic Core Engine
+        function addComponent() {
+            const main = document.getElementById('main_category_value').value;
+            const sub = document.getElementById('sub_category_value').value;
+            const qty = parseFloat(document.getElementById('quantity').value);
+            const laborReq = document.getElementById('labor_required').value === "Yes";
+
+            if (!main || !sub || isNaN(qty) || qty <= 0) {
+                alert("Please select categories and input a valid quantity.");
+                return;
+            }
+
+            const baseline = dataMatrix[main].items[sub];
+            let lineItems = [];
+            
+            // Dynamically compute safety allowance margins using the slider inputs
+            let wastePercent = parseInt(document.getElementById('waste_factor').value) / 100;
+            let wasteFactor = 1 + wastePercent;
+            let finalQty = Math.ceil(qty * wasteFactor);
+
+            lineItems.push({
+                code: baseline.code,
+                desc: sub,
+                qty: finalQty,
+                unit: baseline.unit,
+                mat_cost: finalQty * baseline.mat,
+                lab_cost: laborReq ? (finalQty * baseline.lab) : 0,
+                is_accessory: false,
+                recommended_vendors: baseline.vendors || ["Standard Regional Supplier Network"]
+            });
+
+            // Auto-kitting accessory processing safety hooks
+            if (sub.includes("Carpet")) {
+                let padQty = Math.ceil(finalQty);
+                lineItems.push({ code: "09 68 05", desc: "Premium Moisture-Barricade Carpet Padding", qty: padQty, unit: "SF", mat_cost: padQty * 0.95, lab_cost: laborReq ? (padQty * 0.40) : 0, is_accessory: true, recommended_vendors: baseline.vendors });
+                autoKittedItems.push(`${padQty} square feet Premium Carpet Padding`);
+            } else if (sub.includes("Tile")) {
+                let thinset = Math.max(1, Math.ceil(qty / 60));
+                lineItems.push({ code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0, is_accessory: true, recommended_vendors: ["Local Distributor Outlet"] });
+                autoKittedItems.push(`${thinset}x Bags of Polymer Thinset Mortar`);
+            } else if (sub.includes("Shaker Cabinets")) {
+                let hinges = Math.ceil(qty * 2.5);
+                lineItems.push({ code: "10 21 02", desc: "Soft-Close Premium Cabinet Hardware Systems", qty: hinges, unit: "PCS", mat_cost: hinges * 8, lab_cost: laborReq ? (hinges * 3) : 0, is_accessory: true, recommended_vendors: ["Wholesale Hardware Lines"] });
+                autoKittedItems.push(`${hinges}x Soft-Close Cabinet Hinge Pairs`);
+            }
+
+            projectScope.push(...lineItems);
+            
+            document.getElementById('input_card').style.display = 'none';
+            document.getElementById('add_more_prompt_card').style.display = 'block';
+        }
+
+        function returnToInput() {
+            document.getElementById('quantity').value = '';
+            document.getElementById('sub_category_input').value = '';
+            document.getElementById('sub_category_value').value = '';
+            
+            // Reset slider interface cleanly to baseline configurations
+            document.getElementById('waste_factor').value = 10;
+            document.getElementById('waste_val_display').innerText = '10';
+            
+            document.getElementById('add_more_prompt_card').style.display = 'none';
+            document.getElementById('input_card').style.display = 'block';
+            document.getElementById('input_card').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function generateEstimateDashboard() {
+            document.getElementById('add_more_prompt_card').style.display = 'none';
+            
+            let totalMat = 0;
+            let totalLab = 0;
+
+            projectScope.forEach(item => {
+                totalMat += item.mat_cost;
+                totalLab += item.lab_cost;
+            });
+
+            let overallTotal = totalMat + totalLab;
+
+            document.getElementById('summary_count').innerText = projectScope.length;
+            document.getElementById('summary_mat').innerText = '$' + totalMat.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('summary_lab').innerText = '$' + totalLab.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('summary_total').innerText = '$' + overallTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            document.getElementById('summary_card').style.display = 'block';
+        }
+    </script>
 </body>
 </html>
