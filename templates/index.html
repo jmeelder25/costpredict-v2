@@ -3,166 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CostPredict MVP | Professional Estimator</title>
+    <title>CostPredict Pro | Multi-Component Scoping Engine</title>
     <style>
-        /* CostPredict Brand Colors */
         :root {
             --cp-blue: #23408A;
             --cp-yellow: #FFC113;
-            --cp-light-bg: #f8fafc;
-            --cp-text: #1e293b;
+            --cp-bg: #f1f5f9;
+            --cp-text: #0f172a;
         }
 
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--cp-light-bg); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--cp-bg);
             color: var(--cp-text);
+            margin: 0;
+            padding: 20px;
         }
 
-        .card { 
-            background: white; 
-            padding: 40px; 
-            border-radius: 12px; 
-            box-shadow: 0 10px 25px rgba(35, 64, 138, 0.1); 
-            width: 100%; 
-            max-width: 450px; 
-            border-top: 10px solid var(--cp-blue); 
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
         }
 
-        .logo-area {
-            text-align: center;
-            margin-bottom: 30px;
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
         }
 
-        .logo-text {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--cp-blue);
-            text-transform: uppercase;
-            letter-spacing: -1px;
+        .header-banner {
+            grid-column: 1 / -1;
+            background: var(--cp-blue);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            border-bottom: 6px solid var(--cp-yellow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .logo-text span {
-            color: var(--cp-yellow);
+        .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -1px; }
+        .logo-text span { color: var(--cp-yellow); }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            height: fit-content;
         }
 
-        .tagline {
-            font-size: 12px;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 5px;
-        }
+        h2 { color: var(--cp-blue); font-size: 18px; margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;}
+        
+        .form-group { margin-bottom: 15px; }
+        .form-row { display: flex; gap: 15px; }
+        .form-row .form-group { flex: 1; }
 
-        h2 { 
-            font-size: 18px;
-            margin: 0 0 20px 0;
-            text-align: center;
-            color: var(--cp-blue);
-        }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #475569; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; background: white;}
+        input:focus, select:focus { outline: none; border-color: var(--cp-blue); box-shadow: 0 0 0 3px rgba(35,64,138,0.1); }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+        button.btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 14px; border-radius: 6px; font-weight: 700; cursor: pointer; text-transform: uppercase; transition: background 0.2s; }
+        button.btn-primary:hover { background: #1a3069; }
+        button.btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 12px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; text-transform: uppercase; transition: opacity 0.2s; display: none; margin-top: 20px; width: 100%; }
+        button.btn-secondary:hover { opacity: 0.9; }
 
-        label { 
-            display: block; 
-            margin-bottom: 6px; 
-            font-weight: 600; 
-            font-size: 0.85rem; 
-            color: #475569;
-        }
-
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 6px; 
-            box-sizing: border-box; 
-            font-size: 16px;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--cp-blue);
-            box-shadow: 0 0 0 3px rgba(35, 64, 138, 0.1);
-        }
-
-        button { 
-            width: 100%; 
-            background: var(--cp-blue); 
-            color: white; 
-            border: none; 
-            padding: 16px; 
-            margin-top: 20px; 
-            border-radius: 6px; 
-            font-weight: 700; 
-            font-size: 16px;
-            cursor: pointer; 
-            transition: all 0.2s;
-            text-transform: uppercase;
-        }
-
-        button:hover { 
-            background: #1a3069; 
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(35, 64, 138, 0.2);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .footer-note {
-            text-align: center;
-            font-size: 11px;
-            color: #94a3b8;
-            margin-top: 25px;
-            line-height: 1.4;
-        }
+        .component-item { border-left: 4px solid var(--cp-blue); background: #f8fafc; padding: 12px; margin-bottom: 10px; border-radius: 0 6px 6px 0; font-size: 0.9rem; }
+        .component-meta { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+        
+        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
+        .grand-total { font-size: 1.3rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="logo-area">
-            <div class="logo-text">COST<span>PREDICT</span></div>
-            <div class="tagline">Predictive Pricing MVP</div>
-        </div>
 
-        <form action="/generate" method="post">
-            <div class="form-group">
-                <label>Project Description</label>
-                <input type="text" name="name" placeholder="e.g. Living Room LVP Install" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Total Square Footage</label>
-                <input type="number" name="sq_ft" placeholder="e.g. 1200" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Material Price ($ per SF)</label>
-                <input type="number" step="0.01" name="mat_rate" placeholder="3.50" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Labor Price ($ per SF)</label>
-                <input type="number" step="0.01" name="lab_rate" placeholder="2.25" required>
-            </div>
-            
-            <button type="submit">Generate PDF Report</button>
-        </form>
-
-        <div class="footer-note">
-            Predictive engine calculates incidentals and waste factors automatically.<br>
-            Powered by CostPredict Logic © 2026
-        </div>
+<div class="container">
+    <div class="header-banner">
+        <div class="logo-text">COST<span>PREDICT</span> PRO</div>
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Scope Builder Console</div>
     </div>
+
+    <div class="card">
+        <h2>Project Metadata</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Project Type</label>
+                <select id="project_type">
+                    <option value="Residential">Residential</option>
+                    <option value="Commercial">Commercial</option>
+                    <option value="Mixed-Use">Mixed-Use</option>
+                    <option value="Industrial">Industrial</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Project Location</label>
+                <input type="text" id="location" value="Chicago, IL">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Est. Start Date</label>
+                <input type="date" id="start_date">
+            </div>
+            <div class="form-group">
+                <label>Labor Configuration</label>
+                <select id="labor_required">
+                    <option value="Yes">Include Installation Labor</option>
+                    <option value="No">Material Supply Only</option>
+                </select>
+            </div>
+        </div>
+
+        <h2>Component Sourcing Configuration</h2>
+        <div class="form-group">
+            <label>Main Material Category</label>
+            <select id="main_category" onchange="updateSubcategories()">
+                <option value="" disabled selected>Select category...</option>
+                <option value="Flooring">Flooring Divisions</option>
+                <option value="Walls">Walls & Drywall Assemblies</option>
+                <option value="Ceilings">Ceiling Systems</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Exact Material Subcategory</label>
+            <select id="sub_category" disabled>
+                <option value="">Select main category first...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Takeoff Quantity Needed (SF)</label>
+            <input type="number" id="quantity" placeholder="e.g. 1200" min="1">
+        </div>
+
+        <button class="btn-primary" onclick="addComponent()">Add Component to Scope</button>
+    </div>
+
+    <div class="card">
+        <h2>Live Project Bill of Quantities</h2>
+        <div id="components_list" style="min-height: 120px; color: #94a3b8; font-size: 0.9rem; padding: 10px 0;">
+            No components added to the scope assembly yet.
+        </div>
+
+        <h2>On-Screen Cost Evaluation</h2>
+        <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
+        <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
+        <div class="summary-row"><span>Regional Regulatory Tax (10.25%):</span><span id="lbl_tax">$0.00</span></div>
+        <div class="summary-row grand-total"><span>Project Total Estimation:</span><span id="lbl_total">$0.00</span></div>
+
+        <form id="pdf_form" action="/generate" method="post">
+            <input type="hidden" name="payload" id="payload_input">
+            <button type="submit" class="btn-secondary" id="btn_print">Export Final Verified PDF Report</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // System Data Matrix containing industry baseline values
+    const dataMatrix = {
+        "Flooring": {
+            "Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19" },
+            "Porcelain/Ceramic Tile": { mat: 5.50, lab: 7.00, code: "09 30 13" },
+            "Commercial Carpet Tile": { mat: 2.75, lab: 1.50, code: "09 68 13" }
+        },
+        "Walls": {
+            "1/2\" Standard Gypsum Board": { mat: 0.65, lab: 1.85, code: "09 29 00" },
+            "5/8\" Fire-Rated Type X": { mat: 0.85, lab: 2.10, code: "09 29 13" },
+            "Moisture-Resistant Greenboard": { mat: 0.95, lab: 2.00, code: "09 29 20" }
+        },
+        "Ceilings": {
+            "2x2 Acoustic Ceiling Grid": { mat: 2.10, lab: 3.25, code: "09 51 13" },
+            "2x4 Industrial Ceiling Grid": { mat: 1.85, lab: 2.90, code: "09 51 23" }
+        }
+    };
+
+    let projectScope = [];
+
+    // Triggered instantly when user shifts the parent category
+    function updateSubcategories() {
+        const mainCat = document.getElementById('main_category').value;
+        const subSelect = document.getElementById('sub_category');
+        subSelect.innerHTML = '';
+        subSelect.disabled = false;
+
+        Object.keys(dataMatrix[mainCat]).forEach(sub => {
+            let opt = document.createElement('option');
+            opt.value = sub;
+            opt.innerHTML = sub;
+            subSelect.appendChild(opt);
+        });
+    }
+
+    // Handles calculation array generation dynamically on screen
+    function addComponent() {
+        const main = document.getElementById('main_category').value;
+        const sub = document.getElementById('sub_category').value;
+        const qty = parseFloat(document.getElementById('quantity').value);
+        const laborReq = document.getElementById('labor_required').value === "Yes";
+
+        if (!main || !sub || isNaN(qty) || qty <= 0) {
+            alert("Please complete the Component Sourcing configurations before adding.");
+            return;
+        }
+
+        const baseline = dataMatrix[main][sub];
+        
+        // Calculate dynamic incidentals instantly
+        let lineItems = [];
+        let wasteFactor = sub.includes("Tile") ? 1.15 : 1.10;
+        let finalQty = Math.ceil(qty * wasteFactor);
+
+        // Core component line
+        lineItems.push({
+            code: baseline.code,
+            desc: sub,
+            qty: finalQty,
+            unit: "SF",
+            mat_cost: finalQty * baseline.mat,
+            lab_cost: laborReq ? (finalQty * baseline.lab) : 0
+        });
+
+        // Auto-inject explicit incidentals based on rules
+        if (sub === "Luxury Vinyl Plank (LVP)") {
+            let tstrips = Math.max(1, Math.ceil(qty / 300));
+            lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transition Strips", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
+        } else if (sub === "Porcelain/Ceramic Tile") {
+            let thinset = Math.max(1, Math.ceil(qty / 60));
+            lineItems.push({ code: "09 30 05", desc: "Polymer-Modified Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0 });
+        }
+
+        projectScope.push(...lineItems);
+        renderProjectState();
+        
+        // Reset element inputs for multi-item stacking flow
+        document.getElementById('quantity').value = '';
+    }
+
+    function renderProjectState() {
+        const listDiv = document.getElementById('components_list');
+        if (projectScope.length === 0) {
+            listDiv.innerHTML = "No components added to the scope assembly yet.";
+            return;
+        }
+
+        listDiv.innerHTML = '';
+        let totalMat = 0, totalLab = 0;
+
+        projectScope.forEach(item => {
+            totalMat += item.mat_cost;
+            totalLab += item.lab_cost;
+
+            let div = document.createElement('div');
+            div.className = 'component-item';
+            div.innerHTML = `
+                <strong>${item.desc}</strong> <span style="float:right; font-family:monospace; color:#64748b;">${item.code}</span>
+                <div class="component-meta">Qty: ${item.qty} ${item.unit} | Mat: $${item.mat_cost.toFixed(2)} | Lab: $${item.lab_cost.toFixed(2)}</div>
+            `;
+            listDiv.appendChild(item);
+            listDiv.appendChild(div);
+        });
+
+        let taxRate = document.getElementById('location').value.includes("Chicago") ? 0.1025 : 0.08;
+        let computedTax = totalMat * taxRate;
+        let grandTotal = totalMat + totalLab + computedTax;
+
+        document.getElementById('lbl_mat').innerHTML = `$${totalMat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_lab').innerHTML = `$${totalLab.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_total').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        // Prepare context data block for backend transmittal
+        const fullPayload = {
+            metadata: {
+                project_type: document.getElementById('project_type').value,
+                location: document.getElementById('location').value,
+                start_date: document.getElementById('start_date').value,
+                labor_required: document.getElementById('labor_required').value
+            },
+            line_items: projectScope,
+            totals: { mat: totalMat, lab: totalLab, tax: computedTax, grand: grandTotal }
+        };
+
+        document.getElementById('payload_input').value = JSON.stringify(fullPayload);
+        document.getElementById('btn_print').style.display = 'block';
+    }
+</script>
 </body>
 </html>
