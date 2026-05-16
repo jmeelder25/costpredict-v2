@@ -32,7 +32,7 @@
         .header-banner {
             background: var(--cp-blue);
             color: white;
-            padding: 16px;
+            padding: 20px 16px;
             border-radius: 12px;
             border-bottom: 5px solid var(--cp-yellow);
             text-align: center;
@@ -42,22 +42,22 @@
             justify-content: center;
         }
 
-        /* Displays the white logo asset instead of raw text */
         .brand-logo {
-            height: 45px;
+            height: 38px;
             width: auto;
-            max-width: 100%;
+            max-width: 90%;
             object-fit: contain;
-            margin-bottom: 4px;
+            display: block;
         }
 
         .tagline { 
-            font-size: 11px; 
+            font-size: 10.5px; 
             font-weight: 700;
             color: #ffffff;
-            letter-spacing: 1.5px; 
-            margin-top: 2px;
+            letter-spacing: 1.75px; 
+            margin-top: 8px;
             text-transform: uppercase;
+            opacity: 0.9;
         }
 
         .card {
@@ -93,6 +93,13 @@
             transition: border-color 0.2s;
         }
         input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
+
+        /* Highlighted style for the active search bar */
+        .search-input {
+            border-color: #94a3b8;
+            background-color: #f8fafc;
+            margin-bottom: 8px;
+        }
 
         button.btn-primary { 
             width: 100%; 
@@ -143,8 +150,7 @@
 
 <div class="wrapper">
     <div class="header-banner">
-        <img src="/static/CostPredict_Logo_White.png" alt="CostPredict" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; display:none; color:#ffffff;">COST<span style="color:var(--cp-yellow);">PREDICT</span></div>
+        <img src="/static/CostPredict_Logo_White.png" alt="CostPredict" class="brand-logo">
         <div class="tagline">PRICING MADE PREDICTIVE</div>
     </div>
 
@@ -171,20 +177,32 @@
         </div>
 
         <h2 class="section-break">2. Project Details</h2>
+        
         <div class="form-group">
-            <label>Main Material Category</label>
+            <label>Search Category / Tab</label>
+            <input type="text" id="category_search" class="search-input" placeholder="Type to filter e.g. Wood, Concrete..." onkeyup="filterCategories()">
+        </div>
+
+        <div class="form-group">
+            <label>Main Material Category (Spreadsheet Tab)</label>
             <select id="main_category" onchange="updateSubcategories()">
                 <option value="" disabled selected>Select category...</option>
-                <option value="Lumber">Lumber & Framing</option>
-                <option value="Concrete">Concrete & Masonry</option>
-                <option value="Drywall">Drywall Assemblies</option>
-                <option value="Flooring">Flooring Divisions</option>
+                <option value="GeneralConditions">Tab 1: General Conditions</option>
+                <option value="Concrete">Tab 2: Concrete & Foundations</option>
+                <option value="Masonry">Tab 3: Masonry Divisions</option>
+                <option value="Metals">Tab 4: Structural Metals</option>
+                <option value="WoodPlasticComposites">Tab 5: Wood, Plastics & Composites</option>
+                <option value="ThermalMoistureProtection">Tab 6: Thermal & Moisture Protection</option>
+                <option value="Openings">Tab 7: Openings (Doors & Windows)</option>
+                <option value="Finishes">Tab 8: Finishes & Drywall Systems</option>
+                <option value="Specialties">Tab 9: Specialties & Equipment</option>
+                <option value="ConveyingEquipment">Tab 10: Conveying Systems</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Exact Material Subcategory</label>
+            <label>Exact Material Subcategory (Table Item)</label>
             <select id="sub_category" disabled>
-                <option value="">Select main category first...</option>
+                <option value="">Select main tab first...</option>
             </select>
         </div>
         <div class="form-group">
@@ -222,131 +240,17 @@
 </div>
 
 <script>
-    // Comprehensive Core Datasets mapping exact operational metrics
     const dataMatrix = {
-        "Lumber": {
-            "2x4x8 Stud (SPF)": { mat: 4.25, lab: 3.15, code: "06 11 00", unit: "BF" },
-            "2x6x16 Premium Framing": { mat: 12.50, lab: 5.50, code: "06 11 10", unit: "BF" },
-            "3/4\" OSB Subfloor Sheathing": { mat: 28.00, lab: 14.50, code: "06 16 23", unit: "SF" }
+        "GeneralConditions": {
+            "Project Management & Supervision": { mat: 0.00, lab: 85.00, code: "01 31 00", unit: "HR" },
+            "Temporary Facilities & Utilities": { mat: 450.00, lab: 120.00, code: "01 50 00", unit: "MTH" },
+            "Final Site Post-Construction Cleanup": { mat: 75.00, lab: 180.00, code: "01 74 13", unit: "DAY" }
         },
         "Concrete": {
-            "4000 PSI Ready-Mix Concrete": { mat: 145.00, lab: 95.00, code: "03 30 00", unit: "CY" },
-            "8\"x8\"x16\" Standard CMU Block": { mat: 2.85, lab: 6.50, code: "04 22 00", unit: "PCS" },
-            "#4 Rebar Grade 60 (20ft)": { mat: 11.25, lab: 8.00, code: "03 21 00", unit: "LNFT" }
+            "4000 PSI Ready-Mix Foundation Concrete": { mat: 145.00, lab: 95.00, code: "03 30 00", unit: "CY" },
+            "Grade 60 #4 Welded Wire Mesh Sheeting": { mat: 0.45, lab: 0.60, code: "03 22 00", unit: "SF" },
+            "Concrete Formwork Assemblies": { mat: 3.25, lab: 5.50, code: "03 11 00", unit: "SF" }
         },
-        "Drywall": {
-            "1/2\" Standard Gypsum Board": { mat: 0.65, lab: 1.85, code: "09 29 00", unit: "SF" },
-            "5/8\" Fire-Rated Type X": { mat: 0.85, lab: 2.10, code: "09 29 13", unit: "SF" },
-            "Moisture-Resistant Greenboard": { mat: 0.95, lab: 2.00, code: "09 29 20", unit: "SF" }
-        },
-        "Flooring": {
-            "Luxury Vinyl Plank (LVP)": { mat: 3.50, lab: 2.50, code: "09 65 19", unit: "SF" },
-            "Porcelain/Ceramic Tile": { mat: 5.50, lab: 7.00, code: "09 30 13", unit: "SF" },
-            "Commercial Carpet Tile": { mat: 2.75, lab: 1.50, code: "09 68 13", unit: "SF" }
-        }
-    };
-
-    let projectScope = [];
-
-    function updateSubcategories() {
-        const mainCat = document.getElementById('main_category').value;
-        const subSelect = document.getElementById('sub_category');
-        subSelect.innerHTML = '';
-        subSelect.disabled = false;
-
-        Object.keys(dataMatrix[mainCat]).forEach(sub => {
-            let opt = document.createElement('option');
-            opt.value = sub;
-            opt.innerHTML = sub;
-            subSelect.appendChild(opt);
-        });
-    }
-
-    function addComponent() {
-        const main = document.getElementById('main_category').value;
-        const sub = document.getElementById('sub_category').value;
-        const qty = parseFloat(document.getElementById('quantity').value);
-        const laborReq = document.getElementById('labor_required').value === "Yes";
-
-        if (!main || !sub || isNaN(qty) || qty <= 0) {
-            alert("Please input a valid quantity.");
-            return;
-        }
-
-        const baseline = dataMatrix[main][sub];
-        let lineItems = [];
-        
-        // Apply specialized waste parameters depending on category selection
-        let wasteFactor = (main === "Concrete" || sub.includes("Tile")) ? 1.15 : 1.10;
-        let finalQty = Math.ceil(qty * wasteFactor);
-
-        lineItems.push({
-            code: baseline.code,
-            desc: sub,
-            qty: finalQty,
-            unit: baseline.unit,
-            mat_cost: finalQty * baseline.mat,
-            lab_cost: laborReq ? (finalQty * baseline.lab) : 0
-        });
-
-        // Calculate material dependencies
-        if (sub === "Luxury Vinyl Plank (LVP)") {
-            let tstrips = Math.max(1, Math.ceil(qty / 300));
-            lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
-        } else if (sub === "Porcelain/Ceramic Tile") {
-            let thinset = Math.max(1, Math.ceil(qty / 60));
-            lineItems.push({ code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0 });
-        }
-
-        projectScope.push(...lineItems);
-        renderProjectState();
-        
-        document.getElementById('quantity').value = '';
-        
-        const resultsPanel = document.getElementById('results_panel');
-        resultsPanel.style.display = 'block';
-        resultsPanel.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function renderProjectState() {
-        const listDiv = document.getElementById('components_list');
-        listDiv.innerHTML = '';
-        let totalMat = 0, totalLab = 0;
-
-        projectScope.forEach(item => {
-            totalMat += item.mat_cost;
-            totalLab += item.lab_cost;
-
-            let div = document.createElement('div');
-            div.className = 'component-item';
-            div.innerHTML = `
-                <div style="font-weight:700;">${item.desc} <span style="float:right; font-family:monospace; color:#64748b; font-size:11px;">${item.code}</span></div>
-                <div class="component-meta">Qty: ${item.qty} ${item.unit} | Mat: $${item.mat_cost.toFixed(2)} | Lab: $${item.lab_cost.toFixed(2)}</div>
-            `;
-            listDiv.appendChild(div);
-        });
-
-        let taxRate = document.getElementById('location').value.includes("Chicago") ? 0.1025 : 0.08;
-        let computedTax = totalMat * taxRate;
-        let grandTotal = totalMat + totalLab + computedTax;
-
-        document.getElementById('lbl_mat').innerHTML = `$${totalMat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_lab').innerHTML = `$${totalLab.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_total').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-
-        const fullPayload = {
-            metadata: {
-                project_type: document.getElementById('project_type').value,
-                location: document.getElementById('location').value,
-                start_date: document.getElementById('start_date').value
-            },
-            line_items: projectScope,
-            totals: { mat: totalMat, lab: totalLab, tax: computedTax, grand: grandTotal }
-        };
-
-        document.getElementById('payload_input').value = JSON.stringify(fullPayload);
-    }
-</script>
-</body>
-</html>
+        "Masonry": {
+            "8\"x8\"x16\" Standard Concrete CMU Block": { mat: 2.85, lab: 6.50, code: "04 22 00", unit: "PCS" },
+            "Modular Exterior Face Brick": { mat: 0.95, lab: 2.25, code: "
