@@ -66,6 +66,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04);
             border: 1px solid #e2e8f0;
+            position: relative;
         }
 
         .results-card {
@@ -76,7 +77,7 @@
         h2 { color: var(--cp-blue); font-size: 16px; margin-top: 0; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; font-weight: 700;}
         h2.section-break { margin-top: 12px; }
 
-        .form-group { margin-bottom: 14px; }
+        .form-group { margin-bottom: 14px; position: relative; }
         .form-row { display: flex; gap: 10px; }
         .form-row .form-group { flex: 1; }
 
@@ -94,10 +95,30 @@
         }
         input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
 
-        .search-input {
-            border-color: #94a3b8;
-            background-color: #f8fafc;
-            margin-bottom: 8px;
+        /* Autocomplete Search Dropdowns UI */
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .suggestion-item {
+            padding: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .suggestion-item:hover {
+            background-color: #f1f5f9;
+            color: var(--cp-blue);
         }
 
         .slider-container {
@@ -150,16 +171,6 @@
             box-shadow: 0 4px 10px rgba(255, 193, 19, 0.2);
         }
 
-        .btn-append {
-            background: #10b981; 
-            color: white; 
-            border: none; 
-            padding: 0 16px; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            cursor: pointer;
-        }
-
         .component-item { 
             border-left: 4px solid var(--cp-blue); 
             background: #f8fafc; 
@@ -173,7 +184,8 @@
         .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
         .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
         
-        .footer-note { text-align: center; font-size: 10px; color: #94a3b8; margin: 15px 0 10px 0; }
+        .footer-note { text-align: center; font-size: 10px; color: #94a3b8; margin: 20px 0 10px 0; line-height: 1.4; }
+        .legal-disclaimer { font-size: 9px; color: #cbd5e1; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px; text-align: justify; }
     </style>
 </head>
 <body>
@@ -189,7 +201,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Project Type</label>
-                <select id="project_type">
+                <select id="project_type" onchange="saveState()">
                     <option value="Residential">Residential</option>
                     <option value="Commercial">Commercial</option>
                     <option value="Mixed-Use">Mixed-Use</option>
@@ -198,33 +210,28 @@
             </div>
             <div class="form-group">
                 <label>Project Location</label>
-                <input type="text" id="location" placeholder="e.g. Chicago, IL" value="Chicago, IL">
+                <input type="text" id="location" placeholder="e.g. Chicago, IL" oninput="saveState()">
             </div>
         </div>
         <div class="form-group">
             <label>Est. Start Date</label>
-            <input type="date" id="start_date">
+            <input type="date" id="start_date" onchange="saveState()">
         </div>
 
         <h2 class="section-break">Step 2. Project Details</h2>
         
         <div class="form-group">
-            <label>Search Master Items & Categories</label>
-            <input type="text" id="category_search" class="search-input" placeholder="Type material name (e.g., Shaker, Quartz, Vinyl)..." onkeyup="filterMasterItems()">
+            <label>Main Material Category</label>
+            <input type="text" id="category_search" placeholder="Type or select category (e.g., Cabinets, Flooring)..." onfocus="showCategories()" oninput="filterCategories()">
+            <div id="category_suggestions" class="autocomplete-suggestions"></div>
         </div>
 
         <div class="form-group">
-            <label>Main Material Category</label>
-            <select id="main_category" onchange="populateSubcategories()">
-                <option value="" disabled selected>Loading master database sheets...</option>
-            </select>
-        </div>
-        <div class="form-group">
             <label>Exact Material Subcategory</label>
-            <select id="sub_category" disabled>
-                <option value="">Select main category first...</option>
-            </select>
+            <input type="text" id="subcategory_search" placeholder="Select a category first..." disabled onfocus="showSubcategories()" oninput="filterSubcategories()">
+            <div id="subcategory_suggestions" class="autocomplete-suggestions"></div>
         </div>
+
         <div class="form-group">
             <label>Quantity Needed</label>
             <input type="number" id="quantity" pattern="[0-9]*" inputmode="numeric" placeholder="Enter number quantity" min="1">
@@ -247,14 +254,6 @@
         </div>
 
         <button class="btn-primary" onclick="addComponent()">Add to Project</button>
-
-        <div class="form-group" style="margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
-            <label style="color: var(--cp-blue);">Can't find your item? Append Database:</label>
-            <div style="display: flex; gap: 8px; margin-top: 4px;">
-                <input type="text" id="custom_override_input" placeholder="e.g., Premium Walnut Slab">
-                <button type="button" class="btn-append" onclick="submitCustomRefinement()">Append</button>
-            </div>
-        </div>
     </div>
 
     <div class="card results-card" id="results_panel">
@@ -264,7 +263,7 @@
         <h2>On-Screen Cost Evaluation</h2>
         <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
         <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
-        <div class="summary-row"><span>Regional Tax (10.25%):</span><span id="lbl_tax">$0.00</span></div>
+        <div class="summary-row"><span>Regional Tax:</span><span id="lbl_tax">$0.00</span></div>
         <div class="summary-row grand-total"><span>Project Estimation:</span><span id="lbl_total">$0.00</span></div>
 
         <form id="pdf_form" action="/generate" method="post">
@@ -273,100 +272,162 @@
         </form>
     </div>
     
-    <div class="footer-note">CostPredict Engine v2.5 © 2026</div>
+    <div class="footer-note">
+        CostPredict Engine v2.5 © 2026
+        <div class="legal-disclaimer">
+            <strong>LEGAL LIABILITY DISCLAIMER:</strong> All cost evaluations, asset measurements, and predictive material output parameters generated by CostPredict are automated configurations provided solely for baseline budgeting and scoping evaluations. These values do not constitute structural advice, architectural blueprints, or binding contractual pricing guarantees. Actual regional material rates, labor availability, and construction engineering demands will vary by project conditions. Users must independently verify all bills of quantities with a licensed professional contractor prior to project execution.
+        </div>
+    </div>
 </div>
 
 <script>
     // Server-fed master data variable parsed directly from python context templates
-    // Gracefully falls back to mock rows if server parameters drop out
-    const masterDataFile = {{ master_data | safe }} || {
-        "Concrete": { code: "03 30 00", unit: "SF", items: ["Concrete Mix", "Concrete Block"] },
-        "Cabinets": { code: "06 41 16", unit: "PCS", items: ["Shaker Cabinets", "Base Cabinets"] }
-    };
-
+    const masterDataFile = {{ master_data | safe }} || {};
+    
     const baselinePricing = { mat_base: 45.00, lab_base: 35.00 };
     let projectScope = [];
+    let activeCategoryKey = "";
 
-    // Dynamically injects all categories parsed from the filesystem on window loading
+    // Global persistence layer preserves input state parameters across refreshes
     window.addEventListener('DOMContentLoaded', () => {
-        const mainSelect = document.getElementById('main_category');
-        mainSelect.innerHTML = '<option value="" disabled selected>Select category or type above...</option>';
+        document.getElementById('location').value = localStorage.getItem('cp_location') || 'Chicago, IL';
+        document.getElementById('start_date').value = localStorage.getItem('cp_start_date') || '';
+        document.getElementById('project_type').value = localStorage.getItem('cp_project_type') || 'Residential';
         
-        Object.keys(masterDataFile).forEach(cat => {
-            let opt = document.createElement('option');
-            opt.value = cat;
-            // Spacifies camelCased or concatenated filename entries automatically
-            opt.innerHTML = cat.replace(/([A-Z])/g, ' $1').trim();
-            mainSelect.appendChild(opt);
+        // Close search lists instantly if the user clicks outside options
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.form-group')) {
+                hideAllSuggestions();
+            }
         });
     });
+
+    function saveState() {
+        localStorage.setItem('cp_location', document.getElementById('location').value);
+        localStorage.setItem('cp_start_date', document.getElementById('start_date').value);
+        localStorage.setItem('cp_project_type', document.getElementById('project_type').value);
+    }
 
     function updateSliderLabel(val) {
         document.getElementById('waste_label').innerText = val + '%';
     }
 
-    // Direct search algorithm loop handles rapid autocomplete key parsing
-    function filterMasterItems() {
-        const searchText = document.getElementById('category_search').value.toLowerCase();
-        const mainSelect = document.getElementById('main_category');
-        
-        if (searchText.trim() === "") return;
-
-        for (const [categoryKey, categoryData] of Object.entries(masterDataFile)) {
-            const foundItem = categoryData.items.find(item => item.toLowerCase().includes(searchText));
-            
-            if (foundItem) {
-                mainSelect.value = categoryKey;
-                populateSubcategories();
-                document.getElementById('sub_category').value = foundItem;
-                break;
-            }
-        }
+    function hideAllSuggestions() {
+        document.getElementById('category_suggestions').style.display = 'none';
+        document.getElementById('subcategory_suggestions').style.display = 'none';
     }
 
-    function populateSubcategories() {
-        const mainCat = document.getElementById('main_category').value;
-        const subSelect = document.getElementById('sub_category');
-        subSelect.innerHTML = '';
-        subSelect.disabled = false;
-
-        if (!masterDataFile[mainCat]) return;
-
-        masterDataFile[mainCat].items.forEach(item => {
-            let opt = document.createElement('option');
-            opt.value = item;
-            opt.innerHTML = item;
-            subSelect.appendChild(opt);
+    // --- Dynamic Category Autocomplete Search Box Engine ---
+    function showCategories() {
+        hideAllSuggestions();
+        const container = document.getElementById('category_suggestions');
+        container.innerHTML = '';
+        
+        Object.keys(masterDataFile).forEach(cat => {
+            let div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerHTML = cat.replace(/([A-Z])/g, ' $1').trim();
+            div.onclick = () => selectCategory(cat);
+            container.appendChild(div);
         });
+        container.style.display = 'block';
+    }
 
-        // Predictive structural waste allocation engine rules
+    function filterCategories() {
+        const query = document.getElementById('category_search').value.toLowerCase();
+        const container = document.getElementById('category_suggestions');
+        container.innerHTML = '';
+        
+        Object.keys(masterDataFile).forEach(cat => {
+            const cleanName = cat.replace(/([A-Z])/g, ' $1').trim();
+            if (cleanName.toLowerCase().includes(query)) {
+                let div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = cleanName;
+                div.onclick = () => selectCategory(cat);
+                container.appendChild(div);
+            }
+        });
+        container.style.display = 'block';
+    }
+
+    function selectCategory(catKey) {
+        activeCategoryKey = catKey;
+        const cleanName = catKey.replace(/([A-Z])/g, ' $1').trim();
+        document.getElementById('category_search').value = cleanName;
+        hideAllSuggestions();
+
+        // Unlock down-stream predictive subcategory search input fields
+        const subInput = document.getElementById('subcategory_search');
+        subInput.disabled = false;
+        subInput.value = '';
+        subInput.placeholder = "Type or select dynamic items...";
+    }
+
+    // --- Dynamic Subcategory Autocomplete Search Box Engine ---
+    function showSubcategories() {
+        if (!activeCategoryKey || !masterDataFile[activeCategoryKey]) return;
+        hideAllSuggestions();
+        
+        const container = document.getElementById('subcategory_suggestions');
+        container.innerHTML = '';
+        
+        masterDataFile[activeCategoryKey].items.forEach(item => {
+            let div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerHTML = item;
+            div.onclick = () => selectSubcategory(item);
+            container.appendChild(div);
+        });
+        container.style.display = 'block';
+    }
+
+    function filterSubcategories() {
+        if (!activeCategoryKey || !masterDataFile[activeCategoryKey]) return;
+        const query = document.getElementById('subcategory_search').value.toLowerCase();
+        const container = document.getElementById('subcategory_suggestions');
+        container.innerHTML = '';
+        
+        masterDataFile[activeCategoryKey].items.forEach(item => {
+            if (item.toLowerCase().includes(query)) {
+                let div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = item;
+                div.onclick = () => selectSubcategory(item);
+                container.appendChild(div);
+            }
+        });
+        container.style.display = 'block';
+    }
+
+    function selectSubcategory(itemValue) {
+        document.getElementById('subcategory_search').value = itemValue;
+        hideAllSuggestions();
+
+        // Auto-assign specific predictive material waste slider thresholds
         const slider = document.getElementById('waste_factor');
-        if (mainCat === "Concrete" || mainCat === "Drywall") {
+        if (activeCategoryKey === "Concrete" || activeCategoryKey === "Drywall") {
+            slider.value = 15;
+        } else if (itemValue.includes("Tile") || itemValue.includes("Marble") || itemValue.includes("Granite")) {
             slider.value = 15;
         } else {
-            const currentSub = subSelect.value || "";
-            if (currentSub.includes("Tile") || currentSub.includes("Marble") || currentSub.includes("Granite")) {
-                slider.value = 15;
-            } else {
-                slider.value = 10;
-            }
+            slider.value = 10;
         }
         updateSliderLabel(slider.value);
     }
 
     function addComponent() {
-        const main = document.getElementById('main_category').value;
-        const sub = document.getElementById('sub_category').value;
+        const sub = document.getElementById('subcategory_search').value;
         const qty = parseFloat(document.getElementById('quantity').value);
         const laborReq = document.getElementById('labor_required').value === "Yes";
         const wastePct = parseFloat(document.getElementById('waste_factor').value);
 
-        if (!main || !sub || isNaN(qty) || qty <= 0) {
-            alert("Please input a valid quantity.");
+        if (!activeCategoryKey || !sub || isNaN(qty) || qty <= 0) {
+            alert("Please input a valid quantity and select your materials.");
             return;
         }
 
-        const metadata = masterDataFile[main];
+        const metadata = masterDataFile[activeCategoryKey];
         let lineItems = [];
         
         let wasteFactor = 1 + (wastePct / 100);
@@ -381,7 +442,7 @@
             lab_cost: laborReq ? (finalQty * baselinePricing.lab_base) : 0
         });
 
-        // Accessories automation triggers
+        // Accessory generation rules
         if (sub.includes("Vinyl Plank") || sub.includes("Laminate Flooring")) {
             let tstrips = Math.max(1, Math.ceil(qty / 300));
             lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
@@ -397,7 +458,7 @@
         renderProjectState();
         
         document.getElementById('quantity').value = '';
-        document.getElementById('category_search').value = '';
+        document.getElementById('subcategory_search').value = '';
         
         const resultsPanel = document.getElementById('results_panel');
         resultsPanel.style.display = 'block';
@@ -422,13 +483,13 @@
             listDiv.appendChild(div);
         });
 
-        let taxRate = document.getElementById('location').value.includes("Chicago") ? 0.1025 : 0.08;
+        let taxRate = document.getElementById('location').value.includes("Chicago") ? 0.1025 : 0.0800;
         let computedTax = totalMat * taxRate;
         let grandTotal = totalMat + totalLab + computedTax;
 
         document.getElementById('lbl_mat').innerHTML = `$${totalMat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('lbl_lab').innerHTML = `$${totalLab.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(taxRate * 100).toFixed(2)}%)`;
         document.getElementById('lbl_total').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
         const fullPayload = {
@@ -442,36 +503,6 @@
         };
 
         document.getElementById('payload_input').value = JSON.stringify(fullPayload);
-    }
-
-    // Handles live dispatching of manual modifications directly back to the data directory sheets
-    function submitCustomRefinement() {
-        const selectedCategory = document.getElementById('main_category').value;
-        const newItemString = document.getElementById('custom_override_input').value;
-        
-        if(!selectedCategory || !newItemString.trim()) {
-            alert("Please pick a primary material category and enter the new item name.");
-            return;
-        }
-        
-        fetch('/api/refine', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                category: selectedCategory,
-                item_name: newItemString
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.status === "success") {
-                alert(data.message);
-                location.reload(); // Hot-reloads the window view with the newly compiled list entry
-            } else {
-                alert("Error appending record: " + data.message);
-            }
-        })
-        .catch(err => console.error("Refinement synchronization error:", err));
     }
 </script>
 </body>
