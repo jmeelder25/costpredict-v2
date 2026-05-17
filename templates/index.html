@@ -223,9 +223,28 @@
         .btn-yes { background: var(--cp-blue); color: white; }
         .btn-no { background: #e2e8f0; color: #475569; }
 
-        /* Scoping Flow Gatekeeper Components */
+        /* Scoping Flow Shopping Cart Links */
+        .add-more-link {
+            display: block;
+            text-align: center;
+            color: var(--cp-blue);
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            margin: 8px 0 14px 0;
+            padding: 10px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            background: #ffffff;
+            transition: all 0.2s;
+        }
+        .add-more-link:hover {
+            background: #f1f5f9;
+            border-color: var(--cp-blue);
+        }
+
         .gatekeeper-wrapper {
-            margin: 15px 0;
+            margin: 10px 0 15px 0;
             padding: 12px;
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
@@ -297,7 +316,7 @@
         <div class="tagline">CONSTRUCTION PRICING MADE PREDICTIVE</div>
     </div>
 
-    <div class="card">
+    <div class="card" id="input_form_card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">
             <h2 style="margin: 0; border: none; padding: 0;">Step 1. Project Description</h2>
             <button type="button" onclick="clearProjectForm()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Clear Form</button>
@@ -361,8 +380,10 @@
     </div>
 
     <div class="card results-card" id="results_panel">
-        <h2>Live Bill of Quantities</h2>
+        <h2>Cost Prediction</h2>
         <div id="components_list" style="margin-bottom: 10px;"></div>
+
+        <a href="#input_form_card" class="add-more-link" onclick="focusFormInput()">➕ Add Another Material</a>
 
         <div class="gatekeeper-wrapper" onclick="toggleGatekeeper()">
             <input type="checkbox" id="scoping_complete_checkbox" onclick="event.stopPropagation()">
@@ -374,13 +395,8 @@
             <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
             <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
             <div class="summary-row"><span>Regional Sales Tax:</span><span id="lbl_tax">$0.00</span></div>
-            <div class="summary-row grand-total" style="border-bottom: none; margin-bottom: 0; padding-bottom: 4px;"><span>Project Estimation:</span><span id="lbl_total">$0.00</span></div>
+            <div class="summary-row grand-total" style="border-bottom: none; margin-bottom: 12px; padding-bottom: 4px;"><span>Project Estimation:</span><span id="lbl_total">$0.00</span></div>
             
-            <div class="summary-row" style="border-top: 1px solid #cbd5e1; border-bottom: 2px solid var(--cp-blue); padding: 8px 0; margin-bottom: 12px; background: #f8fafc; padding-left: 6px; padding-right: 6px; border-radius: 0 0 4px 4px;">
-                <span style="font-weight: 700; color: #475569; font-size: 0.8rem;">Confidence Score:</span>
-                <span id="lbl_confidence" style="font-weight: 800; font-family: monospace;">100%</span>
-            </div>
-
             <form id="pdf_form" action="/generate" method="post">
                 <input type="hidden" name="payload" id="payload_input">
                 <button type="submit" class="btn-secondary">Print Full Project Report</button>
@@ -410,7 +426,6 @@
 <script>
     const masterDataFile = {{ master_data | safe }} || {};
     
-    // Flexible Range Cost Modifiers
     const basePricingRanges = {
         mat: { min: 35.00, avg: 45.00, max: 60.00 },
         lab: { min: 25.00, avg: 35.00, max: 45.00 }
@@ -443,17 +458,14 @@
     }
 
     function clearProjectForm() {
-        // 1. Purge persistent state records from local browser cache storage
         localStorage.removeItem('cp_location');
         localStorage.removeItem('cp_start_date');
         localStorage.setItem('cp_project_type', 'Residential');
 
-        // 2. Clear input elements on the active viewport UI frame
         document.getElementById('location').value = '';
         document.getElementById('start_date').value = '';
         document.getElementById('project_type').value = 'Residential';
         
-        // 3. Clear material input fields to match
         document.getElementById('category_search').value = '';
         const subInput = document.getElementById('subcategory_search');
         subInput.value = '';
@@ -463,15 +475,17 @@
         document.getElementById('waste_factor').value = 10;
         updateSliderLabel(10);
 
-        // 4. Reset the active scope item tracking arrays
         projectScope = [];
         activeCategoryKey = "";
         pendingComponentData = null;
 
-        // 5. Hide output tracking elements and uncheck completion gates
         document.getElementById('scoping_complete_checkbox').checked = false;
         document.getElementById('evaluation_panel').style.display = 'none';
         document.getElementById('results_panel').style.display = 'none';
+    }
+
+    function focusFormInput() {
+        document.getElementById('category_search').focus();
     }
 
     function updateSliderLabel(val) {
@@ -633,11 +647,25 @@
         const metadata = masterDataFile[pendingComponentData.cat];
         const p = pendingComponentData;
         
+        // Dynamically shift individual item confidence variance criteria
+        let zipValue = document.getElementById('location').value.trim();
+        let itemConfidence = 96;
+        if (!zipValue || zipValue.length < 5) itemConfidence -= 40;
+        if (p.sub.includes("Cabinet") || p.sub.includes("Custom")) itemConfidence -= 8; // High market variation elements
+        itemConfidence = Math.max(30, itemConfidence);
+
+        let tierText = "High";
+        let colorHex = "#16a34a";
+        if (itemConfidence < 60) { tierText = "Low"; colorHex = "#ea580c"; }
+        else if (itemConfidence < 85) { tierText = "Moderate"; colorHex = "#d97706"; }
+
         projectScope.push({
             code: metadata.code,
             desc: p.sub,
             qty: p.qty,
             unit: metadata.unit,
+            confidence_str: `${itemConfidence}% (${tierText})`,
+            confidence_color: colorHex,
             mat_min: p.qty * basePricingRanges.mat.min,
             mat_avg: p.qty * basePricingRanges.mat.avg,
             mat_max: p.qty * basePricingRanges.mat.max,
@@ -651,6 +679,7 @@
                 let thinsetBags = Math.max(1, Math.ceil(p.qty / 60));
                 projectScope.push({
                     code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinsetBags, unit: "BAGS",
+                    confidence_str: "94% (High)", confidence_color: "#16a34a",
                     mat_min: thinsetBags * 26, mat_avg: thinsetBags * 32, mat_max: thinsetBags * 40,
                     lab_min: 0, lab_avg: 0, lab_max: 0
                 });
@@ -658,6 +687,7 @@
                 let tstrips = Math.max(1, Math.ceil(p.qty / 300));
                 projectScope.push({
                     code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS",
+                    confidence_str: "92% (High)", confidence_color: "#16a34a",
                     mat_min: tstrips * 35, mat_avg: tstrips * 45, mat_max: tstrips * 55,
                     lab_min: p.laborReq ? (tstrips * 20) : 0, lab_avg: p.laborReq ? (tstrips * 25) : 0, lab_max: p.laborReq ? (tstrips * 35) : 0
                 });
@@ -665,6 +695,7 @@
                 let pulls = p.qty;
                 projectScope.push({
                     code: "06 41 16", desc: "Cabinet Hardware Pulls", qty: pulls, unit: "PCS",
+                    confidence_str: "88% (High)", confidence_color: "#16a34a",
                     mat_min: pulls * 6.00, mat_avg: pulls * 8.50, mat_max: pulls * 12.00,
                     lab_min: p.laborReq ? (pulls * 4.00) : 0, lab_avg: p.laborReq ? (pulls * 5.00) : 0, lab_max: p.laborReq ? (pulls * 7.00) : 0
                 });
@@ -724,6 +755,10 @@
                     </span>
                 </div>
                 <div style="font-size:11px; margin-top:6px; color:#64748b; font-style:italic;">Calculated Scope Size: ${item.qty} ${item.unit}</div>
+                
+                <div style="font-size:11px; margin-top:4px; padding-top:4px; border-top:1px solid #e2e8f0; color:#475569; font-weight:600;">
+                    Item Pricing Confidence: <span style="color:${item.confidence_color}; font-weight:800; font-family:monospace;">${item.confidence_str}</span>
+                </div>
             `;
             listDiv.appendChild(div);
         });
@@ -733,44 +768,16 @@
         let computedTaxAvg = totalMatAvg * taxRate;
         let grandTotalAvg = totalMatAvg + totalLabAvg + computedTaxAvg;
 
-        let confidenceScore = 95;
-        if (!zipValue || zipValue.length < 5) confidenceScore -= 50;
-        if (projectScope.length > 5) confidenceScore -= 5;
-
-        confidenceScore = Math.max(15, Math.min(98, confidenceScore));
-
         document.getElementById('lbl_mat').innerHTML = `$${totalMatAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('lbl_lab').innerHTML = `$${totalLabAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('lbl_tax').innerHTML = `$${computedTaxAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(taxRate * 100).toFixed(2)}%)`;
         document.getElementById('lbl_total').innerHTML = `$${grandTotalAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        
-        let tierLabel = "";
-        let tierColor = "";
-
-        if (confidenceScore >= 85) {
-            tierLabel = "High";
-            tierColor = "#16a34a";
-        } else if (confidenceScore >= 70) {
-            tierLabel = "Moderate";
-            tierColor = "#d97706";
-        } else if (confidenceScore >= 50) {
-            tierLabel = "Low";
-            tierColor = "#ea580c";
-        } else {
-            tierLabel = "Insufficient";
-            tierColor = "#dc2626";
-        }
-
-        const confElement = document.getElementById('lbl_confidence');
-        confElement.innerHTML = `${confidenceScore}% (${tierLabel})`;
-        confElement.style.color = tierColor;
 
         const fullPayload = {
             metadata: {
                 project_type: document.getElementById('project_type').value,
                 location: zipValue,
-                start_date: document.getElementById('start_date').value,
-                confidence_score: `${confidenceScore}% (${tierLabel})`
+                start_date: document.getElementById('start_date').value
             },
             line_items: projectScope,
             totals: { mat: totalMatAvg, lab: totalLabAvg, tax: computedTaxAvg, grand: grandTotalAvg }
