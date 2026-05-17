@@ -95,7 +95,9 @@
         }
         input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
 
-        /* Autocomplete Search Dropdowns UI */
+        /* Style tweaks for text-based fallback inputs on mobile devices */
+        input::placeholder { color: #94a3b8; opacity: 1; }
+
         .autocomplete-suggestions {
             position: absolute;
             top: 100%;
@@ -210,12 +212,12 @@
             </div>
             <div class="form-group">
                 <label>Project Location</label>
-                <input type="text" id="location" placeholder="e.g. Chicago, IL" oninput="saveState()">
+                <input type="text" id="location" placeholder="City, State" oninput="saveState()">
             </div>
         </div>
         <div class="form-group">
-            <label>Est. Start Date</label>
-            <input type="date" id="start_date" onchange="saveState()">
+            <label>Estimated Purchase Date</label>
+            <input type="text" id="start_date" placeholder="mm / dd / yyyy or month / year" oninput="saveState()">
         </div>
 
         <h2 class="section-break">Step 2. Project Details</h2>
@@ -281,20 +283,18 @@
 </div>
 
 <script>
-    // Server-fed master data variable parsed directly from python context templates
     const masterDataFile = {{ master_data | safe }} || {};
     
     const baselinePricing = { mat_base: 45.00, lab_base: 35.00 };
     let projectScope = [];
     let activeCategoryKey = "";
 
-    // Global persistence layer preserves input state parameters across refreshes
     window.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('location').value = localStorage.getItem('cp_location') || 'Chicago, IL';
+        // Loads custom inputs from memory, else keeps placeholders empty
+        document.getElementById('location').value = localStorage.getItem('cp_location') || '';
         document.getElementById('start_date').value = localStorage.getItem('cp_start_date') || '';
         document.getElementById('project_type').value = localStorage.getItem('cp_project_type') || 'Residential';
         
-        // Close search lists instantly if the user clicks outside options
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.form-group')) {
                 hideAllSuggestions();
@@ -317,7 +317,6 @@
         document.getElementById('subcategory_suggestions').style.display = 'none';
     }
 
-    // --- Dynamic Category Autocomplete Search Box Engine ---
     function showCategories() {
         hideAllSuggestions();
         const container = document.getElementById('category_suggestions');
@@ -357,14 +356,12 @@
         document.getElementById('category_search').value = cleanName;
         hideAllSuggestions();
 
-        // Unlock down-stream predictive subcategory search input fields
         const subInput = document.getElementById('subcategory_search');
         subInput.disabled = false;
         subInput.value = '';
         subInput.placeholder = "Type or select dynamic items...";
     }
 
-    // --- Dynamic Subcategory Autocomplete Search Box Engine ---
     function showSubcategories() {
         if (!activeCategoryKey || !masterDataFile[activeCategoryKey]) return;
         hideAllSuggestions();
@@ -404,7 +401,6 @@
         document.getElementById('subcategory_search').value = itemValue;
         hideAllSuggestions();
 
-        // Auto-assign specific predictive material waste slider thresholds
         const slider = document.getElementById('waste_factor');
         if (activeCategoryKey === "Concrete" || activeCategoryKey === "Drywall") {
             slider.value = 15;
@@ -442,7 +438,6 @@
             lab_cost: laborReq ? (finalQty * baselinePricing.lab_base) : 0
         });
 
-        // Accessory generation rules
         if (sub.includes("Vinyl Plank") || sub.includes("Laminate Flooring")) {
             let tstrips = Math.max(1, Math.ceil(qty / 300));
             lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
@@ -483,7 +478,8 @@
             listDiv.appendChild(div);
         });
 
-        let taxRate = document.getElementById('location').value.includes("Chicago") ? 0.1025 : 0.0800;
+        // Dynamic context fallback default calculation adjustment modifier rules
+        let taxRate = document.getElementById('location').value.toLowerCase().includes("chicago") ? 0.1025 : 0.0800;
         let computedTax = totalMat * taxRate;
         let grandTotal = totalMat + totalLab + computedTax;
 
