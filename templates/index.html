@@ -150,6 +150,16 @@
             box-shadow: 0 4px 10px rgba(255, 193, 19, 0.2);
         }
 
+        .btn-append {
+            background: #10b981; 
+            color: white; 
+            border: none; 
+            padding: 0 16px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer;
+        }
+
         .component-item { 
             border-left: 4px solid var(--cp-blue); 
             background: #f8fafc; 
@@ -206,17 +216,7 @@
         <div class="form-group">
             <label>Main Material Category</label>
             <select id="main_category" onchange="populateSubcategories()">
-                <option value="" disabled selected>Select category or type above...</option>
-                <option value="Concrete">Concrete, Cement & Masonry</option>
-                <option value="Cabinets">Cabinets</option>
-                <option value="Vanities">Vanities</option>
-                <option value="Countertops">Countertops</option>
-                <option value="Toilets">Toilets & Bathroom Fixtures</option>
-                <option value="Flooring">Flooring & Finishes</option>
-                <option value="Drywall">Drywall Assemblies</option>
-                <option value="Doors">Doors & Openings</option>
-                <option value="Windows">Windows</option>
-                <option value="Paint">Paint & Coatings</option>
+                <option value="" disabled selected>Loading master database sheets...</option>
             </select>
         </div>
         <div class="form-group">
@@ -247,6 +247,14 @@
         </div>
 
         <button class="btn-primary" onclick="addComponent()">Add to Project</button>
+
+        <div class="form-group" style="margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
+            <label style="color: var(--cp-blue);">Can't find your item? Append Database:</label>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+                <input type="text" id="custom_override_input" placeholder="e.g., Premium Walnut Slab">
+                <button type="button" class="btn-append" onclick="submitCustomRefinement()">Append</button>
+            </div>
+        </div>
     </div>
 
     <div class="card results-card" id="results_panel">
@@ -269,66 +277,41 @@
 </div>
 
 <script>
-    // Master data file array loaded directly from your spreadsheet structure
-    const masterDataFile = {
-        "Concrete": {
-            code: "03 30 00", unit: "SF",
-            items: ["Concrete Mix", "Concrete Block", "Cinder Blocks", "Rebar", "Remesh", "Brick", "Fire Brick", "Mortar Mix", "Mortar Repair", "Concrete Forms", "Concrete Sealant", "Concrete Patch"]
-        },
-        "Cabinets": {
-            code: "06 41 16", unit: "PCS",
-            items: ["Shaker Cabinets", "Raised Panel Cabinets", "Recessed Panel Cabinets", "Slab Door Cabinets", "Glass Door Cabinets", "Assembled Cabinets", "Kitchen Cabinets", "Ready to Assemble (RTA) Cabinets", "Base Cabinets", "Wall Cabinets", "Sink Base Cabinets", "Corner Cabinets", "Cabinet Hardware", "Cabinet Handles"]
-        },
-        "Vanities": {
-            code: "06 41 20", unit: "PCS",
-            items: ["Single Sink Bathroom Vanities", "Bathroom Vanities with Tops", "Double Sink Bathroom Vanities", "Bathroom Vanities without Tops", "Bathroom Vanity Sets", "Vanity Tops", "Vanity Side", "Vanity Backsplashes"]
-        },
-        "Countertops": {
-            code: "12 36 00", unit: "SF",
-            items: ["Butcher Block", "Laminate", "Laminate Sheets", "Solid Surface", "Thinscape", "Custom Countertops", "Quartz", "Granite", "Quartzite", "Marble", "Countertop Brackets"]
-        },
-        "Toilets": {
-            code: "22 41 00", unit: "PCS",
-            items: ["Two-Piece Toilets", "One-Piece Toilets", "Freestanding Bidet Toilets", "Composting Toilets", "Toilet Seats", "Bidet Toilets", "ADA Compliant Toilets", "Wax Rings", "Toilet Repair Kits", "Supply Lines", "Elongated Toilets", "Round Toilets"]
-        },
-        "Flooring": {
-            code: "09 65 19", unit: "SF",
-            items: ["Floor Tile", "Ceramic Tile", "Porcelain Tile", "Subway Tile", "Mosaic Tile", "Vinyl Flooring", "Vinyl Plank Flooring", "Vinyl Tile", "Sheet Vinyl Flooring", "Laminate Flooring", "Laminate Wood Flooring", "Solid Hardwood Flooring", "Engineered Hardwood", "Carpet Tile", "Tile Mortar", "Tile Grout"]
-        },
-        "Drywall": {
-            code: "09 29 00", unit: "SF",
-            items: ["Drywall Panels", "Drywall Sheets", "Corner Beads", "Drywall Joint Compound", "Drywall Repair", "Drywall Tape", "Drywall Framing"]
-        },
-        "Doors": {
-            code: "08 14 16", unit: "PCS",
-            items: ["Exterior Doors", "Front Doors", "Patio Doors", "Interior Doors", "Prehung Doors", "Slab Doors", "Garage Doors", "Storm Doors", "Commercial Doors", "Barn Doors", "Bifold Doors", "Sliding Doors", "Door Hardware"]
-        },
-        "Windows": {
-            code: "08 51 13", unit: "PCS",
-            items: ["Double-Hung Windows", "Single-Hung Windows", "Sliding Windows", "Picture Windows", "Casement Windows", "Vinyl Windows", "Insulated Windows", "Window Screens", "Window Locks"]
-        },
-        "Paint": {
-            code: "09 91 00", unit: "GAL",
-            items: ["Interior Paint", "Exterior Paint", "Spray Paint", "Primers", "Exterior Wood Stains", "Interior Wood Stains", "Concrete Sealers", "Garage Floor Paint", "Polyurethane Wood Finish", "Caulk & Sealants"]
-        }
+    // Server-fed master data variable parsed directly from python context templates
+    // Gracefully falls back to mock rows if server parameters drop out
+    const masterDataFile = {{ master_data | safe }} || {
+        "Concrete": { code: "03 30 00", unit: "SF", items: ["Concrete Mix", "Concrete Block"] },
+        "Cabinets": { code: "06 41 16", unit: "PCS", items: ["Shaker Cabinets", "Base Cabinets"] }
     };
 
-    // Baseline mock cost engine matching structural pricing data
     const baselinePricing = { mat_base: 45.00, lab_base: 35.00 };
     let projectScope = [];
+
+    // Dynamically injects all categories parsed from the filesystem on window loading
+    window.addEventListener('DOMContentLoaded', () => {
+        const mainSelect = document.getElementById('main_category');
+        mainSelect.innerHTML = '<option value="" disabled selected>Select category or type above...</option>';
+        
+        Object.keys(masterDataFile).forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat;
+            // Spacifies camelCased or concatenated filename entries automatically
+            opt.innerHTML = cat.replace(/([A-Z])/g, ' $1').trim();
+            mainSelect.appendChild(opt);
+        });
+    });
 
     function updateSliderLabel(val) {
         document.getElementById('waste_label').innerText = val + '%';
     }
 
-    // Interactive global search function scans the entire structure 
+    // Direct search algorithm loop handles rapid autocomplete key parsing
     function filterMasterItems() {
         const searchText = document.getElementById('category_search').value.toLowerCase();
         const mainSelect = document.getElementById('main_category');
         
         if (searchText.trim() === "") return;
 
-        // Iterate through all datasets to find matching subcategories
         for (const [categoryKey, categoryData] of Object.entries(masterDataFile)) {
             const foundItem = categoryData.items.find(item => item.toLowerCase().includes(searchText));
             
@@ -341,7 +324,6 @@
         }
     }
 
-    // Handles downstream selector population from the master data keys
     function populateSubcategories() {
         const mainCat = document.getElementById('main_category').value;
         const subSelect = document.getElementById('sub_category');
@@ -357,7 +339,7 @@
             subSelect.appendChild(opt);
         });
 
-        // Auto-assign specific safe baseline multipliers based on discipline rules
+        // Predictive structural waste allocation engine rules
         const slider = document.getElementById('waste_factor');
         if (mainCat === "Concrete" || mainCat === "Drywall") {
             slider.value = 15;
@@ -387,7 +369,6 @@
         const metadata = masterDataFile[main];
         let lineItems = [];
         
-        // Exact waste logic integration
         let wasteFactor = 1 + (wastePct / 100);
         let finalQty = Math.ceil(qty * wasteFactor);
 
@@ -400,7 +381,7 @@
             lab_cost: laborReq ? (finalQty * baselinePricing.lab_base) : 0
         });
 
-        // Dynamic accessory injection rules from the master sheet variables
+        // Accessories automation triggers
         if (sub.includes("Vinyl Plank") || sub.includes("Laminate Flooring")) {
             let tstrips = Math.max(1, Math.ceil(qty / 300));
             lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
@@ -461,6 +442,36 @@
         };
 
         document.getElementById('payload_input').value = JSON.stringify(fullPayload);
+    }
+
+    // Handles live dispatching of manual modifications directly back to the data directory sheets
+    function submitCustomRefinement() {
+        const selectedCategory = document.getElementById('main_category').value;
+        const newItemString = document.getElementById('custom_override_input').value;
+        
+        if(!selectedCategory || !newItemString.trim()) {
+            alert("Please pick a primary material category and enter the new item name.");
+            return;
+        }
+        
+        fetch('/api/refine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                category: selectedCategory,
+                item_name: newItemString
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === "success") {
+                alert(data.message);
+                location.reload(); // Hot-reloads the window view with the newly compiled list entry
+            } else {
+                alert("Error appending record: " + data.message);
+            }
+        })
+        .catch(err => console.error("Refinement synchronization error:", err));
     }
 </script>
 </body>
