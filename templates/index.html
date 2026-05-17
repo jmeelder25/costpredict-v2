@@ -143,6 +143,116 @@
             text-align: right;
         }
 
+        /* Line Item Display Grid Layout */
+        .component-item { 
+            border-left: 4px solid var(--cp-blue); 
+            background: #f8fafc; 
+            padding: 14px; 
+            margin-bottom: 12px; 
+            border-radius: 6px; 
+            font-size: 0.85rem; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .component-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: var(--cp-blue);
+        }
+        .csi-code {
+            font-family: monospace;
+            color: #64748b;
+            font-size: 11px;
+        }
+        .range-grid {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 4px;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 5px;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .range-label {
+            font-weight: 600;
+            color: #475569;
+        }
+        .range-values {
+            font-family: monospace;
+            color: #334155;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Accessory Option Overlay Modals */
+        .prompt-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .prompt-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+        .prompt-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .prompt-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-yes { background: var(--cp-blue); color: white; }
+        .btn-no { background: #e2e8f0; color: #475569; }
+
+        /* Scoping Flow Gatekeeper Components */
+        .gatekeeper-wrapper {
+            margin: 15px 0;
+            padding: 12px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .gatekeeper-wrapper input {
+            width: auto;
+            cursor: pointer;
+            transform: scale(1.2);
+        }
+        .gatekeeper-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #166534;
+        }
+
+        .evaluation-block {
+            display: none;
+            border-top: 2px solid #cbd5e1;
+            padding-top: 12px;
+            margin-top: 12px;
+        }
+
         button.btn-primary { 
             width: 100%; 
             background: var(--cp-blue); 
@@ -171,16 +281,6 @@
             margin-top: 15px;
             box-shadow: 0 4px 10px rgba(255, 193, 19, 0.2);
         }
-
-        .component-item { 
-            border-left: 4px solid var(--cp-blue); 
-            background: #f8fafc; 
-            padding: 12px; 
-            margin-bottom: 8px; 
-            border-radius: 4px; 
-            font-size: 0.85rem; 
-        }
-        .component-meta { font-size: 0.75rem; color: #64748b; margin-top: 3px; }
         
         .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
         .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
@@ -254,23 +354,35 @@
             </select>
         </div>
 
-        <button class="btn-primary" onclick="addComponent()">Add to Project</button>
+        <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
     </div>
 
     <div class="card results-card" id="results_panel">
         <h2>Live Bill of Quantities</h2>
-        <div id="components_list" style="margin-bottom: 20px;"></div>
+        <div id="components_list" style="margin-bottom: 10px;"></div>
 
-        <h2>On-Screen Cost Evaluation</h2>
-        <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
-        <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
-        <div class="summary-row"><span>Regional Tax:</span><span id="lbl_tax">$0.00</span></div>
-        <div class="summary-row grand-total"><span>Project Estimation:</span><span id="lbl_total">$0.00</span></div>
+        <div class="gatekeeper-wrapper" onclick="toggleGatekeeper()">
+            <input type="checkbox" id="scoping_complete_checkbox" onclick="event.stopPropagation()">
+            <div class="gatekeeper-label">I have finished adding all materials to this project</div>
+        </div>
 
-        <form id="pdf_form" action="/generate" method="post">
-            <input type="hidden" name="payload" id="payload_input">
-            <button type="submit" class="btn-secondary">Export Verified PDF Report</button>
-        </form>
+        <div class="evaluation-block" id="evaluation_panel">
+            <h2>On-Screen Cost Evaluation (Average Cost Estimates)</h2>
+            <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
+            <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
+            <div class="summary-row"><span>Regional Sales Tax:</span><span id="lbl_tax">$0.00</span></div>
+            <div class="summary-row grand-total" style="border-bottom: none; margin-bottom: 0; padding-bottom: 4px;"><span>Project Estimation:</span><span id="lbl_total">$0.00</span></div>
+            
+            <div class="summary-row" style="border-top: 1px solid #cbd5e1; border-bottom: 2px solid var(--cp-blue); padding: 8px 0; margin-bottom: 12px; background: #f8fafc; padding-left: 6px; padding-right: 6px; border-radius: 0 0 4px 4px;">
+                <span style="font-weight: 700; color: #475569; font-size: 0.8rem;">Confidence Score:</span>
+                <span id="lbl_confidence" style="font-weight: 800; font-family: monospace;">100%</span>
+            </div>
+
+            <form id="pdf_form" action="/generate" method="post">
+                <input type="hidden" name="payload" id="payload_input">
+                <button type="submit" class="btn-secondary">Print Full Project Report</button>
+            </form>
+        </div>
     </div>
     
     <div class="footer-note">
@@ -281,12 +393,29 @@
     </div>
 </div>
 
+<div id="accessory_prompt" class="prompt-overlay">
+    <div class="prompt-box">
+        <h3 style="color: var(--cp-blue); margin-top:0;" id="accessory_title">Frequently Purchased Option</h3>
+        <p style="font-size: 14px; color:#475569;" id="accessory_text">Would you like to add the standard recommended installation accessories to your scope list?</p>
+        <div class="prompt-buttons">
+            <button class="prompt-btn btn-yes" onclick="confirmAccessory(true)">Yes, Add It</button>
+            <button class="prompt-btn btn-no" onclick="confirmAccessory(false)">No, Skip</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const masterDataFile = {{ master_data | safe }} || {};
     
-    const baselinePricing = { mat_base: 45.00, lab_base: 35.00 };
+    // Flexible Range Cost Modifiers
+    const basePricingRanges = {
+        mat: { min: 35.00, avg: 45.00, max: 60.00 },
+        lab: { min: 25.00, avg: 35.00, max: 45.00 }
+    };
+    
     let projectScope = [];
     let activeCategoryKey = "";
+    let pendingComponentData = null;
 
     window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('location').value = localStorage.getItem('cp_location') || '';
@@ -297,6 +426,10 @@
             if (!e.target.closest('.form-group')) {
                 hideAllSuggestions();
             }
+        });
+        
+        document.getElementById('scoping_complete_checkbox').addEventListener('change', (e) => {
+            document.getElementById('evaluation_panel').style.display = e.target.checked ? 'block' : 'none';
         });
     });
 
@@ -313,6 +446,12 @@
     function hideAllSuggestions() {
         document.getElementById('category_suggestions').style.display = 'none';
         document.getElementById('subcategory_suggestions').style.display = 'none';
+    }
+
+    function toggleGatekeeper() {
+        const box = document.getElementById('scoping_complete_checkbox');
+        box.checked = !box.checked;
+        document.getElementById('evaluation_panel').style.display = box.checked ? 'block' : 'none';
     }
 
     function showCategories() {
@@ -410,7 +549,7 @@
         updateSliderLabel(slider.value);
     }
 
-    function addComponent() {
+    function processComponentIntent() {
         const sub = document.getElementById('subcategory_search').value;
         const qty = parseFloat(document.getElementById('quantity').value);
         const laborReq = document.getElementById('labor_required').value === "Yes";
@@ -421,37 +560,87 @@
             return;
         }
 
-        const metadata = masterDataFile[activeCategoryKey];
-        let lineItems = [];
-        
         let wasteFactor = 1 + (wastePct / 100);
         let finalQty = Math.ceil(qty * wasteFactor);
 
-        lineItems.push({
-            code: metadata.code,
-            desc: sub,
+        pendingComponentData = {
+            cat: activeCategoryKey,
+            sub: sub,
             qty: finalQty,
+            laborReq: laborReq
+        };
+
+        if (sub.includes("Tile")) {
+            showAccessoryPrompt("Polymer Thinset Mortar", "Frequently purchased with tile items. Would you like to add Polymer Thinset Mortar (50lb bags) to this project?");
+        } else if (sub.includes("Vinyl Plank") || sub.includes("Laminate Flooring")) {
+            showAccessoryPrompt("Matching T-Mold Transitions", "Would you like to include Matching T-Mold Transition pieces for this floor layout?");
+        } else if (sub.includes("Cabinets") && (sub.includes("Base") || sub.includes("Kitchen"))) {
+            showAccessoryPrompt("Cabinet Hardware Pulls", "Would you like to include decorative cabinet assembly handle pulls?");
+        } else {
+            commitComponentScope(false);
+        }
+    }
+
+    function showAccessoryPrompt(title, text) {
+        document.getElementById('accessory_title').innerText = title;
+        document.getElementById('accessory_text').innerText = text;
+        document.getElementById('accessory_prompt').style.display = 'flex';
+    }
+
+    function confirmAccessory(addIt) {
+        document.getElementById('accessory_prompt').style.display = 'none';
+        commitComponentScope(addIt);
+    }
+
+    function commitComponentScope(includeAccessory) {
+        if (!pendingComponentData) return;
+        
+        const metadata = masterDataFile[pendingComponentData.cat];
+        const p = pendingComponentData;
+        
+        projectScope.push({
+            code: metadata.code,
+            desc: p.sub,
+            qty: p.qty,
             unit: metadata.unit,
-            mat_cost: finalQty * baselinePricing.mat_base,
-            lab_cost: laborReq ? (finalQty * baselinePricing.lab_base) : 0
+            mat_min: p.qty * basePricingRanges.mat.min,
+            mat_avg: p.qty * basePricingRanges.mat.avg,
+            mat_max: p.qty * basePricingRanges.mat.max,
+            lab_min: p.laborReq ? (p.qty * basePricingRanges.lab.min) : 0,
+            lab_avg: p.laborReq ? (p.qty * basePricingRanges.lab.avg) : 0,
+            lab_max: p.laborReq ? (p.qty * basePricingRanges.lab.max) : 0
         });
 
-        if (sub.includes("Vinyl Plank") || sub.includes("Laminate Flooring")) {
-            let tstrips = Math.max(1, Math.ceil(qty / 300));
-            lineItems.push({ code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS", mat_cost: tstrips * 45, lab_cost: laborReq ? (tstrips * 25) : 0 });
-        } else if (sub.includes("Tile")) {
-            let thinset = Math.max(1, Math.ceil(qty / 60));
-            lineItems.push({ code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinset, unit: "BAGS", mat_cost: thinset * 32, lab_cost: 0 });
-        } else if (sub.includes("Cabinets") && (sub.includes("Base") || sub.includes("Kitchen"))) {
-            let pulls = finalQty;
-            lineItems.push({ code: "06 41 16", desc: "Cabinet Hardware Pulls", qty: pulls, unit: "PCS", mat_cost: pulls * 8.50, lab_cost: laborReq ? (pulls * 5.00) : 0 });
+        if (includeAccessory) {
+            if (p.sub.includes("Tile")) {
+                let thinsetBags = Math.max(1, Math.ceil(p.qty / 60));
+                projectScope.push({
+                    code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinsetBags, unit: "BAGS",
+                    mat_min: thinsetBags * 26, mat_avg: thinsetBags * 32, mat_max: thinsetBags * 40,
+                    lab_min: 0, lab_avg: 0, lab_max: 0
+                });
+            } else if (p.sub.includes("Vinyl Plank") || p.sub.includes("Laminate Flooring")) {
+                let tstrips = Math.max(1, Math.ceil(p.qty / 300));
+                projectScope.push({
+                    code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS",
+                    mat_min: tstrips * 35, mat_avg: tstrips * 45, mat_max: tstrips * 55,
+                    lab_min: p.laborReq ? (tstrips * 20) : 0, lab_avg: p.laborReq ? (tstrips * 25) : 0, lab_max: p.laborReq ? (tstrips * 35) : 0
+                });
+            } else if (p.sub.includes("Cabinets")) {
+                let pulls = p.qty;
+                projectScope.push({
+                    code: "06 41 16", desc: "Cabinet Hardware Pulls", qty: pulls, unit: "PCS",
+                    mat_min: pulls * 6.00, mat_avg: pulls * 8.50, mat_max: pulls * 12.00,
+                    lab_min: p.laborReq ? (pulls * 4.00) : 0, lab_avg: p.laborReq ? (pulls * 5.00) : 0, lab_max: p.laborReq ? (pulls * 7.00) : 0
+                });
+            }
         }
 
-        projectScope.push(...lineItems);
         renderProjectState();
         
         document.getElementById('quantity').value = '';
         document.getElementById('subcategory_search').value = '';
+        pendingComponentData = null;
         
         const resultsPanel = document.getElementById('results_panel');
         resultsPanel.style.display = 'block';
@@ -461,39 +650,95 @@
     function renderProjectState() {
         const listDiv = document.getElementById('components_list');
         listDiv.innerHTML = '';
-        let totalMat = 0, totalLab = 0;
+        
+        let totalMatAvg = 0, totalLabAvg = 0;
 
         projectScope.forEach(item => {
-            totalMat += item.mat_cost;
-            totalLab += item.lab_cost;
+            totalMatAvg += item.mat_avg;
+            totalLabAvg += item.lab_avg;
 
             let div = document.createElement('div');
             div.className = 'component-item';
             div.innerHTML = `
-                <div style="font-weight:700;">${item.desc} <span style="float:right; font-family:monospace; color:#64748b; font-size:11px;">${item.code}</span></div>
-                <div class="component-meta">Qty: ${item.qty} ${item.unit} | Mat: $${item.mat_cost.toFixed(2)} | Lab: $${item.lab_cost.toFixed(2)}</div>
+                <div class="component-header">
+                    <span>${item.desc}</span>
+                    <span class="csi-code">${item.code}</span>
+                </div>
+                <div class="range-grid">
+                    <span class="range-label">Unit Price</span>
+                    <span class="range-values">
+                        <span>Min: $${(item.mat_min / item.qty).toFixed(2)}</span>
+                        <span>Avg: $${(item.mat_avg / item.qty).toFixed(2)}</span>
+                        <span>Max: $${(item.mat_max / item.qty).toFixed(2)}</span>
+                    </span>
+                </div>
+                <div class="range-grid">
+                    <span class="range-label">Project Qty</span>
+                    <span class="range-values" style="font-weight: 700;">
+                        <span>Min: $${item.mat_min.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Avg: $${item.mat_avg.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Max: $${item.mat_max.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                    </span>
+                </div>
+                <div class="range-grid">
+                    <span class="range-label">Project Labor</span>
+                    <span class="range-values">
+                        <span>Min: $${item.lab_min.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Avg: $${item.lab_avg.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Max: $${item.lab_max.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                    </span>
+                </div>
+                <div style="font-size:11px; margin-top:6px; color:#64748b; font-style:italic;">Calculated Scope Size: ${item.qty} ${item.unit}</div>
             `;
             listDiv.appendChild(div);
         });
 
         let zipValue = document.getElementById('location').value.trim();
         let taxRate = zipValue.startsWith("606") ? 0.1025 : 0.0800;
-        let computedTax = totalMat * taxRate;
-        let grandTotal = totalMat + totalLab + computedTax;
+        let computedTaxAvg = totalMatAvg * taxRate;
+        let grandTotalAvg = totalMatAvg + totalLabAvg + computedTaxAvg;
 
-        document.getElementById('lbl_mat').innerHTML = `$${totalMat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_lab').innerHTML = `$${totalLab.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_tax').innerHTML = `$${computedTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(taxRate * 100).toFixed(2)}%)`;
-        document.getElementById('lbl_total').innerHTML = `$${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        let confidenceScore = 95;
+        if (!zipValue || zipValue.length < 5) confidenceScore -= 50;
+        if (projectScope.length > 5) confidenceScore -= 5;
+
+        confidenceScore = Math.max(15, Math.min(98, confidenceScore));
+
+        document.getElementById('lbl_mat').innerHTML = `$${totalMatAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_lab').innerHTML = `$${totalLabAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_tax').innerHTML = `$${computedTaxAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(taxRate * 100).toFixed(2)}%)`;
+        document.getElementById('lbl_total').innerHTML = `$${grandTotalAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        
+        let tierLabel = "";
+        let tierColor = "";
+
+        if (confidenceScore >= 85) {
+            tierLabel = "High";
+            tierColor = "#16a34a";
+        } else if (confidenceScore >= 70) {
+            tierLabel = "Moderate";
+            tierColor = "#d97706";
+        } else if (confidenceScore >= 50) {
+            tierLabel = "Low";
+            tierColor = "#ea580c";
+        } else {
+            tierLabel = "Insufficient";
+            tierColor = "#dc2626";
+        }
+
+        const confElement = document.getElementById('lbl_confidence');
+        confElement.innerHTML = `${confidenceScore}% (${tierLabel})`;
+        confElement.style.color = tierColor;
 
         const fullPayload = {
             metadata: {
                 project_type: document.getElementById('project_type').value,
                 location: zipValue,
-                start_date: document.getElementById('start_date').value
+                start_date: document.getElementById('start_date').value,
+                confidence_score: `${confidenceScore}% (${tierLabel})`
             },
             line_items: projectScope,
-            totals: { mat: totalMat, lab: totalLab, tax: computedTax, grand: grandTotal }
+            totals: { mat: totalMatAvg, lab: totalLabAvg, tax: computedTaxAvg, grand: grandTotalAvg }
         };
 
         document.getElementById('payload_input').value = JSON.stringify(fullPayload);
