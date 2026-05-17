@@ -143,7 +143,6 @@
             text-align: right;
         }
 
-        /* Line Item Display Grid Layout */
         .component-item { 
             border-left: 4px solid var(--cp-blue); 
             background: #f8fafc; 
@@ -186,44 +185,6 @@
             justify-content: space-between;
         }
 
-        /* Accessory Option Overlay Modals */
-        .prompt-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(2px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .prompt-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
-            text-align: center;
-        }
-        .prompt-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-        }
-        .prompt-btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-        }
-        .btn-yes { background: var(--cp-blue); color: white; }
-        .btn-no { background: #e2e8f0; color: #475569; }
-
-        /* Scoping Flow Shopping Cart Links */
         .add-more-link {
             display: block;
             text-align: center;
@@ -302,6 +263,7 @@
         }
         
         .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
+        .summary-row.sub-header { background: #f1f5f9; font-weight: 700; border-bottom: 1px solid #cbd5e1; padding: 6px; font-size: 0.8rem; color: #475569; }
         .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
         
         .footer-note { text-align: center; font-size: 10px; color: #94a3b8; margin: 20px 0 10px 0; line-height: 1.4; }
@@ -316,7 +278,7 @@
         <div class="tagline">CONSTRUCTION PRICING MADE PREDICTIVE</div>
     </div>
 
-    <div class="card" id="input_form_card">
+    <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">
             <h2 style="margin: 0; border: none; padding: 0;">Step 1. Project Description</h2>
             <button type="button" onclick="clearProjectForm()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Clear Form</button>
@@ -340,8 +302,10 @@
             <label>Estimated Purchase Date</label>
             <input type="text" id="start_date" placeholder="mm / dd / yyyy or month / year" oninput="saveState()">
         </div>
+    </div>
 
-        <h2 class="section-break">Step 2. Project Details</h2>
+    <div class="card" id="project_details_card">
+        <h2>Step 2. Project Details</h2>
         
         <div class="form-group">
             <label>Main Material Category</label>
@@ -383,7 +347,7 @@
         <h2>Cost Prediction</h2>
         <div id="components_list" style="margin-bottom: 10px;"></div>
 
-        <a href="#input_form_card" class="add-more-link" onclick="focusFormInput()">➕ Add Another Material</a>
+        <a href="#project_details_card" class="add-more-link" onclick="focusFormInput()">➕ Add Another Material</a>
 
         <div class="gatekeeper-wrapper" onclick="toggleGatekeeper()">
             <input type="checkbox" id="scoping_complete_checkbox" onclick="event.stopPropagation()">
@@ -391,11 +355,29 @@
         </div>
 
         <div class="evaluation-block" id="evaluation_panel">
-            <h2>On-Screen Cost Evaluation (Average Cost Estimates)</h2>
-            <div class="summary-row"><span>Material Base Subtotal:</span><span id="lbl_mat">$0.00</span></div>
-            <div class="summary-row"><span>Labor Assembly Subtotal:</span><span id="lbl_lab">$0.00</span></div>
-            <div class="summary-row"><span>Regional Sales Tax:</span><span id="lbl_tax">$0.00</span></div>
-            <div class="summary-row grand-total" style="border-bottom: none; margin-bottom: 12px; padding-bottom: 4px;"><span>Project Estimation:</span><span id="lbl_total">$0.00</span></div>
+            <h2>Project Total Cost Prediction</h2>
+            
+            <div class="summary-row sub-header">
+                <span>Cost Subtotal Breakdown</span>
+                <span style="font-family: monospace; display: flex; gap: 40px;"><span>MIN</span><span>AVG</span><span>MAX</span></span>
+            </div>
+            <div class="summary-row">
+                <span>Material Base Subtotal:</span>
+                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_mat_min">$0.00</span><span id="lbl_mat_avg" style="font-weight:700;">$0.00</span><span id="lbl_mat_max">$0.00</span></span>
+            </div>
+            <div class="summary-row">
+                <span>Labor Assembly Subtotal:</span>
+                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_lab_min">$0.00</span><span id="lbl_lab_avg" style="font-weight:700;">$0.00</span><span id="lbl_lab_max">$0.00</span></span>
+            </div>
+            <div class="summary-row">
+                <span>Regional Sales Tax:</span>
+                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_tax_min">$0.00</span><span id="lbl_tax_avg" style="font-weight:700;">$0.00</span><span id="lbl_tax_max">$0.00</span></span>
+            </div>
+            
+            <div class="summary-row grand-total" style="border-bottom: none; margin-bottom: 12px; padding-bottom: 4px;">
+                <span>Pricing Prediction:</span>
+                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_total_min" style="font-size:0.95rem; opacity:0.8;">$0.00</span><span id="lbl_total_avg">$0.00</span><span id="lbl_total_max" style="font-size:0.95rem; opacity:0.8;">$0.00</span></span>
+            </div>
             
             <form id="pdf_form" action="/generate" method="post">
                 <input type="hidden" name="payload" id="payload_input">
@@ -647,11 +629,10 @@
         const metadata = masterDataFile[pendingComponentData.cat];
         const p = pendingComponentData;
         
-        // Dynamically shift individual item confidence variance criteria
         let zipValue = document.getElementById('location').value.trim();
         let itemConfidence = 96;
         if (!zipValue || zipValue.length < 5) itemConfidence -= 40;
-        if (p.sub.includes("Cabinet") || p.sub.includes("Custom")) itemConfidence -= 8; // High market variation elements
+        if (p.sub.includes("Cabinet") || p.sub.includes("Custom")) itemConfidence -= 8;
         itemConfidence = Math.max(30, itemConfidence);
 
         let tierText = "High";
@@ -717,11 +698,16 @@
         const listDiv = document.getElementById('components_list');
         listDiv.innerHTML = '';
         
-        let totalMatAvg = 0, totalLabAvg = 0;
+        let totalMatMin = 0, totalMatAvg = 0, totalMatMax = 0;
+        let totalLabMin = 0, totalLabAvg = 0, totalLabMax = 0;
 
         projectScope.forEach(item => {
-            totalMatAvg += item.mat_avg;
-            totalLabAvg += item.lab_avg;
+            totalMatMin += item.mat_min; totalMatAvg += item.mat_avg; totalMatMax += item.mat_max;
+            totalLabMin += item.lab_min; totalLabAvg += item.lab_avg; totalLabMax += item.lab_max;
+
+            let itemMinSub = item.mat_min + item.lab_min;
+            let itemAvgSub = item.mat_avg + item.lab_avg;
+            let itemMaxSub = item.mat_max + item.lab_max;
 
             let div = document.createElement('div');
             div.className = 'component-item';
@@ -740,7 +726,7 @@
                 </div>
                 <div class="range-grid">
                     <span class="range-label">Project Qty</span>
-                    <span class="range-values" style="font-weight: 700;">
+                    <span class="range-values">
                         <span>Min: $${item.mat_min.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
                         <span>Avg: $${item.mat_avg.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
                         <span>Max: $${item.mat_max.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
@@ -754,9 +740,16 @@
                         <span>Max: $${item.lab_max.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
                     </span>
                 </div>
+                <div class="range-grid" style="border-top: 1px solid #cbd5e1; font-weight:700;">
+                    <span class="range-label" style="color:var(--cp-blue);">Item Subtotal</span>
+                    <span class="range-values" style="color:var(--cp-blue);">
+                        <span>Min: $${itemMinSub.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Avg: $${itemAvgSub.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Max: $${itemMaxSub.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                    </span>
+                </div>
                 <div style="font-size:11px; margin-top:6px; color:#64748b; font-style:italic;">Calculated Scope Size: ${item.qty} ${item.unit}</div>
-                
-                <div style="font-size:11px; margin-top:4px; padding-top:4px; border-top:1px solid #e2e8f0; color:#475569; font-weight:600;">
+                <div style="font-size:11px; margin-top:4px; padding-top:4px; border-top:1px dashed #e2e8f0; color:#475569; font-weight:600;">
                     Item Pricing Confidence: <span style="color:${item.confidence_color}; font-weight:800; font-family:monospace;">${item.confidence_str}</span>
                 </div>
             `;
@@ -765,13 +758,30 @@
 
         let zipValue = document.getElementById('location').value.trim();
         let taxRate = zipValue.startsWith("606") ? 0.1025 : 0.0800;
-        let computedTaxAvg = totalMatAvg * taxRate;
-        let grandTotalAvg = totalMatAvg + totalLabAvg + computedTaxAvg;
+        
+        let taxMin = totalMatMin * taxRate;
+        let taxAvg = totalMatAvg * taxRate;
+        let taxMax = totalMatMax * taxRate;
 
-        document.getElementById('lbl_mat').innerHTML = `$${totalMatAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_lab').innerHTML = `$${totalLabAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_tax').innerHTML = `$${computedTaxAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(taxRate * 100).toFixed(2)}%)`;
-        document.getElementById('lbl_total').innerHTML = `$${grandTotalAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        let grandTotalMin = totalMatMin + totalLabMin + taxMin;
+        let grandTotalAvg = totalMatAvg + totalLabAvg + taxAvg;
+        let grandTotalMax = totalMatMax + totalLabMax + taxMax;
+
+        document.getElementById('lbl_mat_min').innerHTML = `$${totalMatMin.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+        document.getElementById('lbl_mat_avg').innerHTML = `$${totalMatAvg.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+        document.getElementById('lbl_mat_max').innerHTML = `$${totalMatMax.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+
+        document.getElementById('lbl_lab_min').innerHTML = `$${totalLabMin.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+        document.getElementById('lbl_lab_avg').innerHTML = `$${totalLabAvg.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+        document.getElementById('lbl_lab_max').innerHTML = `$${totalLabMax.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+
+        document.getElementById('lbl_tax_min').innerHTML = `$${taxMin.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+        document.getElementById('lbl_tax_avg').innerHTML = `$${taxAvg.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+        document.getElementById('lbl_tax_max').innerHTML = `$${taxMax.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+
+        document.getElementById('lbl_total_min').innerHTML = `$${grandTotalMin.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_total_avg').innerHTML = `$${grandTotalAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('lbl_total_max').innerHTML = `$${grandTotalMax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
         const fullPayload = {
             metadata: {
@@ -780,7 +790,7 @@
                 start_date: document.getElementById('start_date').value
             },
             line_items: projectScope,
-            totals: { mat: totalMatAvg, lab: totalLabAvg, tax: computedTaxAvg, grand: grandTotalAvg }
+            totals: { mat: totalMatAvg, lab: totalLabAvg, tax: taxAvg, grand: grandTotalAvg }
         };
 
         document.getElementById('payload_input').value = JSON.stringify(fullPayload);
