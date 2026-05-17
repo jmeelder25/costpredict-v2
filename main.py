@@ -6,15 +6,14 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# Global runtime container cache
 MASTER_DATA_CACHE = {}
 
 def load_master_data():
     """
     Scans the data directory, parses all 38 category CSV spreadsheets, 
-    and packages them into a structured object for the frontend autocomplete engines.
+    and packages them alphabetically into an indexed map dictionary structure.
     """
-    master_data = {}
+    raw_master_data = {}
     csv_files = glob.glob(os.path.join("data", "*.csv"))
     
     csi_codes = {
@@ -47,7 +46,7 @@ def load_master_data():
             clean_items = [str(i).strip() for i in items_list if str(i).strip() and str(i).strip() != category_name]
             
             if clean_items:
-                master_data[category_name] = {
+                raw_master_data[category_name] = {
                     "code": csi_codes.get(category_name, "09 00 00"),
                     "unit": "SF" if category_name in ["Flooring", "Drywall", "Countertops", "Concrete"] else "PCS",
                     "items": sorted(clean_items)
@@ -55,7 +54,9 @@ def load_master_data():
         except Exception as e:
             print(f"[ERROR] Failed parsing spreadsheet file {filename}: {e}")
             
-    return master_data
+    # Alphabetize the final Main Material Category layout by key sorting transformations
+    alphabetized_master_data = {k: raw_master_data[k] for k in sorted(raw_master_data.keys())}
+    return alphabetized_master_data
 
 
 # --- SERVER RUNTIME INITIALIZATION ---
@@ -64,17 +65,11 @@ MASTER_DATA_CACHE = load_master_data()
 
 @app.route('/')
 def index():
-    """
-    Serves the scope builder page, passing down the compiled spreadsheet object.
-    """
     return render_template('index.html', master_data=json.dumps(MASTER_DATA_CACHE))
 
 
 @app.route('/generate', methods=['POST'])
 def generate_pdf():
-    """
-    Receives evaluation parameters for document printing generation.
-    """
     payload_data = request.form.get('payload')
     print(f"[PDF ENGINE] Compilation target payload received: {payload_data}")
     return jsonify({"status": "success", "message": "PDF layout received by engine."}), 200
