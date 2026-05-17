@@ -4,6 +4,9 @@ import json
 import pandas as pd
 from flask import Flask, render_template, request, jsonify
 
+# Note: Your requirements.txt libraries (weasyprint, pydyf, fonttools, Pillow, python-dotenv) 
+# are fully supported and ready to be utilized alongside this core engine structure.
+
 app = Flask(__name__)
 
 # Global memory cache to serve the dynamic search engine instantly
@@ -78,7 +81,6 @@ def append_to_category_sheet(category_name, new_item_name):
     if not category_clean or not item_clean:
         return False, "Category or item field parameters are invalid."
 
-    # Look for both naming variants of the spreadsheet file
     possible_filenames = [
         f"{category_clean}.csv",
         f"Building Materials Spreadsheet.xlsx - {category_clean}.csv"
@@ -130,6 +132,7 @@ def append_to_category_sheet(category_name, new_item_name):
 # Pre-compile the spreadsheet structures when the server boots
 MASTER_DATA_CACHE = load_master_data()
 
+
 @app.route('/')
 def index():
     """
@@ -159,6 +162,21 @@ def refine_master_file():
     return jsonify({"status": "error", "message": message}), 500
 
 
+@app.route('/generate', methods=['POST'])
+def generate_pdf():
+    """
+    Placeholder for your existing PDF generation payload. Connects 
+    directly to your front end's 'Export Verified PDF Report' button submission.
+    """
+    # Your active WeasyPrint / pydyf layout generation code goes right here
+    payload_data = request.form.get('payload')
+    print(f"[PDF ENGINE] Received compilation scope: {payload_data}")
+    
+    # Replace this placeholder return with your actual PDF binary attachment stream response
+    return jsonify({"status": "success", "message": "PDF layout received by engine."}), 200
+
+
 if __name__ == '__main__':
-    # Starts local testing server infrastructure
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Render assigns a dynamic port variable automatically; defaults to 5000 locally
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
