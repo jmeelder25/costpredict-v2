@@ -298,7 +298,10 @@
     </div>
 
     <div class="card">
-        <h2>Step 1. Project Description</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">
+            <h2 style="margin: 0; border: none; padding: 0;">Step 1. Project Description</h2>
+            <button type="button" onclick="clearProjectForm()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Clear Form</button>
+        </div>
         <div class="form-row">
             <div class="form-group">
                 <label>Project Type</label>
@@ -437,6 +440,38 @@
         localStorage.setItem('cp_location', document.getElementById('location').value);
         localStorage.setItem('cp_start_date', document.getElementById('start_date').value);
         localStorage.setItem('cp_project_type', document.getElementById('project_type').value);
+    }
+
+    function clearProjectForm() {
+        // 1. Purge persistent state records from local browser cache storage
+        localStorage.removeItem('cp_location');
+        localStorage.removeItem('cp_start_date');
+        localStorage.setItem('cp_project_type', 'Residential');
+
+        // 2. Clear input elements on the active viewport UI frame
+        document.getElementById('location').value = '';
+        document.getElementById('start_date').value = '';
+        document.getElementById('project_type').value = 'Residential';
+        
+        // 3. Clear material input fields to match
+        document.getElementById('category_search').value = '';
+        const subInput = document.getElementById('subcategory_search');
+        subInput.value = '';
+        subInput.disabled = true;
+        subInput.placeholder = "Select a category first...";
+        document.getElementById('quantity').value = '';
+        document.getElementById('waste_factor').value = 10;
+        updateSliderLabel(10);
+
+        // 4. Reset the active scope item tracking arrays
+        projectScope = [];
+        activeCategoryKey = "";
+        pendingComponentData = null;
+
+        // 5. Hide output tracking elements and uncheck completion gates
+        document.getElementById('scoping_complete_checkbox').checked = false;
+        document.getElementById('evaluation_panel').style.display = 'none';
+        document.getElementById('results_panel').style.display = 'none';
     }
 
     function updateSliderLabel(val) {
