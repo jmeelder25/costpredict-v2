@@ -94,7 +94,6 @@
             transition: border-color 0.2s;
         }
         input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
-
         input::placeholder { color: #94a3b8; opacity: 1; }
 
         .autocomplete-suggestions {
@@ -394,28 +393,11 @@
     </div>
 </div>
 
-<div id="accessory_prompt" class="prompt-overlay">
-    <div class="prompt-box">
-        <h3 style="color: var(--cp-blue); margin-top:0;" id="accessory_title">Frequently Purchased Option</h3>
-        <p style="font-size: 14px; color:#475569;" id="accessory_text">Would you like to add the standard recommended installation accessories to your scope list?</p>
-        <div class="prompt-buttons">
-            <button class="prompt-btn btn-yes" onclick="confirmAccessory(true)">Yes, Add It</button>
-            <button class="prompt-btn btn-no" onclick="confirmAccessory(false)">No, Skip</button>
-        </div>
-    </div>
-</div>
-
 <script>
     const masterDataFile = {{ master_data | safe }} || {};
     
-    const basePricingRanges = {
-        mat: { min: 35.00, avg: 45.00, max: 60.00 },
-        lab: { min: 25.00, avg: 35.00, max: 45.00 }
-    };
-    
     let projectScope = [];
     let activeCategoryKey = "";
-    let pendingComponentData = null;
 
     window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('location').value = localStorage.getItem('cp_location') || '';
@@ -459,7 +441,6 @@
 
         projectScope = [];
         activeCategoryKey = "";
-        pendingComponentData = null;
 
         document.getElementById('scoping_complete_checkbox').checked = false;
         document.getElementById('evaluation_panel').style.display = 'none';
@@ -594,45 +575,21 @@
         let wasteFactor = 1 + (wastePct / 100);
         let finalQty = Math.ceil(qty * wasteFactor);
 
-        pendingComponentData = {
-            cat: activeCategoryKey,
-            sub: sub,
-            qty: finalQty,
-            laborReq: laborReq
-        };
-
-        if (sub.includes("Tile")) {
-            showAccessoryPrompt("Polymer Thinset Mortar", "Frequently purchased with tile items. Would you like to add Polymer Thinset Mortar (50lb bags) to this project?");
-        } else if (sub.includes("Vinyl Plank") || sub.includes("Laminate Flooring")) {
-            showAccessoryPrompt("Matching T-Mold Transitions", "Would you like to include Matching T-Mold Transition pieces for this floor layout?");
-        } else if (sub.includes("Cabinets") && (sub.includes("Base") || sub.includes("Kitchen"))) {
-            showAccessoryPrompt("Cabinet Hardware Pulls", "Would you like to include decorative cabinet assembly handle pulls?");
-        } else {
-            commitComponentScope(false);
-        }
-    }
-
-    function showAccessoryPrompt(title, text) {
-        document.getElementById('accessory_title').innerText = title;
-        document.getElementById('accessory_text').innerText = text;
-        document.getElementById('accessory_prompt').style.display = 'flex';
-    }
-
-    function confirmAccessory(addIt) {
-        document.getElementById('accessory_prompt').style.display = 'none';
-        commitComponentScope(addIt);
-    }
-
-    function commitComponentScope(includeAccessory) {
-        if (!pendingComponentData) return;
+        const metadata = masterDataFile[activeCategoryKey];
         
-        const metadata = masterDataFile[pendingComponentData.cat];
-        const p = pendingComponentData;
+        // Dynamic pricing assignment based on masterDataFile attributes
+        let unitMinMat = parseFloat(metadata.min_mat) || 35.00;
+        let unitAvgMat = parseFloat(metadata.avg_mat) || 45.00;
+        let unitMaxMat = parseFloat(metadata.max_mat) || 60.00;
         
+        let unitMinLab = laborReq ? (parseFloat(metadata.min_lab) || 25.00) : 0;
+        let unitAvgLab = laborReq ? (parseFloat(metadata.avg_lab) || 35.00) : 0;
+        let unitMaxLab = laborReq ? (parseFloat(metadata.max_lab) || 45.00) : 0;
+
         let zipValue = document.getElementById('location').value.trim();
         let itemConfidence = 96;
         if (!zipValue || zipValue.length < 5) itemConfidence -= 40;
-        if (p.sub.includes("Cabinet") || p.sub.includes("Custom")) itemConfidence -= 8;
+        if (sub.includes("Cabinet") || sub.includes("Custom")) itemConfidence -= 8;
         itemConfidence = Math.max(30, itemConfidence);
 
         let tierText = "High";
@@ -642,52 +599,23 @@
 
         projectScope.push({
             code: metadata.code,
-            desc: p.sub,
-            qty: p.qty,
+            desc: sub,
+            qty: finalQty,
             unit: metadata.unit,
             confidence_str: `${itemConfidence}% (${tierText})`,
             confidence_color: colorHex,
-            mat_min: p.qty * basePricingRanges.mat.min,
-            mat_avg: p.qty * basePricingRanges.mat.avg,
-            mat_max: p.qty * basePricingRanges.mat.max,
-            lab_min: p.laborReq ? (p.qty * basePricingRanges.lab.min) : 0,
-            lab_avg: p.laborReq ? (p.qty * basePricingRanges.lab.avg) : 0,
-            lab_max: p.laborReq ? (p.qty * basePricingRanges.lab.max) : 0
+            mat_min: finalQty * unitMinMat,
+            mat_avg: finalQty * unitAvgMat,
+            mat_max: finalQty * unitMaxMat,
+            lab_min: finalQty * unitMinLab,
+            lab_avg: finalQty * unitAvgLab,
+            lab_max: finalQty * unitMaxLab
         });
-
-        if (includeAccessory) {
-            if (p.sub.includes("Tile")) {
-                let thinsetBags = Math.max(1, Math.ceil(p.qty / 60));
-                projectScope.push({
-                    code: "09 30 05", desc: "Polymer Thinset Mortar (50lb)", qty: thinsetBags, unit: "BAGS",
-                    confidence_str: "94% (High)", confidence_color: "#16a34a",
-                    mat_min: thinsetBags * 26, mat_avg: thinsetBags * 32, mat_max: thinsetBags * 40,
-                    lab_min: 0, lab_avg: 0, lab_max: 0
-                });
-            } else if (p.sub.includes("Vinyl Plank") || p.sub.includes("Laminate Flooring")) {
-                let tstrips = Math.max(1, Math.ceil(p.qty / 300));
-                projectScope.push({
-                    code: "09 65 13", desc: "Matching T-Mold Transitions", qty: tstrips, unit: "PCS",
-                    confidence_str: "92% (High)", confidence_color: "#16a34a",
-                    mat_min: tstrips * 35, mat_avg: tstrips * 45, mat_max: tstrips * 55,
-                    lab_min: p.laborReq ? (tstrips * 20) : 0, lab_avg: p.laborReq ? (tstrips * 25) : 0, lab_max: p.laborReq ? (tstrips * 35) : 0
-                });
-            } else if (p.sub.includes("Cabinets")) {
-                let pulls = p.qty;
-                projectScope.push({
-                    code: "06 41 16", desc: "Cabinet Hardware Pulls", qty: pulls, unit: "PCS",
-                    confidence_str: "88% (High)", confidence_color: "#16a34a",
-                    mat_min: pulls * 6.00, mat_avg: pulls * 8.50, mat_max: pulls * 12.00,
-                    lab_min: p.laborReq ? (pulls * 4.00) : 0, lab_avg: p.laborReq ? (pulls * 5.00) : 0, lab_max: p.laborReq ? (pulls * 7.00) : 0
-                });
-            }
-        }
 
         renderProjectState();
         
         document.getElementById('quantity').value = '';
         document.getElementById('subcategory_search').value = '';
-        pendingComponentData = null;
         
         const resultsPanel = document.getElementById('results_panel');
         resultsPanel.style.display = 'block';
