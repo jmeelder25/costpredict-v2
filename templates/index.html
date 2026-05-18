@@ -518,7 +518,8 @@
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
         
-        masterDataFile[activeCategoryKey].items.forEach(item => {
+        // Loop over the keys of the items dictionary schema
+        Object.keys(masterDataFile[activeCategoryKey].items).forEach(item => {
             let div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = item;
@@ -534,7 +535,7 @@
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
         
-        masterDataFile[activeCategoryKey].items.forEach(item => {
+        Object.keys(masterDataFile[activeCategoryKey].items).forEach(item => {
             if (item.toLowerCase().includes(query)) {
                 let div = document.createElement('div');
                 div.className = 'suggestion-item';
@@ -567,7 +568,7 @@
         const laborReq = document.getElementById('labor_required').value === "Yes";
         const wastePct = parseFloat(document.getElementById('waste_factor').value);
 
-        if (!activeCategoryKey || !sub || isNaN(qty) || qty <= 0) {
+        if (!activeCategoryKey || !masterDataFile[activeCategoryKey] || !sub || isNaN(qty) || qty <= 0) {
             alert("Please input a valid quantity and select your materials.");
             return;
         }
@@ -576,15 +577,19 @@
         let finalQty = Math.ceil(qty * wasteFactor);
 
         const metadata = masterDataFile[activeCategoryKey];
+        // Pull item specific parameters directly from the dictionary schema entry row map
+        const itemPricingRow = metadata.items[sub] || {
+            min_mat: 35.00, avg_mat: 45.00, max_mat: 60.00,
+            min_lab: 25.00, avg_lab: 35.00, max_lab: 45.00
+        };
         
-        // Dynamic pricing assignment based on masterDataFile attributes
-        let unitMinMat = parseFloat(metadata.min_mat) || 35.00;
-        let unitAvgMat = parseFloat(metadata.avg_mat) || 45.00;
-        let unitMaxMat = parseFloat(metadata.max_mat) || 60.00;
+        let unitMinMat = parseFloat(itemPricingRow.min_mat);
+        let unitAvgMat = parseFloat(itemPricingRow.avg_mat);
+        let unitMaxMat = parseFloat(itemPricingRow.max_mat);
         
-        let unitMinLab = laborReq ? (parseFloat(metadata.min_lab) || 25.00) : 0;
-        let unitAvgLab = laborReq ? (parseFloat(metadata.avg_lab) || 35.00) : 0;
-        let unitMaxLab = laborReq ? (parseFloat(metadata.max_lab) || 45.00) : 0;
+        let unitMinLab = laborReq ? parseFloat(itemPricingRow.min_lab) : 0;
+        let unitAvgLab = laborReq ? parseFloat(itemPricingRow.avg_lab) : 0;
+        let unitMaxLab = laborReq ? parseFloat(itemPricingRow.max_lab) : 0;
 
         let zipValue = document.getElementById('location').value.trim();
         let itemConfidence = 96;
@@ -711,6 +716,7 @@
         document.getElementById('lbl_total_avg').innerHTML = `$${grandTotalAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('lbl_total_max').innerHTML = `$${grandTotalMax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
+        // Build expanded payload matrices to pass min/avg/max down into the WeasyPrint script engine
         const fullPayload = {
             metadata: {
                 project_type: document.getElementById('project_type').value,
@@ -718,7 +724,12 @@
                 start_date: document.getElementById('start_date').value
             },
             line_items: projectScope,
-            totals: { mat: totalMatAvg, lab: totalLabAvg, tax: taxAvg, grand: grandTotalAvg }
+            totals: { 
+                mat_min: totalMatMin, mat_avg: totalMatAvg, mat_max: totalMatMax,
+                lab_min: totalLabMin, lab_avg: totalLabAvg, lab_max: totalLabMax,
+                tax_min: taxMin, tax_avg: taxAvg, tax_max: taxMax,
+                grand_min: grandTotalMin, grand_avg: grandTotalAvg, grand_max: grandTotalMax
+            }
         };
 
         document.getElementById('payload_input').value = JSON.stringify(fullPayload);
