@@ -1,6 +1,7 @@
 import os
 import glob
 import json
+import base64
 import pandas as pd
 from flask import Flask, render_template, request, make_response, jsonify
 from weasyprint import HTML
@@ -11,8 +12,8 @@ MASTER_DATA_CACHE = {}
 
 def load_master_data():
     """
-    Scans the data directory, parses all 38 category CSV spreadsheets, 
-    and packages them alphabetically into an indexed map dictionary structure.
+    Scans the data directory, parses all 38 category CSV spreadsheets,
+    extracts dynamic pricing columns, and indexes them alphabetically.
     """
     raw_master_data = {}
     csv_files = glob.glob(os.path.join("data", "*.csv"))
@@ -41,26 +42,40 @@ def load_master_data():
             df = pd.read_csv(file_path)
             if df.empty:
                 continue
-                
-            first_column = df.columns[0]
-            items_list = df[first_column].dropna().unique().tolist()
-            clean_items = [str(i).strip() for i in items_list if str(i).strip() and str(i).strip() != category_name]
             
-            if clean_items:
+            # Clean up column headers to ensure uniform casing lookups
+            df.columns = [str(c).strip().lower() for c in df.columns]
+            name_col = df.columns[0]
+            
+            items_dictionary = {}
+            
+            for _, row in df.iterrows():
+                item_name = str(row[name_col]).strip()
+                if not item_name or item_name == "nan" or item_name == category_name:
+                    continue
+                
+                # Extract columns or default cleanly if the spreadsheet lacks specific tiers
+                items_dictionary[item_name] = {
+                    "min_mat": float(row.get('min_mat', row.get('material_min', 35.00))),
+                    "avg_mat": float(row.get('avg_mat', row.get('material_avg', 45.00))),
+                    "max_mat": float(row.get('max_mat', row.get('material_max', 60.00))),
+                    "min_lab": float(row.get('min_lab', row.get('labor_min', 25.00))),
+                    "avg_lab": float(row.get('avg_lab', row.get('labor_avg', 35.00))),
+                    "max_lab": float(row.get('max_lab', row.get('labor_max', 45.00)))
+                }
+            
+            if items_dictionary:
                 raw_master_data[category_name] = {
                     "code": csi_codes.get(category_name, "09 00 00"),
                     "unit": "SF" if category_name in ["Flooring", "Drywall", "Countertops", "Concrete"] else "PCS",
-                    "items": sorted(clean_items)
+                    "items": items_dictionary  # Now passes a rich lookup schema object
                 }
         except Exception as e:
             print(f"[ERROR] Failed parsing spreadsheet file {filename}: {e}")
             
-    # Alphabetize the final Main Material Category layout by key sorting transformations
     alphabetized_master_data = {k: raw_master_data[k] for k in sorted(raw_master_data.keys())}
     return alphabetized_master_data
 
-
-# --- SERVER RUNTIME INITIALIZATION ---
 
 MASTER_DATA_CACHE = load_master_data()
 
@@ -72,67 +87,192 @@ def index():
 @app.route('/generate', methods=['POST'])
 def generate_pdf():
     """
-    Intercepts form array data blocks to process the new min/avg/max tiered arrays
-    and compiles a finalized project summary report PDF using WeasyPrint.
+    Generates a polished CostPredict Project Report matching professional commercial aesthetics.
+    Embeds the logo asset cleanly and handles granular item range matrices.
     """
     try:
         raw_payload = request.form.get('payload')
         if not raw_payload:
-            return "Missing project configuration payload data parameters.", 400
+            return "Missing project configuration payload parameters.", 400
             
         data = json.loads(raw_payload)
         metadata = data.get('metadata', {})
         line_items = data.get('line_items', [])
         totals = data.get('totals', {})
         
-        # Pull the new confidence calculation metadata parameter
-        confidence_score = metadata.get('confidence_score', 'N/A')
+        # Safe base64 conversion for your logo asset to bypass local container threading paths
+        logo_base64 = ""
+        logo_path = os.path.join("static", "logo.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as image_file:
+                logo_base64 = base64.b64encode(image_file.read()).decode('utf-8')
 
-        # Build structural HTML template for WeasyPrint PDF conversion
+        # Highly styled HTML print layout utilizing Weasyprint Paged CSS rules
         html_content = f"""
         <html>
         <head>
             <style>
-                body {{ font-family: Arial, sans-serif; margin: 30px; color: #334155; }}
-                .header {{ border-bottom: 3px solid #23408A; padding-bottom: 10px; margin-bottom: 20px; }}
-                .title {{ color: #23408A; font-size: 24px; font-weight: bold; }}
-                .meta-table {{ width: 100%; margin-bottom: 20px; font-size: 13px; }}
-                .items-table {{ width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }}
-                .items-table th {{ background-color: #23408A; color: white; padding: 8px; text-align: left; }}
-                .items-table td {{ padding: 8px; border-bottom: 1px solid #e2e8f0; }}
-                .totals-section {{ margin-top: 20px; float: right; width: 350px; font-size: 13px; }}
-                .totals-row {{ display: flex; justify-content: space-between; padding: 6px 0; }}
-                .grand-total {{ font-weight: bold; color: #23408A; font-size: 15px; border-top: 2px solid #23408A; padding-top: 6px; }}
-                .confidence-box {{ margin-top: 15px; padding: 8px; background-color: #f8fafc; border: 1px solid #cbd5e1; font-weight: bold; border-radius: 4px; font-size: 12px; text-align: center; }}
-                .footer {{ margin-top: 50px; font-size: 9px; color: #94a3b8; text-align: justify; line-height: 1.3; }}
+                @page {{
+                    size: A4;
+                    margin: 20mm 15mm 20mm 15mm;
+                    @bottom-right {{
+                        content: "Page " counter(page) " of " counter(pages);
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                        font-size: 8pt;
+                        color: #94a3b8;
+                    }}
+                }}
+                body {{
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    color: #1e293b;
+                    margin: 0;
+                    padding: 0;
+                    line-height: 1.5;
+                }}
+                .header-container {{
+                    border-bottom: 3px solid #23408A;
+                    padding-bottom: 16px;
+                    margin-bottom: 25px;
+                }}
+                .logo-slot {{
+                    height: 45px;
+                    margin-bottom: 10px;
+                }}
+                .logo-slot img {{
+                    height: 100%;
+                    width: auto;
+                }}
+                .doc-title {{
+                    color: #23408A;
+                    font-size: 24pt;
+                    font-weight: 800;
+                    letter-spacing: -0.5px;
+                    margin: 0;
+                }}
+                .meta-grid {{
+                    width: 100%;
+                    margin-bottom: 30px;
+                    background-color: #f8fafc;
+                    border-radius: 8px;
+                    padding: 12px 16px;
+                    font-size: 10pt;
+                }}
+                .meta-grid td {{
+                    padding: 4px 0;
+                }}
+                .section-heading {{
+                    font-size: 13pt;
+                    font-weight: 700;
+                    color: #23408A;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 12px;
+                    border-bottom: 1px solid #e2e8f0;
+                    padding-bottom: 4px;
+                }}
+                .items-table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }}
+                .items-table th {{
+                    background-color: #23408A;
+                    color: #ffffff;
+                    font-weight: 600;
+                    font-size: 9pt;
+                    text-transform: uppercase;
+                    padding: 10px 12px;
+                    text-align: left;
+                }}
+                .items-table td {{
+                    padding: 12px;
+                    font-size: 9.5pt;
+                    border-bottom: 1px solid #e2e8f0;
+                    vertical-align: top;
+                }}
+                .csi-cell {{
+                    font-family: monospace;
+                    color: #64748b;
+                    font-size: 8.5pt;
+                }}
+                .price-range-text {{
+                    font-family: monospace;
+                    font-size: 9pt;
+                    color: #334155;
+                    white-space: nowrap;
+                }}
+                .checkout-wrapper {{
+                    width: 100%;
+                    margin-top: 20px;
+                    page-break-inside: avoid;
+                }}
+                .totals-box {{
+                    float: right;
+                    width: 320px;
+                    background-color: #ffffff;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 8px;
+                    padding: 14px;
+                }}
+                .totals-row {{
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 9.5pt;
+                    padding: 5px 0;
+                    color: #475569;
+                }}
+                .totals-row.grand-heading {{
+                    font-size: 12pt;
+                    font-weight: 700;
+                    color: #23408A;
+                    border-top: 2px solid #23408A;
+                    margin-top: 8px;
+                    padding-top: 8px;
+                }}
+                .totals-matrix {{
+                    font-family: monospace;
+                    text-align: right;
+                    font-weight: 600;
+                }}
+                .footer {{
+                    clear: both;
+                    margin-top: 60px;
+                    font-size: 8pt;
+                    color: #94a3b8;
+                    text-align: justify;
+                    line-height: 1.4;
+                    border-top: 1px solid #e2e8f0;
+                    padding-top: 12px;
+                }}
             </style>
         </head>
         <body>
-            <div class="header">
-                <div class="title">CostPredict Project Scope Report</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Generated Predictive Summary Engine v2.5</div>
+            <div class="header-container">
+                <div class="logo-slot">
+                    {"<img src='data:image/png;base64," + logo_base64 + "' />" if logo_base64 else ""}
+                </div>
+                <h1 class="doc-title">CostPredict Project Report</h1>
             </div>
 
-            <table class="meta-table">
+            <table class="meta-grid">
                 <tr>
-                    <td><strong>Project Type:</strong> {metadata.get('project_type')}</td>
-                    <td><strong>Project Zip Code:</strong> {metadata.get('location')}</td>
+                    <td style="width: 50%;"><strong>Project Configuration Type:</strong> {metadata.get('project_type')}</td>
+                    <td style="width: 50%;"><strong>Target Geographical Zip Code:</strong> {metadata.get('location')}</td>
                 </tr>
                 <tr>
-                    <td><strong>Estimated Purchase Date:</strong> {metadata.get('start_date')}</td>
+                    <td><strong>Estimated Purchase Date Window:</strong> {metadata.get('start_date')}</td>
                     <td></td>
                 </tr>
             </table>
 
-            <h3>Scope Bill of Quantities Matrix</h3>
+            <h2 class="section-heading">Predictive Material & Labor Bill of Quantities</h2>
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th>CSI Code</th>
-                        <th>Material Description</th>
-                        <th>Calculated Qty</th>
-                        <th>Mat (Min / Avg / Max)</th>
-                        <th>Lab (Min / Avg / Max)</th>
+                        <th style="width: 12%;">CSI Code</th>
+                        <th style="width: 38%;">Description & Scope Sizing</th>
+                        <th style="width: 25%;">Material Range (Min/Avg/Max)</th>
+                        <th style="width: 25%;">Labor Range (Min/Avg/Max)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -141,11 +281,26 @@ def generate_pdf():
         for item in line_items:
             html_content += f"""
                 <tr>
-                    <td style="font-family: monospace;">{item.get('code')}</td>
-                    <td><strong>{item.get('desc')}</strong></td>
-                    <td>{item.get('qty')} {item.get('unit')}</td>
-                    <td style="font-family: monospace;">${item.get('mat_min',0):,.2f} / ${item.get('mat_avg',0):,.2f} / ${item.get('mat_max',0):,.2f}</td>
-                    <td style="font-family: monospace;">${item.get('lab_min',0):,.2f} / ${item.get('lab_avg',0):,.2f} / ${item.get('lab_max',0):,.2f}</td>
+                    <td class="csi-cell">{item.get('code')}</td>
+                    <td>
+                        <strong style="color: #23408A;">{item.get('desc')}</strong>
+                        <div style="font-size: 8.5pt; color: #64748b; margin-top: 2px;">
+                            Calculated Volume: {item.get('qty', 0):,} {item.get('unit')}
+                        </div>
+                        <div style="font-size: 8.5pt; color: #475569; margin-top: 2px; font-weight: 500;">
+                            Confidence Matrix Rank: <span style="font-family: monospace; font-weight: bold;">{item.get('confidence_str')}</span>
+                        </div>
+                    </td>
+                    <td class="price-range-text">
+                        ${item.get('mat_min',0):,.0f} /<br/>
+                        <strong>${item.get('mat_avg',0):,.0f}</strong> /<br/>
+                        ${item.get('mat_max',0):,.0f}
+                    </td>
+                    <td class="price-range-text">
+                        ${item.get('lab_min',0):,.0f} / <br/>
+                        <strong>${item.get('lab_avg',0):,.0f}</strong> / <br/>
+                        ${item.get('lab_max',0):,.0f}
+                    </td>
                 </tr>
             """
 
@@ -153,14 +308,29 @@ def generate_pdf():
                 </tbody>
             </table>
 
-            <div class="totals-section">
-                <div class="totals-row"><span>Material Base Subtotal (Avg):</span><span>${totals.get('mat', 0):,.2f}</span></div>
-                <div class="totals-row"><span>Labor Assembly Subtotal (Avg):</span><span>${totals.get('lab', 0):,.2f}</span></div>
-                <div class="totals-row"><span>Regional Sales Tax:</span><span>${totals.get('tax', 0):,.2f}</span></div>
-                <div class="totals-row grand-total"><span>Project Estimation (Avg Total):</span><span>${totals.get('grand', 0):,.2f}</span></div>
-                
-                <div class="confidence-box">
-                    Confidence Score: {confidence_score}
+            <div class="checkout-wrapper">
+                <div class="totals-box">
+                    <h3 style="margin: 0 0 10px 0; font-size: 10.5pt; color: #23408A; text-transform: uppercase; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">Predictive Project Aggregates</h3>
+                    
+                    <div class="totals-row">
+                        <span>Material Subtotals (Min/Avg/Max):</span>
+                        <span class="totals-matrix">${totals.get('mat_min', 0):,.0f} / ${totals.get('mat_avg', 0):,.0f} / ${totals.get('mat_max', 0):,.0f}</span>
+                    </div>
+                    <div class="totals-row">
+                        <span>Labor Subtotals (Min/Avg/Max):</span>
+                        <span class="totals-matrix">${totals.get('lab_min', 0):,.0f} / ${totals.get('lab_avg', 0):,.0f} / ${totals.get('lab_max', 0):,.0f}</span>
+                    </div>
+                    <div class="totals-row">
+                        <span>Regional Sales Tax (Min/Avg/Max):</span>
+                        <span class="totals-matrix">${totals.get('tax_min', 0):,.0f} / ${totals.get('tax_avg', 0):,.0f} / ${totals.get('tax_max', 0):,.0f}</span>
+                    </div>
+                    
+                    <div class="totals-row grand-heading">
+                        <span>Pricing Prediction:</span>
+                    </div>
+                    <div style="text-align: right; font-family: monospace; font-size: 13pt; font-weight: 800; color: #23408A; margin-top: 4px;">
+                        ${totals.get('grand_min', 0):,.0f} / ${totals.get('grand_avg', 0):,.0f} / ${totals.get('grand_max', 0):,.0f}
+                    </div>
                 </div>
             </div>
 
@@ -173,12 +343,11 @@ def generate_pdf():
         </html>
         """
 
-        # Generate the PDF binary via WeasyPrint
         pdf_file = HTML(string=html_content).write_pdf()
         
         response = make_response(pdf_file)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = 'inline; filename=CostPredict_Project_Report.pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=CostPredict_Project_Report.pdf'
         return response
 
     except Exception as e:
