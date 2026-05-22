@@ -394,7 +394,7 @@
 </div>
 
 <script>
-    const masterDataFile = {{ master_data | safe }} || {};
+    const masterDataFile = {{ master_data|safe }} || {};
     
     let projectScope = [];
     let activeCategoryKey = "";
@@ -518,7 +518,6 @@
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
         
-        // Loop over the keys of the items dictionary schema
         Object.keys(masterDataFile[activeCategoryKey].items).forEach(item => {
             let div = document.createElement('div');
             div.className = 'suggestion-item';
@@ -577,7 +576,6 @@
         let finalQty = Math.ceil(qty * wasteFactor);
 
         const metadata = masterDataFile[activeCategoryKey];
-        // Pull item specific parameters directly from the dictionary schema entry row map
         const itemPricingRow = metadata.items[sub] || {
             min_mat: 35.00, avg_mat: 45.00, max_mat: 60.00,
             min_lab: 25.00, avg_lab: 35.00, max_lab: 45.00
@@ -660,25 +658,25 @@
                 <div class="range-grid">
                     <span class="range-label">Project Qty</span>
                     <span class="range-values">
-                        <span>Min: $${item.mat_min.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                        <span>Avg: $${item.mat_avg.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                        <span>Max: $${item.mat_max.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Min: $${item.mat_min.toFixed(2)}</span>
+                        <span>Avg: $${item.mat_avg.toFixed(2)}</span>
+                        <span>Max: $${item.mat_max.toFixed(2)}</span>
                     </span>
                 </div>
                 <div class="range-grid">
                     <span class="range-label">Project Labor</span>
                     <span class="range-values">
-                        <span>Min: $${item.lab_min.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                        <span>Avg: $${item.lab_avg.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                        <span>Max: $${item.lab_max.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Min: $${item.lab_min.toFixed(2)}</span>
+                        <span>Avg: $${item.lab_avg.toFixed(2)}</span>
+                        <span>Max: $${item.lab_max.toFixed(2)}</span>
                     </span>
                 </div>
                 <div class="range-grid" style="border-top: 1px solid #cbd5e1; font-weight:700;">
                     <span class="range-label" style="color:var(--cp-blue);">Item Subtotal</span>
                     <span class="range-values" style="color:var(--cp-blue);">
-                        <span>Min: $${itemMinSub.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                        <span>Avg: $${itemAvgSub.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                        <span>Max: $${itemMaxSub.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        <span>Min: $${itemMinSub.toFixed(2)}</span>
+                        <span>Avg: $${itemAvgSub.toFixed(2)}</span>
+                        <span>Max: $${itemMaxSub.toFixed(2)}</span>
                     </span>
                 </div>
                 <div style="font-size:11px; margin-top:6px; color:#64748b; font-style:italic;">Calculated Scope Size: ${item.qty} ${item.unit}</div>
@@ -716,7 +714,6 @@
         document.getElementById('lbl_total_avg').innerHTML = `$${grandTotalAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('lbl_total_max').innerHTML = `$${grandTotalMax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-        // Build expanded payload matrices to pass min/avg/max down into the WeasyPrint script engine
         const fullPayload = {
             metadata: {
                 project_type: document.getElementById('project_type').value,
