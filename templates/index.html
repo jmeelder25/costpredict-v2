@@ -142,7 +142,7 @@
 
     function initializeDataNormalization() {
         let rawItems = Array.isArray(masterDataFile) ? masterDataFile : Object.values(masterDataFile);
-        if (!Array.isArray(masterDataFile) && !(rawItems.length > 0 && typeof rawItems[0] === 'object' && ('category' in rawItems[0]))) {
+        if (!Array.isArray(masterDataFile) && !(rawItems.length > 0 && typeof rawItems[0] === 'object' && ('category' in rawItems[0] || 'Category' in rawItems[0]))) {
             let items = [];
             Object.keys(masterDataFile).forEach(catKey => {
                 if (masterDataFile[catKey].items) {
@@ -158,7 +158,6 @@
         normalizedCatalog = rawItems.map(item => ({
             category: String(item.Category || item.category || "General").trim(),
             subcategory: String(item.Subcategory || item.subcategory || item.desc || "Unknown").trim(),
-            code: String(item.code || item.csi_code || "00-0000").trim(),
             unit: String(item.unit || item.Unit || "EA").trim(),
             min_mat: getCostVal(item, ['min_mat', 'mat_min'], 35),
             avg_mat: getCostVal(item, ['avg_mat', 'mat_avg'], 45),
@@ -169,8 +168,83 @@
         }));
     }
 
+    function showCategories() {
+        const container = document.getElementById('category_suggestions');
+        container.innerHTML = '';
+        const cats = [...new Set(normalizedCatalog.map(i => i.category))].sort();
+        cats.forEach(cat => {
+            let div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerText = cat;
+            div.onclick = () => {
+                activeCategoryKey = cat;
+                document.getElementById('category_search').value = cat;
+                document.getElementById('subcategory_search').disabled = false;
+                document.getElementById('subcategory_search').placeholder = "Search subcategories...";
+                container.style.display = 'none';
+            };
+            container.appendChild(div);
+        });
+        container.style.display = 'block';
+    }
+
+    function filterCategories() {
+        const query = document.getElementById('category_search').value.toLowerCase();
+        const items = document.querySelectorAll('#category_suggestions .suggestion-item');
+        items.forEach(item => item.style.display = item.innerText.toLowerCase().includes(query) ? 'block' : 'none');
+    }
+
+    function showSubcategories() {
+        const container = document.getElementById('subcategory_suggestions');
+        container.innerHTML = '';
+        normalizedCatalog.filter(i => i.category === activeCategoryKey).forEach(i => {
+            let div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerHTML = `${i.subcategory} <span style="font-size:10px; color:#64748b;">(${i.unit})</span>`;
+            div.onclick = () => {
+                document.getElementById('subcategory_search').value = i.subcategory;
+                container.style.display = 'none';
+            };
+            container.appendChild(div);
+        });
+        container.style.display = 'block';
+    }
+
+    function filterSubcategories() {
+        const query = document.getElementById('subcategory_search').value.toLowerCase();
+        const items = document.querySelectorAll('#subcategory_suggestions .suggestion-item');
+        items.forEach(item => item.style.display = item.innerText.toLowerCase().includes(query) ? 'block' : 'none');
+    }
+
+    function processComponentIntent() {
+        const subName = document.getElementById('subcategory_search').value;
+        const qty = parseFloat(document.getElementById('quantity').value);
+        const item = normalizedCatalog.find(i => i.subcategory === subName);
+        if (!item || isNaN(qty)) return alert("Please select a subcategory and enter a quantity.");
+        
+        projectScope.push({ ...item, qty: qty });
+        document.getElementById('results_panel').style.display = 'block';
+        renderProjectState();
+    }
+
+    function renderProjectState() {
+        document.getElementById('components_list').innerHTML = projectScope.map(p => 
+            `<div class="component-item">${p.subcategory} (${p.qty} ${p.unit})</div>`
+        ).join('');
+        document.getElementById('payload_input').value = JSON.stringify(projectScope);
+    }
+
+    function updateSliderLabel(val) { document.getElementById('waste_label').innerText = val + "%"; }
+    function toggleGatekeeper() {
+        const check = document.getElementById('scoping_complete_checkbox');
+        check.checked = !check.checked;
+        document.getElementById('evaluation_panel').style.display = check.checked ? 'block' : 'none';
+    }
+    function clearProjectForm() { projectScope = []; renderProjectState(); document.getElementById('results_panel').style.display = 'none'; }
+    function saveState() {} 
+    function focusFormInput() { document.getElementById('category_search').focus(); }
+
     window.addEventListener('DOMContentLoaded', initializeDataNormalization);
-    // ... [Add remaining helper functions: showCategories, selectCategory, processComponentIntent, renderProjectState, etc. from Source 1142-1430] ...
 </script>
 </body>
 </html>
