@@ -7,20 +7,120 @@
     <style>
         :root {
             --primary: #23408A;
-            --slate: #1e293b;
+            --slate-dark: #1e293b;
+            --slate-light: #f8fafc;
             --border: #e2e8f0;
+            --text-muted: #64748b;
         }
-        body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: var(--slate); max-width: 1200px; margin: 0 auto; }
-        h1 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; }
-        .control-group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; }
-        select, input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 11pt; }
-        .card { border: 1px solid var(--border); padding: 24px; border-radius: 8px; background: #f8fafc; }
-        .price-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); }
-        .price-row.total { border-top: 2px solid var(--primary); font-weight: bold; color: var(--primary); border-bottom: none; margin-top: 15px; font-size: 13pt;}
-        button { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; font-size: 11pt; }
-        button:hover { opacity: 0.9; }
+        
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            padding: 40px 20px; 
+            color: var(--slate-dark); 
+            max-width: 650px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+        }
+        
+        .calculator-container {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            background: var(--slate-light);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 { 
+            color: var(--primary); 
+            font-size: 20pt;
+            margin-top: 0;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border); 
+            padding-bottom: 12px; 
+        }
+        
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        
+        label { 
+            display: block; 
+            font-weight: 600; 
+            margin-bottom: 8px; 
+            font-size: 10.5pt;
+        }
+        
+        select, input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            font-size: 11pt; 
+            box-sizing: border-box;
+            background-color: #ffffff;
+        }
+
+        select:focus, input:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: -1px;
+        }
+        
+        .metrics-display { 
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 2px dashed var(--border);
+        }
+
+        .metric-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 10px 0; 
+            font-size: 11pt;
+        }
+
+        .metric-row span:first-child {
+            color: var(--text-muted);
+        }
+
+        .metric-row.highlight {
+            font-weight: 600;
+            color: var(--slate-dark);
+        }
+
+        .metric-row.highlight span:first-child {
+            color: var(--slate-dark);
+        }
+        
+        .metric-row.total-gross { 
+            border-top: 2px solid var(--primary); 
+            font-weight: 700; 
+            color: var(--primary); 
+            font-size: 14pt;
+            margin-top: 12px;
+            padding-top: 14px;
+        }
+
+        .metric-row.total-gross span:first-child {
+            color: var(--primary);
+        }
+        
+        button { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 14px 24px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 24px; 
+            font-size: 11pt; 
+            transition: background 0.15s ease;
+        }
+        
+        button:hover { 
+            background: #1a316c; 
+        }
     </style>
 
     <script>
@@ -29,49 +129,63 @@
 </head>
 <body>
 
-    <h1>CostPredict Estimator Dashboard</h1>
+    <div class="calculator-container">
+        <h1>CostPredict Estimator</h1>
 
-    <div class="grid">
-        <div>
-            <div class="control-group">
-                <label for="category-select">Material Category</label>
-                <select id="category-select" onchange="populateItems()">
-                    <option value="">-- Select Category --</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label for="item-select">Specific Component Item</label>
-                <select id="item-select" onchange="calculateCosts()">
-                    <option value="">-- Select Item --</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label for="quantity-input">Project Target Quantity</label>
-                <input type="number" id="quantity-input" value="1000" min="1" oninput="calculateCosts()">
-            </div>
-            
-            <form action="/generate" method="POST" onsubmit="preparePayload(event)">
-                <input type="hidden" name="payload" id="payload-field">
-                <button type="submit">📥 Export Project PDF Report</button>
-            </form>
+        <div class="form-group">
+            <label for="category-select">Material Category</label>
+            <select id="category-select" onchange="populateItems()">
+                <option value="">-- Select Category --</option>
+            </select>
         </div>
 
-        <div class="card">
-            <h3>Estimation Matrix Breakdown</h3>
-            <div class="price-row"><span>CSI Reference Code:</span> <span id="out-csi">-</span></div>
-            <div class="price-row"><span>Unit of Measure:</span> <span id="out-unit">-</span></div>
-            
-            <h4>Unit Baseline Costs</h4>
-            <div class="price-row"><span>Material Unit Cost (Avg):</span> <span id="unit-mat">$0.00</span></div>
-            <div class="price-row"><span>Labor Unit Cost (Avg):</span> <span id="unit-lab">$0.00</span></div>
-            
-            <h4>Calculated Scope Totals</h4>
-            <div class="price-row"><span>Total Material Cost:</span> <span id="total-mat">$0.00</span></div>
-            <div class="price-row"><span>Total Labor Cost:</span> <span id="total-lab">$0.00</span></div>
-            <div class="price-row total"><span>Estimated Project Subtotal:</span> <span id="total-combined">$0.00</span></div>
+        <div class="form-group">
+            <label for="item-select">Specific Component Item</label>
+            <select id="item-select" onchange="calculateCosts()">
+                <option value="">-- Select Item --</option>
+            </select>
         </div>
+
+        <div class="form-group">
+            <label for="quantity-input">Project Target Quantity</label>
+            <input type="number" id="quantity-input" value="1000" min="1" oninput="calculateCosts()">
+        </div>
+        
+        <div class="metrics-display">
+            <div class="metric-row">
+                <span>CSI Reference Code:</span> 
+                <span id="out-csi">-</span>
+            </div>
+            <div class="metric-row">
+                <span>Unit of Measure:</span> 
+                <span id="out-unit">-</span>
+            </div>
+            <div class="metric-row highlight">
+                <span>Material Unit Cost (Avg):</span> 
+                <span id="unit-mat">$0.00</span>
+            </div>
+            <div class="metric-row highlight">
+                <span>Labor Unit Cost (Avg):</span> 
+                <span id="unit-lab">$0.00</span>
+            </div>
+            <div class="metric-row">
+                <span>Total Material Cost:</span> 
+                <span id="total-mat">$0.00</span>
+            </div>
+            <div class="metric-row">
+                <span>Total Labor Cost:</span> 
+                <span id="total-lab">$0.00</span>
+            </div>
+            <div class="metric-row total-gross">
+                <span>Estimated Subtotal:</span> 
+                <span id="total-combined">$0.00</span>
+            </div>
+        </div>
+
+        <form action="/generate" method="POST" onsubmit="preparePayload(event)">
+            <input type="hidden" name="payload" id="payload-field">
+            <button type="submit">📥 Export Project PDF Report</button>
+        </form>
     </div>
 
     <script>
@@ -79,7 +193,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             const catSelect = document.getElementById('category-select');
             if (!master_data) {
-                console.error("Error: master_data object didn't load from Flask pipeline.");
+                console.error("Error: master_data object missing from backend injection pipeline.");
                 return;
             }
             
@@ -125,7 +239,6 @@
             const target = master_data[cat];
             const pricing = target.items[item];
 
-            // Enforce explicit types using global Number object parsing wrappers
             const avgMat = Number(pricing.avg_mat || 45.00);
             const avgLab = Number(pricing.avg_lab || 35.00);
 
@@ -133,7 +246,6 @@
             const labTotal = avgLab * qty;
             const combined = matTotal + labTotal;
 
-            // Output safely back into presentation DOM fields
             document.getElementById('out-csi').textContent = target.code || "09 00 00";
             document.getElementById('out-unit').textContent = target.unit || "PCS";
             
