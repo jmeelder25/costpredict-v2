@@ -1,0 +1,43 @@
+name: Monthly AI Pricing Enrichment Pipeline
+
+on:
+  schedule:
+    # Fires automatically at midnight on the 1st of every month
+    - cron: '0 0 1 * *'
+  workflow_dispatch: # Allows you to trigger it manually with a button click anytime!
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install System Dependencies for WeasyPrint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0
+
+      - name: Install Project Requirements
+        run: |
+          pip install pandas google-genai pydantic playwright Flask weasyprint
+          playwright install chromium
+
+      - name: Execute Pricing Generation Engine
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python enrich_prices.py
+
+      - name: Commit and Push Updated Pricing Array back to Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add master_data.csv
+          # Only commit if the data file actually changed to avoid unnecessary builds
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Chore: Automated monthly pricing sync Matrix [Skip CI]" && git push)
