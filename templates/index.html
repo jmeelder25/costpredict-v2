@@ -394,7 +394,7 @@
 </div>
 
 <script>
-    // FIXED: Safely forces the template parser to write a true JS object directly into code
+    // Forces template context to safely injection data as a true JS structural object
     const masterDataFile = {{ master_data | tojson | safe }} || {};
     
     let projectScope = [];
@@ -467,12 +467,22 @@
         document.getElementById('evaluation_panel').style.display = box.checked ? 'block' : 'none';
     }
 
+    // Dynamic extraction helper to grab Category keys uniformly
+    function getCleanCategories() {
+        if (Array.isArray(masterDataFile)) {
+            return [...new Set(masterDataFile.map(item => item.category).filter(Boolean))];
+        }
+        return Object.keys(masterDataFile);
+    }
+
     function showCategories() {
         hideAllSuggestions();
         const container = document.getElementById('category_suggestions');
         container.innerHTML = '';
         
-        Object.keys(masterDataFile).forEach(cat => {
+        const categories = getCleanCategories();
+
+        categories.forEach(cat => {
             let div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = cat.replace(/([A-Z])/g, ' $1').trim();
@@ -487,7 +497,9 @@
         const container = document.getElementById('category_suggestions');
         container.innerHTML = '';
         
-        Object.keys(masterDataFile).forEach(cat => {
+        const categories = getCleanCategories();
+
+        categories.forEach(cat => {
             const cleanName = cat.replace(/([A-Z])/g, ' $1').trim();
             if (cleanName.toLowerCase().includes(query)) {
                 let div = document.createElement('div');
@@ -513,13 +525,23 @@
     }
 
     function showSubcategories() {
-        if (!activeCategoryKey || !masterDataFile[activeCategoryKey]) return;
+        if (!activeCategoryKey) return;
         hideAllSuggestions();
         
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
         
-        Object.keys(masterDataFile[activeCategoryKey].items).forEach(item => {
+        let subcategories = [];
+        if (Array.isArray(masterDataFile)) {
+            subcategories = masterDataFile
+                .filter(item => item.category === activeCategoryKey)
+                .map(item => item.item_description || item.subcategory || item.desc);
+        } else if (masterDataFile[activeCategoryKey] && masterDataFile[activeCategoryKey].items) {
+            subcategories = Object.keys(masterDataFile[activeCategoryKey].items);
+        }
+
+        subcategories.forEach(item => {
+            if (!item) return;
             let div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = item;
@@ -530,13 +552,22 @@
     }
 
     function filterSubcategories() {
-        if (!activeCategoryKey || !masterDataFile[activeCategoryKey]) return;
+        if (!activeCategoryKey) return;
         const query = document.getElementById('subcategory_search').value.toLowerCase();
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
         
-        Object.keys(masterDataFile[activeCategoryKey].items).forEach(item => {
-            if (item.toLowerCase().includes(query)) {
+        let subcategories = [];
+        if (Array.isArray(masterDataFile)) {
+            subcategories = masterDataFile
+                .filter(item => item.category === activeCategoryKey)
+                .map(item => item.item_description || item.subcategory || item.desc);
+        } else if (masterDataFile[activeCategoryKey] && masterDataFile[activeCategoryKey].items) {
+            subcategories = Object.keys(masterDataFile[activeCategoryKey].items);
+        }
+
+        subcategories.forEach(item => {
+            if (item && item.toLowerCase().includes(query)) {
                 let div = document.createElement('div');
                 div.className = 'suggestion-item';
                 div.innerHTML = item;
@@ -568,7 +599,7 @@
         const laborReq = document.getElementById('labor_required').value === "Yes";
         const wastePct = parseFloat(document.getElementById('waste_factor').value);
 
-        if (!activeCategoryKey || !masterDataFile[activeCategoryKey] || !sub || isNaN(qty) || qty <= 0) {
+        if (!activeCategoryKey || !sub || isNaN(qty) || qty <= 0) {
             alert("Please input a valid quantity and select your materials.");
             return;
         }
@@ -576,19 +607,43 @@
         let wasteFactor = 1 + (wastePct / 100);
         let finalQty = Math.ceil(qty * wasteFactor);
 
-        const metadata = masterDataFile[activeCategoryKey];
-        const itemPricingRow = metadata.items[sub] || {
-            min_mat: 35.00, avg_mat: 45.00, max_mat: 60.00,
-            min_lab: 25.00, avg_lab: 35.00, max_lab: 45.00
-        };
-        
-        let unitMinMat = parseFloat(itemPricingRow.min_mat);
-        let unitAvgMat = parseFloat(itemPricingRow.avg_mat);
-        let unitMaxMat = parseFloat(itemPricingRow.max_mat);
-        
-        let unitMinLab = laborReq ? parseFloat(itemPricingRow.min_lab) : 0;
-        let unitAvgLab = laborReq ? parseFloat(itemPricingRow.avg_lab) : 0;
-        let unitMaxLab = laborReq ? parseFloat(itemPricingRow.max_lab) : 0;
+        let unitMinMat = 35.00, unitAvgMat = 45.00, unitMaxMat = 60.00;
+        let unitMinLab = 25.00, unitAvgLab = 35.00, unitMaxLab = 45.00;
+        let csiCode = "00-0000";
+        let measurementUnit = "EA";
+
+        // Logic split based on incoming JSON schema structure
+        if (Array.isArray(masterDataFile)) {
+            const found = masterDataFile.find(item => 
+                item.category === activeCategoryKey && 
+                (item.item_description === sub || item.subcategory === sub || item.desc === sub)
+            );
+            if (found) {
+                unitMinMat = parseFloat(found.min_mat || found.mat_min || 0);
+                unitAvgMat = parseFloat(found.avg_mat || found.mat_avg || 0);
+                unitMaxMat = parseFloat(found.max_max || found.mat_max || 0);
+                unitMinLab = laborReq ? parseFloat(found.min_lab || found.lab_min || 0) : 0;
+                unitAvgLab = laborReq ? parseFloat(found.avg_lab || found.lab_avg || 0) : 0;
+                unitMaxLab = laborReq ? parseFloat(found.max_lab || found.lab_max || 0) : 0;
+                csiCode = found.code || found.csi_code || "00-0000";
+                measurementUnit = found.unit || "EA";
+            }
+        } else {
+            const metadata = masterDataFile[activeCategoryKey];
+            if (metadata) {
+                csiCode = metadata.code || "00-0000";
+                measurementUnit = metadata.unit || "EA";
+                const row = metadata.items ? metadata.items[sub] : null;
+                if (row) {
+                    unitMinMat = parseFloat(row.min_mat || 0);
+                    unitAvgMat = parseFloat(row.avg_mat || 0);
+                    unitMaxMat = parseFloat(row.max_mat || 0);
+                    unitMinLab = laborReq ? parseFloat(row.min_lab || 0) : 0;
+                    unitAvgLab = laborReq ? parseFloat(row.avg_lab || 0) : 0;
+                    unitMaxLab = laborReq ? parseFloat(row.max_lab || 0) : 0;
+                }
+            }
+        }
 
         let zipValue = document.getElementById('location').value.trim();
         let itemConfidence = 96;
@@ -602,10 +657,10 @@
         else if (itemConfidence < 85) { tierText = "Moderate"; colorHex = "#d97706"; }
 
         projectScope.push({
-            code: metadata.code,
+            code: csiCode,
             desc: sub,
             qty: finalQty,
-            unit: metadata.unit,
+            unit: measurementUnit,
             confidence_str: `${itemConfidence}% (${tierText})`,
             confidence_color: colorHex,
             mat_min: finalQty * unitMinMat,
