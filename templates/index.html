@@ -394,21 +394,86 @@
 </div>
 
 <script>
-    // Forces template context to safely injection data as a true JS structural object
+    // Injects dynamic template data
     const masterDataFile = {{ master_data | tojson | safe }} || {};
     
+    let normalizedCatalog = [];
     let projectScope = [];
     let activeCategoryKey = "";
 
+    // Safely parse pricing columns allowing zero but utilizing fallback when missing
+    function getCostVal(obj, keys, defaultVal) {
+        for (let k of keys) {
+            if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "") {
+                const parsed = parseFloat(obj[k]);
+                if (!isNaN(parsed)) return parsed;
+            }
+        }
+        return defaultVal;
+    }
+
+    // THE UNIVERSAL NORMALIZER: 
+    // This runs once when the page loads. It intercepts whatever bizarre nested or ID-indexed JSON 
+    // structure Flask threw at the frontend and flattens it into a perfect, uniform catalog array.
+    function initializeDataNormalization() {
+        let rawItems = [];
+        
+        if (Array.isArray(masterDataFile)) {
+            rawItems = masterDataFile;
+        } else {
+            const vals = Object.values(masterDataFile);
+            // Checks if the dictionary is indexed by ID row numbers like {"1": {category: "A"}}
+            const isKeyedById = vals.length > 0 && typeof vals[0] === 'object' && 
+                ('category' in vals[0] || 'Category' in vals[0] || 'subcategory' in vals[0] || 'item_description' in vals[0]);
+            
+            if (isKeyedById) {
+                rawItems = vals; 
+            } else {
+                // Catches the traditional grouped format {"Cabinets": { items: {"Base": {}} }}
+                Object.keys(masterDataFile).forEach(catKey => {
+                    const catData = masterDataFile[catKey];
+                    if (catData && catData.items) {
+                        Object.keys(catData.items).forEach(subKey => {
+                            let row = Object.assign({}, catData.items[subKey]);
+                            row.category = catKey;
+                            row.subcategory = subKey;
+                            row.code = catData.code || row.code;
+                            row.unit = catData.unit || row.unit;
+                            rawItems.push(row);
+                        });
+                    }
+                });
+            }
+        }
+
+        // Map everything uniformly so the UI never has to guess again
+        normalizedCatalog = rawItems.map(item => {
+            let cat = item.category || item.Category || item.CategoryName || "";
+            let sub = item.item_description || item.subcategory || item.Subcategory || item.desc || "";
+            return {
+                category: String(cat).trim(),
+                subcategory: String(sub).trim(),
+                code: String(item.code || item.csi_code || item.CSI || "00-0000").trim(),
+                unit: String(item.unit || item.Unit || item.uom || "EA").trim(),
+                min_mat: getCostVal(item, ['min_mat', 'mat_min', 'MinMat'], 35.0),
+                avg_mat: getCostVal(item, ['avg_mat', 'mat_avg', 'AvgMat'], 45.0),
+                max_mat: getCostVal(item, ['max_mat', 'mat_max', 'MaxMat'], 60.0),
+                min_lab: getCostVal(item, ['min_lab', 'lab_min', 'MinLab'], 25.0),
+                avg_lab: getCostVal(item, ['avg_lab', 'lab_avg', 'AvgLab'], 35.0),
+                max_lab: getCostVal(item, ['max_lab', 'lab_max', 'MaxLab'], 45.0)
+            };
+        }).filter(item => item.category !== "" && item.subcategory !== "");
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
+        initializeDataNormalization(); // Build the catalog immediately
+        
         document.getElementById('location').value = localStorage.getItem('cp_location') || '';
         document.getElementById('start_date').value = localStorage.getItem('cp_start_date') || '';
         document.getElementById('project_type').value = localStorage.getItem('cp_project_type') || 'Residential';
         
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.form-group')) {
-                hideAllSuggestions();
-            }
+            if (!e.target.closest('.form-group')) hideAllSuggestions();
         });
         
         document.getElementById('scoping_complete_checkbox').addEventListener('change', (e) => {
@@ -467,22 +532,14 @@
         document.getElementById('evaluation_panel').style.display = box.checked ? 'block' : 'none';
     }
 
-    // Dynamic extraction helper to grab Category keys uniformly
-    function getCleanCategories() {
-        if (Array.isArray(masterDataFile)) {
-            return [...new Set(masterDataFile.map(item => item.category).filter(Boolean))];
-        }
-        return Object.keys(masterDataFile);
-    }
-
     function showCategories() {
         hideAllSuggestions();
         const container = document.getElementById('category_suggestions');
         container.innerHTML = '';
         
-        const categories = getCleanCategories();
+        const uniqueCategories = [...new Set(normalizedCatalog.map(item => item.category))];
 
-        categories.forEach(cat => {
+        uniqueCategories.forEach(cat => {
             let div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = cat.replace(/([A-Z])/g, ' $1').trim();
@@ -497,9 +554,9 @@
         const container = document.getElementById('category_suggestions');
         container.innerHTML = '';
         
-        const categories = getCleanCategories();
+        const uniqueCategories = [...new Set(normalizedCatalog.map(item => item.category))];
 
-        categories.forEach(cat => {
+        uniqueCategories.forEach(cat => {
             const cleanName = cat.replace(/([A-Z])/g, ' $1').trim();
             if (cleanName.toLowerCase().includes(query)) {
                 let div = document.createElement('div');
@@ -531,17 +588,13 @@
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
         
-        let subcategories = [];
-        if (Array.isArray(masterDataFile)) {
-            subcategories = masterDataFile
-                .filter(item => item.category === activeCategoryKey)
-                .map(item => item.item_description || item.subcategory || item.desc);
-        } else if (masterDataFile[activeCategoryKey] && masterDataFile[activeCategoryKey].items) {
-            subcategories = Object.keys(masterDataFile[activeCategoryKey].items);
-        }
+        const subs = normalizedCatalog
+            .filter(item => item.category === activeCategoryKey)
+            .map(item => item.subcategory);
+            
+        const uniqueSubs = [...new Set(subs)];
 
-        subcategories.forEach(item => {
-            if (!item) return;
+        uniqueSubs.forEach(item => {
             let div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = item;
@@ -557,17 +610,14 @@
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
         
-        let subcategories = [];
-        if (Array.isArray(masterDataFile)) {
-            subcategories = masterDataFile
-                .filter(item => item.category === activeCategoryKey)
-                .map(item => item.item_description || item.subcategory || item.desc);
-        } else if (masterDataFile[activeCategoryKey] && masterDataFile[activeCategoryKey].items) {
-            subcategories = Object.keys(masterDataFile[activeCategoryKey].items);
-        }
+        const subs = normalizedCatalog
+            .filter(item => item.category === activeCategoryKey)
+            .map(item => item.subcategory);
+            
+        const uniqueSubs = [...new Set(subs)];
 
-        subcategories.forEach(item => {
-            if (item && item.toLowerCase().includes(query)) {
+        uniqueSubs.forEach(item => {
+            if (item.toLowerCase().includes(query)) {
                 let div = document.createElement('div');
                 div.className = 'suggestion-item';
                 div.innerHTML = item;
@@ -607,43 +657,17 @@
         let wasteFactor = 1 + (wastePct / 100);
         let finalQty = Math.ceil(qty * wasteFactor);
 
-        let unitMinMat = 35.00, unitAvgMat = 45.00, unitMaxMat = 60.00;
-        let unitMinLab = 25.00, unitAvgLab = 35.00, unitMaxLab = 45.00;
-        let csiCode = "00-0000";
-        let measurementUnit = "EA";
-
-        // Logic split based on incoming JSON schema structure
-        if (Array.isArray(masterDataFile)) {
-            const found = masterDataFile.find(item => 
-                item.category === activeCategoryKey && 
-                (item.item_description === sub || item.subcategory === sub || item.desc === sub)
-            );
-            if (found) {
-                unitMinMat = parseFloat(found.min_mat || found.mat_min || 0);
-                unitAvgMat = parseFloat(found.avg_mat || found.mat_avg || 0);
-                unitMaxMat = parseFloat(found.max_max || found.mat_max || 0);
-                unitMinLab = laborReq ? parseFloat(found.min_lab || found.lab_min || 0) : 0;
-                unitAvgLab = laborReq ? parseFloat(found.avg_lab || found.lab_avg || 0) : 0;
-                unitMaxLab = laborReq ? parseFloat(found.max_lab || found.lab_max || 0) : 0;
-                csiCode = found.code || found.csi_code || "00-0000";
-                measurementUnit = found.unit || "EA";
-            }
-        } else {
-            const metadata = masterDataFile[activeCategoryKey];
-            if (metadata) {
-                csiCode = metadata.code || "00-0000";
-                measurementUnit = metadata.unit || "EA";
-                const row = metadata.items ? metadata.items[sub] : null;
-                if (row) {
-                    unitMinMat = parseFloat(row.min_mat || 0);
-                    unitAvgMat = parseFloat(row.avg_mat || 0);
-                    unitMaxMat = parseFloat(row.max_mat || 0);
-                    unitMinLab = laborReq ? parseFloat(row.min_lab || 0) : 0;
-                    unitAvgLab = laborReq ? parseFloat(row.avg_lab || 0) : 0;
-                    unitMaxLab = laborReq ? parseFloat(row.max_lab || 0) : 0;
-                }
-            }
+        // Fetch exactly from our robust normalized array
+        const found = normalizedCatalog.find(item => item.category === activeCategoryKey && item.subcategory === sub);
+        
+        if (!found) {
+            alert("Pricing metrics for this specific material could not be verified in the catalog.");
+            return;
         }
+
+        let unitMinLab = laborReq ? found.min_lab : 0;
+        let unitAvgLab = laborReq ? found.avg_lab : 0;
+        let unitMaxLab = laborReq ? found.max_lab : 0;
 
         let zipValue = document.getElementById('location').value.trim();
         let itemConfidence = 96;
@@ -657,15 +681,15 @@
         else if (itemConfidence < 85) { tierText = "Moderate"; colorHex = "#d97706"; }
 
         projectScope.push({
-            code: csiCode,
+            code: found.code,
             desc: sub,
             qty: finalQty,
-            unit: measurementUnit,
+            unit: found.unit,
             confidence_str: `${itemConfidence}% (${tierText})`,
             confidence_color: colorHex,
-            mat_min: finalQty * unitMinMat,
-            mat_avg: finalQty * unitAvgMat,
-            mat_max: finalQty * unitMaxMat,
+            mat_min: finalQty * found.min_mat,
+            mat_avg: finalQty * found.avg_mat,
+            mat_max: finalQty * found.max_mat,
             lab_min: finalQty * unitMinLab,
             lab_avg: finalQty * unitAvgLab,
             lab_max: finalQty * unitMaxLab
