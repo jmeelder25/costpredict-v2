@@ -394,8 +394,8 @@
 </div>
 
 <script>
-    // FIX COMPLETED HERE: Safely parse backend dictionary object properties cleanly
-    const masterDataFile = JSON.parse(JSON.stringify({{ master_data | safe }})) || {};
+    // FIXED: Safely forces the template parser to write a true JS object directly into code
+    const masterDataFile = {{ master_data | tojson | safe }} || {};
     
     let projectScope = [];
     let activeCategoryKey = "";
