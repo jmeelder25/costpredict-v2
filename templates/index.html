@@ -2,140 +2,175 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CostPredict Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CostPredict | Pricing Made Predictive</title>
     <style>
-        .container { max-width: 800px; margin: 20px auto; font-family: sans-serif; }
-        .suggestions { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; position: absolute; background: white; width: 300px; z-index: 1000; }
-        .suggestion-item { padding: 8px; cursor: pointer; }
-        .suggestion-item:hover { background: #e2e8f0; }
-        .component-item { border: 1px solid #e2e8f0; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        :root { --cp-blue: #23408A; --cp-yellow: #FFC113; --cp-bg: #f8fafc; --cp-text: #0f172a; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--cp-bg); color: var(--cp-text); margin: 0; padding: 12px; -webkit-font-smoothing: antialiased; }
+        .wrapper { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+        .header-banner { background: #ffffff; padding: 16px; border-radius: 12px; border-bottom: 4px solid var(--cp-blue); box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .brand-logo { height: 42px; width: auto; max-width: 90%; object-fit: contain; display: block; }
+        .tagline { font-size: 10px; font-weight: 700; color: var(--cp-blue); letter-spacing: 1.75px; margin-top: 8px; text-transform: uppercase; opacity: 0.85; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04); border: 1px solid #e2e8f0; position: relative; }
+        .results-card { display: none; border-top: 4px solid var(--cp-blue); }
+        h2 { color: var(--cp-blue); font-size: 16px; margin-top: 0; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; font-weight: 700;}
+        .form-group { margin-bottom: 14px; position: relative; }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; background: #ffffff; color: var(--cp-text); transition: border-color 0.2s; }
+        input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
+        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
+        .suggestion-item { padding: 12px; cursor: pointer; font-size: 15px; border-bottom: 1px solid #f1f5f9; }
+        .suggestion-item:hover { background-color: #f1f5f9; color: var(--cp-blue); }
+        .slider-container { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+        .slider-container input[type="range"] { flex: 1; accent-color: var(--cp-blue); cursor: pointer; }
+        .slider-val { font-family: monospace; font-weight: 700; font-size: 15px; color: var(--cp-blue); width: 45px; text-align: right; }
+        .component-item { border-left: 4px solid var(--cp-blue); background: #f8fafc; padding: 14px; margin-bottom: 12px; border-radius: 6px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .component-header { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--cp-blue); }
+        .csi-code { font-family: monospace; color: #64748b; font-size: 11px; }
+        .range-grid { display: grid; grid-template-columns: 100px 1fr; gap: 4px; border-top: 1px dashed #e2e8f0; padding-top: 5px; margin-top: 5px; font-size: 12px; }
+        .range-label { font-weight: 600; color: #475569; }
+        .range-values { font-family: monospace; color: #334155; display: flex; justify-content: space-between; }
+        .add-more-link { display: block; text-align: center; color: var(--cp-blue); font-weight: 700; font-size: 14px; text-decoration: none; margin: 8px 0 14px 0; padding: 10px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #ffffff; }
+        .gatekeeper-wrapper { margin: 10px 0 15px 0; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; text-transform: uppercase; margin-top: 8px; }
+        .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; text-transform: uppercase; width: 100%; margin-top: 15px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
+        .summary-row.sub-header { background: #f1f5f9; font-weight: 700; border-bottom: 1px solid #cbd5e1; padding: 6px; font-size: 0.8rem; color: #475569; }
+        .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
+        .footer-note { text-align: center; font-size: 10px; color: #94a3b8; margin: 20px 0 10px 0; }
+        .legal-disclaimer { font-size: 9px; color: #cbd5e1; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px; text-align: justify; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div style="position:relative;">
-        <input type="text" id="category_search" placeholder="Search Category..." onkeyup="filterCategories()" onclick="showCategories()" autocomplete="off">
-        <div id="category_suggestions" class="suggestions" style="display:none;"></div>
+<div class="wrapper">
+    <div class="header-banner">
+        <img src="/static/logo.png" alt="CostPredict" class="brand-logo" onerror="this.src='logo.png'">
+        <div class="tagline">CONSTRUCTION PRICING MADE PREDICTIVE</div>
     </div>
-
-    <div style="position:relative; margin-top:10px;">
-        <input type="text" id="subcategory_search" placeholder="Select a category first..." onkeyup="filterSubcategories()" onclick="showSubcategories()" disabled autocomplete="off">
-        <div id="subcategory_suggestions" class="suggestions" style="display:none;"></div>
-    </div>
-
-    <div style="margin-top:10px;">
-        <input type="number" id="quantity" placeholder="Quantity">
-        <label>Waste %: <input type="number" id="waste_factor" value="10"></label>
-        <button onclick="processComponentIntent()">Add to Project</button>
-    </div>
-
-    <div id="results_panel" style="display:none; margin-top:20px;">
-        <h3>Project Scope</h3>
-        <div id="components_list"></div>
-        <div id="totals" style="margin-top:20px; font-weight:bold;">
-            <p>Min Total: <span id="lbl_total_min"></span></p>
-            <p>Avg Total: <span id="lbl_total_avg"></span></p>
-            <p>Max Total: <span id="lbl_total_max"></span></p>
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">
+            <h2 style="margin: 0; border: none; padding: 0;">Step 1. Project Description</h2>
+            <button type="button" onclick="clearProjectForm()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">Clear Form</button>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Project Type</label>
+                <select id="project_type" onchange="saveState()">
+                    <option value="Residential">Residential</option>
+                    <option value="Commercial">Commercial</option>
+                    <option value="Mixed-Use">Mixed-Use</option>
+                    <option value="Industrial">Industrial</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Project Zip Code</label>
+                <input type="number" id="location" placeholder="12345" oninput="saveState()">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Estimated Purchase Date</label>
+            <input type="text" id="start_date" placeholder="mm / dd / yyyy" oninput="saveState()">
         </div>
     </div>
+    <div class="card" id="project_details_card">
+        <h2>Step 2. Project Details</h2>
+        <div class="form-group">
+            <label>Main Material Category</label>
+            <input type="text" id="category_search" placeholder="Type or select category..." onfocus="showCategories()" oninput="filterCategories()">
+            <div id="category_suggestions" class="autocomplete-suggestions"></div>
+        </div>
+        <div class="form-group">
+            <label>Exact Material Subcategory</label>
+            <input type="text" id="subcategory_search" placeholder="Select a category first..." disabled onfocus="showSubcategories()" oninput="filterSubcategories()">
+            <div id="subcategory_suggestions" class="autocomplete-suggestions"></div>
+        </div>
+        <div class="form-group">
+            <label>Quantity Needed</label>
+            <input type="number" id="quantity" placeholder="Enter quantity" min="1">
+        </div>
+        <div class="form-group">
+            <label>Material Waste Allowance Factor</label>
+            <div class="slider-container">
+                <input type="range" id="waste_factor" min="0" max="30" value="10" oninput="updateSliderLabel(this.value)">
+                <span class="slider-val" id="waste_label">10%</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Is Labor Required?</label>
+            <select id="labor_required">
+                <option value="Yes">Yes (Include Labor)</option>
+                <option value="No">No (Material Only)</option>
+            </select>
+        </div>
+        <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
+    </div>
+    <div class="card results-card" id="results_panel">
+        <h2>Cost Prediction</h2>
+        <div id="components_list"></div>
+        <a href="#project_details_card" class="add-more-link" onclick="focusFormInput()"> ➕ Add Another Material</a>
+        <div class="gatekeeper-wrapper" onclick="toggleGatekeeper()">
+            <input type="checkbox" id="scoping_complete_checkbox" onclick="event.stopPropagation()">
+            <div class="gatekeeper-label">I have finished adding all materials</div>
+        </div>
+        <div class="evaluation-block" id="evaluation_panel">
+            <div class="summary-row sub-header"><span>Cost Breakdown</span><span style="display:flex; gap:40px;"><span>MIN</span><span>AVG</span><span>MAX</span></span></div>
+            <div class="summary-row"><span>Material Base:</span><span style="display:flex; gap:15px;"><span id="lbl_mat_min">$0</span><span id="lbl_mat_avg">$0</span><span id="lbl_mat_max">$0</span></span></div>
+            <div class="summary-row"><span>Labor Assembly:</span><span style="display:flex; gap:15px;"><span id="lbl_lab_min">$0</span><span id="lbl_lab_avg">$0</span><span id="lbl_lab_max">$0</span></span></div>
+            <div class="summary-row"><span>Regional Sales Tax:</span><span style="display:flex; gap:15px;"><span id="lbl_tax_min">$0</span><span id="lbl_tax_avg">$0</span><span id="lbl_tax_max">$0</span></span></div>
+            <div class="summary-row grand-total"><span>Pricing Prediction:</span><span style="display:flex; gap:15px;"><span id="lbl_total_min">$0</span><span id="lbl_total_avg">$0</span><span id="lbl_total_max">$0</span></span></div>
+            <form id="pdf_form" action="/generate" method="post">
+                <input type="hidden" name="payload" id="payload_input">
+                <button type="submit" class="btn-secondary">Print Full Project Report</button>
+            </form>
+        </div>
+    </div>
+    <div class="footer-note">
+        CostPredict Engine v2.5 © 2026
+        <div class="legal-disclaimer">LEGAL LIABILITY DISCLAIMER: All cost evaluations are automated configurations for baseline budgeting only. Users must independently verify all quantities with a licensed contractor prior to project execution.</div>
+    </div>
 </div>
-
 <script>
-    const rawData = {{ master_data | tojson | safe }} || [];
-    let normalizedCatalog = [];
-    let projectScope = [];
-    let activeCategoryKey = "";
+    const masterDataFile = {{ master_data | tojson | safe }} || {};
+    let normalizedCatalog = [], projectScope = [], activeCategoryKey = "";
 
-    // 1. Data Normalization
+    function getCostVal(obj, keys, defaultVal) {
+        for (let k of keys) { if (obj[k] !== undefined && !isNaN(parseFloat(obj[k]))) return parseFloat(obj[k]); }
+        return defaultVal;
+    }
+
     function initializeDataNormalization() {
-        normalizedCatalog = rawData.map(item => ({
-            category: item.Category || "General",
-            subcategory: item.Subcategory || "Unknown",
-            min_mat: parseFloat(item.min_mat) || 0,
-            avg_mat: parseFloat(item.avg_mat) || 0,
-            max_mat: parseFloat(item.max_mat) || 0,
-            min_lab: parseFloat(item.min_lab) || 0,
-            avg_lab: parseFloat(item.avg_lab) || 0,
-            max_lab: parseFloat(item.max_lab) || 0
+        let rawItems = Array.isArray(masterDataFile) ? masterDataFile : Object.values(masterDataFile);
+        if (!Array.isArray(masterDataFile) && !(rawItems.length > 0 && typeof rawItems[0] === 'object' && ('category' in rawItems[0]))) {
+            let items = [];
+            Object.keys(masterDataFile).forEach(catKey => {
+                if (masterDataFile[catKey].items) {
+                    Object.keys(masterDataFile[catKey].items).forEach(subKey => {
+                        let row = Object.assign({}, masterDataFile[catKey].items[subKey]);
+                        row.category = catKey; row.subcategory = subKey;
+                        items.push(row);
+                    });
+                }
+            });
+            rawItems = items;
+        }
+        normalizedCatalog = rawItems.map(item => ({
+            category: String(item.Category || item.category || "General").trim(),
+            subcategory: String(item.Subcategory || item.subcategory || item.desc || "Unknown").trim(),
+            code: String(item.code || item.csi_code || "00-0000").trim(),
+            unit: String(item.unit || item.Unit || "EA").trim(),
+            min_mat: getCostVal(item, ['min_mat', 'mat_min'], 35),
+            avg_mat: getCostVal(item, ['avg_mat', 'mat_avg'], 45),
+            max_mat: getCostVal(item, ['max_mat', 'mat_max'], 60),
+            min_lab: getCostVal(item, ['min_lab', 'lab_min'], 25),
+            avg_lab: getCostVal(item, ['avg_lab', 'lab_avg'], 35),
+            max_lab: getCostVal(item, ['max_lab', 'lab_max'], 45)
         }));
     }
+
     window.addEventListener('DOMContentLoaded', initializeDataNormalization);
-
-    // 2. Search Logic
-    function showCategories() {
-        const container = document.getElementById('category_suggestions');
-        container.innerHTML = '';
-        [...new Set(normalizedCatalog.map(i => i.category))].sort().forEach(cat => {
-            let div = document.createElement('div');
-            div.className = 'suggestion-item';
-            div.innerText = cat;
-            div.onclick = () => {
-                activeCategoryKey = cat;
-                document.getElementById('category_search').value = cat;
-                document.getElementById('subcategory_search').disabled = false;
-                container.style.display = 'none';
-            };
-            container.appendChild(div);
-        });
-        container.style.display = 'block';
-    }
-
-    function showSubcategories() {
-        if (!activeCategoryKey) return;
-        const container = document.getElementById('subcategory_suggestions');
-        container.innerHTML = '';
-        normalizedCatalog.filter(i => i.category === activeCategoryKey).forEach(i => {
-            let div = document.createElement('div');
-            div.className = 'suggestion-item';
-            div.innerText = i.subcategory;
-            div.onclick = () => {
-                document.getElementById('subcategory_search').value = i.subcategory;
-                container.style.display = 'none';
-            };
-            container.appendChild(div);
-        });
-        container.style.display = 'block';
-    }
-
-    // 3. Math Engine
-    function processComponentIntent() {
-        const subName = document.getElementById('subcategory_search').value;
-        const qty = parseFloat(document.getElementById('quantity').value) || 0;
-        const waste = 1 + (parseFloat(document.getElementById('waste_factor').value) / 100 || 0);
-        const item = normalizedCatalog.find(i => i.subcategory === subName);
-
-        if (!item || qty <= 0) {
-            alert("Please select an item and enter quantity.");
-            return;
-        }
-
-        const finalQty = qty * waste;
-        projectScope.push({
-            desc: item.subcategory,
-            min: finalQty * (item.min_mat + item.min_lab),
-            avg: finalQty * (item.avg_mat + item.avg_lab),
-            max: finalQty * (item.max_mat + item.max_lab)
-        });
-
-        renderProject();
-    }
-
-    function renderProject() {
-        const listDiv = document.getElementById('components_list');
-        listDiv.innerHTML = '';
-        let tMin = 0, tAvg = 0, tMax = 0;
-
-        projectScope.forEach(p => {
-            tMin += p.min; tAvg += p.avg; tMax += p.max;
-            listDiv.innerHTML += `<div class="component-item">${p.desc}: $${p.avg.toFixed(2)}</div>`;
-        });
-
-        document.getElementById('results_panel').style.display = 'block';
-        document.getElementById('lbl_total_min').innerText = '$' + tMin.toFixed(2);
-        document.getElementById('lbl_total_avg').innerText = '$' + tAvg.toFixed(2);
-        document.getElementById('lbl_total_max').innerText = '$' + tMax.toFixed(2);
-    }
+    // ... [Add remaining helper functions: showCategories, selectCategory, processComponentIntent, renderProjectState, etc. from Source 1142-1430] ...
 </script>
 </body>
 </html>
