@@ -9,6 +9,11 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    # Added environment variable to opt into Node 24 and clear the deprecation warning
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -16,7 +21,7 @@ jobs:
       - name: Set up Python Environment
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           cache: 'pip'
 
       - name: Install System Dependencies for WeasyPrint
@@ -30,8 +35,6 @@ jobs:
           playwright install chromium
 
       - name: Execute Pricing Generation Engine
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python enrich_prices.py
 
       - name: Commit and Push Updated Pricing Array back to Git
