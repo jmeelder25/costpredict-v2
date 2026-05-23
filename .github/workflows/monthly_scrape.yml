@@ -2,8 +2,8 @@ name: Monthly AI Pricing Enrichment Pipeline
 
 on:
   schedule:
-    # Fires automatically at midnight on the 1st of every month
-    - cron: '0 0 1 * *'
+    # Fires at midnight every Sunday, but only if it's the second week (every 14 days)
+    - cron: '0 0 */14 * *'
   workflow_dispatch: # Allows you to trigger it manually with a button click anytime!
 
 jobs:
