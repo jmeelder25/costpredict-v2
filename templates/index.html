@@ -3,154 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <title>CostPredict Dashboard</title>
-    </head>
+</head>
 <body>
 
     <div class="container">
         <div class="form-group">
-            <input type="text" id="category_search" placeholder="Search Category..." onkeyup="filterCategories()" onclick="showCategories()">
-            <div id="category_suggestions" class="suggestions"></div>
+            <label>Category</label>
+            <input type="text" id="category_search" placeholder="Search..." onkeyup="filterCategories()" onclick="showCategories()">
+            <div id="category_suggestions" class="suggestions" style="display:none; border:1px solid #ccc;"></div>
         </div>
 
         <div class="form-group">
+            <label>Subcategory</label>
             <input type="text" id="subcategory_search" placeholder="Select a category first..." onkeyup="filterSubcategories()" onclick="showSubcategories()" disabled>
-            <div id="subcategory_suggestions" class="suggestions"></div>
+            <div id="subcategory_suggestions" class="suggestions" style="display:none; border:1px solid #ccc;"></div>
         </div>
 
         <input type="number" id="quantity" placeholder="Quantity">
         <button onclick="processComponentIntent()">Add to Project</button>
-
-        <div id="results_panel" style="display:none;">
-            <div id="components_list"></div>
-            <div id="totals">
-                <span id="lbl_total_min"></span>
-                <span id="lbl_total_avg"></span>
-                <span id="lbl_total_max"></span>
-            </div>
-        </div>
     </div>
 
-    <input type="hidden" id="payload_input" name="payload_input">
-
     <script>
-        const rawData = {{ master_data | tojson | safe }} || {};
-        const masterDataFile = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-        
+        // 1. Data Injection from Flask
+        const rawData = {{ master_data | tojson | safe }} || [];
         let normalizedCatalog = [];
-        let projectScope = [];
         let activeCategoryKey = "";
 
-        function getCostVal(obj, keys, defaultVal) {
-            for (let k of keys) {
-                if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "") {
-                    const parsed = parseFloat(obj[k]);
-                    if (!isNaN(parsed)) return parsed;
-                }
-            }
-            return defaultVal;
-        }
-
+        // 2. Data Normalization (Engineered for the clean 8-column CSV structure)
         function initializeDataNormalization() {
-            let rawItems = [];
-            if (Array.isArray(masterDataFile)) {
-                rawItems = masterDataFile;
-            } else {
-                const vals = Object.values(masterDataFile);
-                if (vals.length > 0 && typeof vals[0] === 'object') {
-                    const firstInnerVal = Object.values(vals[0])[0];
-                    if (typeof firstInnerVal === 'string' || typeof firstInnerVal === 'number') {
-                        let rowCount = Object.keys(vals[0]).length;
-                        let columnNames = Object.keys(masterDataFile);
-                        for(let i=0; i<rowCount; i++) {
-                            let rowKey = Object.keys(vals[0])[i];
-                            let newRow = {};
-                            columnNames.forEach(col => { newRow[col] = masterDataFile[col][rowKey]; });
-                            rawItems.push(newRow);
-                        }
-                    } else { rawItems = vals; }
-                }
-            }
-
-            if (rawItems.length === 0) return;
-
-            let sampleRow = rawItems[0];
-            let allKeys = Object.keys(sampleRow);
-            let validKeys = allKeys.filter(k => {
-                let low = k.toLowerCase();
-                return !low.includes('unnamed') && low !== 'id' && low !== 'index';
-            });
-
-            let catKey = validKeys.find(k => /cat|trade|division|main|group|type|class/i.test(k)) || validKeys[0];
-            let remainingKeys = validKeys.filter(k => k !== catKey);
-            let subKey = remainingKeys.find(k => /sub|desc|item|name|material|specific|detail/i.test(k)) || remainingKeys[0];
-            let codeKey = validKeys.find(k => /code|csi/i.test(k));
-            let unitKey = validKeys.find(k => /unit|uom|measure/i.test(k));
-
-            normalizedCatalog = rawItems.map(item => {
-                return {
-                    category: String(item[catKey] || "").trim(),
-                    subcategory: String(item[subKey] || "").trim(),
-                    code: codeKey ? String(item[codeKey] || "00-0000").trim() : "00-0000",
-                    unit: unitKey ? String(item[unitKey] || "EA").trim() : "EA",
-                    min_mat: getCostVal(item, ['min_mat', 'mat_min', 'MinMat'], 35.0),
-                    avg_mat: getCostVal(item, ['avg_mat', 'mat_avg', 'AvgMat'], 45.0),
-                    max_mat: getCostVal(item, ['max_mat', 'mat_max', 'MaxMat'], 60.0),
-                    min_lab: getCostVal(item, ['min_lab', 'lab_min', 'MinLab'], 25.0),
-                    avg_lab: getCostVal(item, ['avg_lab', 'lab_avg', 'AvgLab'], 35.0),
-                    max_lab: getCostVal(item, ['max_lab', 'lab_max', 'MaxLab'], 45.0)
-                };
-            }).filter(item => item.category !== "" && item.category !== "undefined" && item.subcategory !== "");
+            // Mapping the clean CSV headers to internal object properties
+            normalizedCatalog = rawData.map(item => ({
+                category: item.Category || "General",
+                subcategory: item.Subcategory || "Unknown",
+                min_mat: parseFloat(item.min_mat) || 0,
+                avg_mat: parseFloat(item.avg_mat) || 0,
+                max_mat: parseFloat(item.max_mat) || 0,
+                min_lab: parseFloat(item.min_lab) || 0,
+                avg_lab: parseFloat(item.avg_lab) || 0,
+                max_lab: parseFloat(item.max_lab) || 0
+            }));
+            console.log("CostPredict: Engine initialized with", normalizedCatalog.length, "items.");
         }
 
         window.addEventListener('DOMContentLoaded', initializeDataNormalization);
 
+        // 3. Dropdown Logic
         function showCategories() {
             const container = document.getElementById('category_suggestions');
             container.innerHTML = '';
-            const uniqueCategories = [...new Set(normalizedCatalog.map(item => item.category))].sort();
-            uniqueCategories.forEach(cat => {
+            const cats = [...new Set(normalizedCatalog.map(i => i.category))].sort();
+            cats.forEach(c => {
                 let div = document.createElement('div');
                 div.className = 'suggestion-item';
-                div.innerHTML = cat;
-                div.onclick = () => selectCategory(cat);
+                div.innerText = c;
+                div.style.padding = "5px";
+                div.onclick = () => {
+                    activeCategoryKey = c;
+                    document.getElementById('category_search').value = c;
+                    document.getElementById('subcategory_search').disabled = false;
+                    container.style.display = 'none';
+                };
                 container.appendChild(div);
             });
             container.style.display = 'block';
         }
 
-        function selectCategory(catKey) {
-            activeCategoryKey = catKey;
-            document.getElementById('category_search').value = catKey;
-            document.getElementById('category_suggestions').style.display = 'none';
-            document.getElementById('subcategory_search').disabled = false;
-        }
-
         function filterSubcategories() {
-            if (!activeCategoryKey) return;
             const query = document.getElementById('subcategory_search').value.toLowerCase();
             const container = document.getElementById('subcategory_suggestions');
             container.innerHTML = '';
-            const subs = normalizedCatalog.filter(item => item.category === activeCategoryKey).map(item => item.subcategory);
-            [...new Set(subs)].sort().forEach(item => {
-                if (item.toLowerCase().includes(query)) {
+            
+            normalizedCatalog
+                .filter(i => i.category === activeCategoryKey && i.subcategory.toLowerCase().includes(query))
+                .forEach(i => {
                     let div = document.createElement('div');
                     div.className = 'suggestion-item';
-                    div.innerHTML = item;
-                    div.onclick = () => selectSubcategory(item);
+                    div.innerText = i.subcategory;
+                    div.style.padding = "5px";
+                    div.onclick = () => {
+                        document.getElementById('subcategory_search').value = i.subcategory;
+                        container.style.display = 'none';
+                    };
                     container.appendChild(div);
-                }
-            });
+                });
             container.style.display = 'block';
         }
 
-        function selectSubcategory(itemValue) {
-            document.getElementById('subcategory_search').value = itemValue;
-            document.getElementById('subcategory_suggestions').style.display = 'none';
-        }
-
         function processComponentIntent() {
-            // Add your existing math logic here
-            alert("Processing: " + document.getElementById('subcategory_search').value);
+            const sub = document.getElementById('subcategory_search').value;
+            const item = normalizedCatalog.find(i => i.subcategory === sub);
+            if (item) {
+                alert("Selected: " + item.subcategory + " | Avg Mat: $" + item.avg_mat);
+            } else {
+                alert("Please select a valid item from the dropdown.");
+            }
         }
     </script>
 </body>
