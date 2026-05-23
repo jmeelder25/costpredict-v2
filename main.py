@@ -133,5 +133,15 @@ def generate_pdf():
     except Exception as e:
         return f"PDF Generation Error: {str(e)}", 500
 
+@app.route('/debug-templates')
+def debug_templates():
+    import os
+    found_files = []
+    for root, dirs, files in os.walk("."):
+        for file in files:
+            if file.endswith(".html"):
+                found_files.append(os.path.join(root, file))
+    return {"message": "HTML Files Found in Workspace", "paths": found_files}
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
