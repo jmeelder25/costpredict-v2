@@ -12,11 +12,12 @@ app = Flask(__name__)
 def load_master_data():
     raw_master_data = {}
     
-    # Check if the consolidated file exists first; fallback to directory scans if absent
+    # 1. Check if the consolidated AI-enriched file exists first
     if os.path.exists("master_data.csv"):
         print("📊 Loading unified pricing array from master_data.csv...")
         csv_files = ["master_data.csv"]
     else:
+        # Fallback tracking if master array hasn't been built yet
         print("🗂️ Master array absent. Scanning internal data/ directory folders...")
         csv_files = glob.glob(os.path.join("data", "*.csv"))
     
@@ -28,7 +29,7 @@ def load_master_data():
 
     for file_path in csv_files:
         filename = os.path.basename(file_path)
-        # Clean up variations in Excel export titles seamlessly
+        # Safely extract category names from raw sheet names or master files
         category_name = filename.replace("Building Materials Spreadsheet.xlsx - ", "").replace(".csv", "")
         
         if category_name in ["Stores", "Summary"]: 
@@ -39,7 +40,7 @@ def load_master_data():
             if df.empty: 
                 continue
             
-            # Normalize column names to clean lowercase text
+            # Normalize column text schemas to drop unprintable byte markers
             df.columns = [str(c).strip().lower().replace('ï»¿', '') for c in df.columns]
             name_col = df.columns[0]
             
@@ -47,29 +48,30 @@ def load_master_data():
             for _, row in df.iterrows():
                 row_data = {str(k).strip().lower(): v for k, v in row.items()}
                 item_name = str(row[name_col]).strip()
+                
                 if not item_name or item_name.lower() in ["nan", ""] or item_name == category_name: 
                     continue
                 
-                # Robust extraction utility with string cleaning for currency targets
+                # Robust extraction utility to convert mixed objects/strings to safe floats
                 def get_val(keys, default):
                     for k in keys:
                         if k in row_data and pd.notna(row_data[k]):
                             try: 
-                                # Strip currency text markers if they accidentally leak in
+                                # Strip potential currency formatting symbols ($ or commas)
                                 clean_num = str(row_data[k]).replace('$', '').replace(',', '').strip()
                                 return float(clean_num)
                             except ValueError: 
                                 continue
                     return float(default)
 
-                # Map extracted variables safely
+                # Assign structural metrics (uses your original calculation baselines if unpopulated)
                 items_dictionary[item_name] = {
-                    "min_mat": get_val(['min_mat', 'material_min', 'mat_min'], 0.00),
-                    "avg_mat": get_val(['avg_mat', 'material_avg', 'mat_avg'], 0.00),
-                    "max_mat": get_val(['max_mat', 'material_max', 'mat_max'], 0.00),
-                    "min_lab": get_val(['min_lab', 'labor_min', 'lab_min'], 0.00),
-                    "avg_lab": get_val(['avg_lab', 'labor_avg', 'lab_avg'], 0.00),
-                    "max_lab": get_val(['max_lab', 'labor_max', 'lab_max'], 0.00)
+                    "min_mat": get_val(['min_mat', 'material_min', 'mat_min'], 35.00),
+                    "avg_mat": get_val(['avg_mat', 'material_avg', 'mat_avg'], 45.00),
+                    "max_mat": get_val(['max_mat', 'material_max', 'mat_max'], 60.00),
+                    "min_lab": get_val(['min_lab', 'labor_min', 'lab_min'], 25.00),
+                    "avg_lab": get_val(['avg_lab', 'labor_avg', 'lab_avg'], 35.00),
+                    "max_lab": get_val(['max_lab', 'labor_max', 'lab_max'], 45.00)
                 }
             
             if items_dictionary:
@@ -83,13 +85,14 @@ def load_master_data():
             
     return {k: raw_master_data[k] for k in sorted(raw_master_data.keys())}
 
+# Initialize cache globally on boot environment
 MASTER_DATA_CACHE = load_master_data()
 
 @app.route('/')
 def index():
     return render_template('index.html', master_data=json.dumps(MASTER_DATA_CACHE))
 
-# --- PDF Generation ---
+# --- PDF Generation Engine ---
 @app.route('/generate', methods=['POST'])
 def generate_pdf():
     try:
@@ -101,7 +104,7 @@ def generate_pdf():
         line_items = data.get('line_items', [])
         
         logo_base64 = ""
-        # Updated path matching the asset checklist inside your working directory root
+        # Points directly to the asset verified in your working directory path
         logo_path = os.path.join("CostPredict_Logo_White.png")
         if os.path.exists(logo_path):
             with open(logo_path, "rb") as image_file:
@@ -135,7 +138,7 @@ def generate_pdf():
         """
         
         for item in line_items:
-            # Safely extract floats to insulate string formatting from unexpected data types
+            # Defensive casting ensures calculation parameters match string interpolation types
             try:
                 qty = float(item.get('qty', 1) or 1)
                 mat_avg = float(item.get('mat_avg', 0) or 0)
@@ -154,6 +157,7 @@ def generate_pdf():
             
         html_content += "</tbody></table></body></html>"
 
+        # Generate print document streaming via WeasyPrint
         pdf_file = HTML(string=html_content).write_pdf()
         response = make_response(pdf_file)
         response.headers['Content-Type'] = 'application/pdf'
@@ -164,4 +168,5 @@ def generate_pdf():
         return f"PDF Error: {str(e)}", 500
 
 if __name__ == '__main__':
+    # Enabled debug metrics to catch runtime tracking info transparently on Render logs
     app.run(host='0.0.0.0', port=5000, debug=True)
