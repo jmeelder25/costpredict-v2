@@ -6,149 +6,99 @@
     <title>CostPredict | Pricing Made Predictive</title>
     <style>
         :root { --cp-blue: #23408A; --cp-yellow: #FFC113; --cp-bg: #f8fafc; --cp-text: #0f172a; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--cp-bg); color: var(--cp-text); margin: 0; padding: 12px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--cp-bg); color: var(--cp-text); margin: 0; padding: 12px; -webkit-font-smoothing: antialiased; }
         .wrapper { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-        .header-banner { background: #ffffff; padding: 16px; border-radius: 12px; border-bottom: 4px solid var(--cp-blue); text-align: center; }
-        .brand-logo { height: 42px; width: auto; max-width: 90%; }
-        .tagline { font-size: 10px; font-weight: 700; color: var(--cp-blue); letter-spacing: 1.75px; margin-top: 8px; text-transform: uppercase; }
-        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; position: relative; }
+        .header-banner { background: #ffffff; padding: 16px; border-radius: 12px; border-bottom: 4px solid var(--cp-blue); box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04); text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04); border: 1px solid #e2e8f0; }
         .results-card { display: none; border-top: 4px solid var(--cp-blue); }
-        h2 { color: var(--cp-blue); font-size: 16px; margin: 0 0 16px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
+        h2 { color: var(--cp-blue); font-size: 16px; margin: 0 0 16px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; font-weight: 700; }
         .form-group { margin-bottom: 14px; position: relative; }
         .form-row { display: flex; gap: 10px; }
         .form-row .form-group { flex: 1; }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--cp-blue); }
-        .slider-container { display: flex; align-items: center; gap: 12px; }
-        .slider-val { font-family: monospace; font-weight: 700; font-size: 15px; color: var(--cp-blue); width: 45px; text-align: right; }
         .component-item { border-left: 4px solid var(--cp-blue); background: #f8fafc; padding: 14px; margin-bottom: 12px; border-radius: 6px; font-size: 0.85rem; }
-        .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; cursor: pointer; text-transform: uppercase; }
         .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; font-weight: 700; width: 100%; margin-top: 15px; cursor: pointer; }
-        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.9rem; }
-        .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.9rem; border-bottom: 1px dashed #e2e8f0; }
+        .grand-total { font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; }
     </style>
 </head>
 <body>
 <div class="wrapper">
     <div class="header-banner">
-        <img src="/static/logo.png" alt="CostPredict" class="brand-logo" onerror="this.src='logo.png'">
-        <div class="tagline">CONSTRUCTION PRICING MADE PREDICTIVE</div>
+        <div style="font-weight: 800; color: #23408A; font-size: 20px;">CostPredict</div>
+        <div style="font-size: 10px; letter-spacing: 1.75px; color: #23408A;">CONSTRUCTION PRICING MADE PREDICTIVE</div>
     </div>
     <div class="card">
         <h2>Step 1. Project Description</h2>
         <div class="form-row">
-            <div class="form-group">
-                <label>Project Type</label>
-                <select id="project_type"><option value="Residential">Residential</option><option value="Commercial">Commercial</option><option value="Mixed-Use">Mixed-Use</option><option value="Industrial">Industrial</option></select>
-            </div>
-            <div class="form-group">
-                <label>Zip Code</label>
-                <input type="number" id="location" placeholder="12345">
-            </div>
+            <div class="form-group"><label>Type</label><select id="project_type"><option>Residential</option><option>Commercial</option></select></div>
+            <div class="form-group"><label>Zip Code</label><input type="number" id="location" placeholder="12345"></div>
         </div>
-        <div class="form-group">
-            <label>Estimated Purchase Date</label>
-            <input type="text" id="start_date" placeholder="mm / dd / yyyy">
-        </div>
+        <div class="form-group"><label>Purchase Date</label><input type="text" id="start_date" placeholder="mm/dd/yyyy"></div>
     </div>
     <div class="card" id="project_details_card">
         <h2>Step 2. Project Details</h2>
-        <div class="form-group">
-            <label>Main Material Category</label>
-            <input type="text" id="category_search" placeholder="Type or select category..." onfocus="showCategories()" oninput="filterCategories()">
-            <div id="category_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-        <div class="form-group">
-            <label>Exact Material Subcategory</label>
-            <input type="text" id="subcategory_search" placeholder="Select a category first..." disabled onfocus="showSubcategories()" oninput="filterSubcategories()">
-            <div id="subcategory_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-        <div class="form-group">
-            <label>Quantity Needed</label>
-            <input type="number" id="quantity" placeholder="Enter quantity" min="1">
-        </div>
-        <div class="form-group">
-            <label>Waste Allowance Factor</label>
-            <div class="slider-container">
-                <input type="range" id="waste_factor" min="0" max="30" value="10" oninput="document.getElementById('waste_label').innerText = this.value + '%'">
-                <span class="slider-val" id="waste_label">10%</span>
-            </div>
-        </div>
+        <div class="form-group"><label>Category</label><input type="text" id="category_search" onfocus="showCategories()" oninput="filterCategories()"><div id="category_suggestions" class="autocomplete-suggestions"></div></div>
+        <div class="form-group"><label>Subcategory</label><input type="text" id="subcategory_search" disabled onfocus="showSubcategories()" oninput="filterSubcategories()"><div id="subcategory_suggestions" class="autocomplete-suggestions"></div></div>
+        <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1"></div>
         <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
     </div>
     <div class="card results-card" id="results_panel">
         <h2>Cost Prediction</h2>
         <div id="components_list"></div>
         <div id="evaluation_panel">
-            <div class="summary-row"><span>Material Base:</span><span id="lbl_mat_avg">$0</span></div>
-            <div class="summary-row"><span>Labor Assembly:</span><span id="lbl_lab_avg">$0</span></div>
+            <div class="summary-row"><span>Material:</span><span id="lbl_mat_avg">$0</span></div>
+            <div class="summary-row"><span>Labor:</span><span id="lbl_lab_avg">$0</span></div>
             <div class="summary-row"><span>Regional Tax:</span><span id="lbl_tax_avg">$0</span></div>
-            <div class="summary-row grand-total"><span>Total Prediction:</span><span id="lbl_total_avg">$0</span></div>
-            <form id="pdf_form" action="/generate" method="post">
-                <input type="hidden" name="payload" id="payload_input">
-                <button type="submit" class="btn-secondary">Print Full Project Report</button>
-            </form>
+            <div class="summary-row grand-total"><span>Total:</span><span id="lbl_total_avg">$0</span></div>
+            <form id="pdf_form" action="/generate" method="post"><input type="hidden" name="payload" id="payload_input"><button type="submit" class="btn-secondary">Print Report</button></form>
         </div>
     </div>
 </div>
 <script>
     let rawData = {{ master_data | tojson | safe }};
     let masterDataFile = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-    let normalizedCatalog = [], projectScope = [], activeCategoryKey = "";
+    let normalizedCatalog = [], projectScope = [];
 
     function initializeDataNormalization() {
-        let items = [];
         let data = masterDataFile.master_data || masterDataFile;
         Object.keys(data).forEach(catKey => {
             if (data[catKey].items) {
                 Object.keys(data[catKey].items).forEach(subKey => {
                     let row = data[catKey].items[subKey];
-                    items.push({
-                        ...row, category: catKey, subcategory: subKey,
-                        min_mat: row.min_mat || 0, avg_mat: row.avg_mat || 0,
-                        min_lab: row.min_lab || 0, avg_lab: row.avg_lab || 0
-                    });
+                    normalizedCatalog.push({...row, category: catKey, subcategory: subKey});
                 });
             }
         });
-        normalizedCatalog = items;
     }
 
     function showCategories() {
         const container = document.getElementById('category_suggestions');
         container.innerHTML = '';
         [...new Set(normalizedCatalog.map(i => i.category))].sort().forEach(cat => {
-            let div = document.createElement('div');
-            div.className = 'suggestion-item'; div.innerText = cat;
-            div.onclick = () => {
-                activeCategoryKey = cat;
-                document.getElementById('category_search').value = cat;
+            let div = document.createElement('div'); div.className = 'suggestion-item'; div.innerText = cat;
+            div.onclick = () => { 
+                document.getElementById('category_search').value = cat; 
                 document.getElementById('subcategory_search').disabled = false;
-                container.style.display = 'none';
+                container.style.display = 'none'; 
             };
             container.appendChild(div);
         });
         container.style.display = 'block';
     }
 
-    function filterCategories() {
-        const query = document.getElementById('category_search').value.toLowerCase();
-        document.querySelectorAll('#category_suggestions .suggestion-item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(query) ? 'block' : 'none');
-    }
-
     function showSubcategories() {
+        const cat = document.getElementById('category_search').value;
         const container = document.getElementById('subcategory_suggestions');
         container.innerHTML = '';
-        normalizedCatalog.filter(i => i.category === activeCategoryKey).forEach(i => {
-            let div = document.createElement('div');
-            div.className = 'suggestion-item'; div.innerText = i.subcategory;
-            div.onclick = () => {
-                document.getElementById('subcategory_search').value = i.subcategory;
-                container.style.display = 'none';
-            };
+        normalizedCatalog.filter(i => i.category === cat).forEach(i => {
+            let div = document.createElement('div'); div.className = 'suggestion-item'; div.innerText = i.subcategory;
+            div.onclick = () => { document.getElementById('subcategory_search').value = i.subcategory; container.style.display = 'none'; };
             container.appendChild(div);
         });
         container.style.display = 'block';
@@ -158,32 +108,27 @@
         const sub = document.getElementById('subcategory_search').value;
         const qty = parseFloat(document.getElementById('quantity').value) || 0;
         const item = normalizedCatalog.find(i => i.subcategory === sub);
-        if (!item) return alert("Select a subcategory.");
-        
+        if (!item) return alert("Select a valid subcategory");
         projectScope.push({...item, qty});
         document.getElementById('results_panel').style.display = 'block';
         renderProjectState();
     }
 
     function renderProjectState() {
-        let totalMat = 0, totalLab = 0;
-        projectScope.forEach(p => {
-            totalMat += p.avg_mat * p.qty;
-            totalLab += p.avg_lab * p.qty;
-        });
-        
-        const zip = document.getElementById('location').value;
-        const tax = zip.startsWith('606') ? 0.1025 : 0.08;
-        const taxVal = (totalMat + totalLab) * tax;
-        
-        document.getElementById('lbl_mat_avg').innerText = `$${totalMat.toFixed(2)}`;
-        document.getElementById('lbl_lab_avg').innerText = `$${totalLab.toFixed(2)}`;
+        let mat = 0, lab = 0;
+        projectScope.forEach(p => { mat += (p.avg_mat || 0) * p.qty; lab += (p.avg_lab || 0) * p.qty; });
+        const tax = (document.getElementById('location').value.startsWith('606')) ? 0.1025 : 0.08;
+        const taxVal = (mat + lab) * tax;
+        document.getElementById('lbl_mat_avg').innerText = `$${mat.toFixed(2)}`;
+        document.getElementById('lbl_lab_avg').innerText = `$${lab.toFixed(2)}`;
         document.getElementById('lbl_tax_avg').innerText = `$${taxVal.toFixed(2)}`;
-        document.getElementById('lbl_total_avg').innerText = `$${(totalMat + totalLab + taxVal).toFixed(2)}`;
+        document.getElementById('lbl_total_avg').innerText = `$${(mat + lab + taxVal).toFixed(2)}`;
         document.getElementById('payload_input').value = JSON.stringify({scope: projectScope});
     }
 
     window.addEventListener('DOMContentLoaded', initializeDataNormalization);
+    function filterCategories() { /* Add filtering logic if needed */ }
+    function filterSubcategories() { /* Add filtering logic if needed */ }
 </script>
 </body>
 </html>
