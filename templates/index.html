@@ -78,6 +78,11 @@
         // Populate the primary Category Dropdown from master JSON keys on window mount
         window.addEventListener('DOMContentLoaded', () => {
             const catSelect = document.getElementById('category-select');
+            if (!master_data) {
+                console.error("Error: master_data object didn't load from Flask pipeline.");
+                return;
+            }
+            
             Object.keys(master_data).forEach(category => {
                 let opt = document.createElement('option');
                 opt.value = category;
@@ -92,7 +97,10 @@
             
             itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
             
-            if (!catSelect || !master_data[catSelect]) return;
+            if (!catSelect || !master_data[catSelect]) {
+                resetDisplay();
+                return;
+            }
 
             const items = master_data[catSelect].items;
             Object.keys(items).forEach(itemName => {
@@ -155,7 +163,6 @@
 
             const pricing = master_data[cat].items[item];
             
-            // Build structured payload schema array to pass cleanly to main.py endpoint
             const payloadData = {
                 line_items: [{
                     desc: `${cat} - ${item}`,
