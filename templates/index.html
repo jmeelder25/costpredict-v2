@@ -2,735 +2,172 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CostPredict | Mobile Scope Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostPredict Project Calculator</title>
     <style>
         :root {
-            --cp-blue: #23408A;
-            --cp-yellow: #FFC113;
-            --cp-bg: #f8fafc;
-            --cp-text: #0f172a;
+            --primary: #23408A;
+            --slate: #1e293b;
+            --border: #e2e8f0;
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--cp-bg);
-            color: var(--cp-text);
-            margin: 0;
-            padding: 12px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .wrapper {
-            max-width: 540px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .header-banner {
-            background: #ffffff; 
-            padding: 16px;
-            border-radius: 12px;
-            border-bottom: 4px solid var(--cp-blue); 
-            box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .brand-logo {
-            height: 42px; 
-            width: auto;
-            max-width: 90%;
-            object-fit: contain;
-            display: block;
-        }
-
-        .tagline { 
-            font-size: 10px; 
-            font-weight: 700;
-            color: var(--cp-blue); 
-            letter-spacing: 1.75px; 
-            margin-top: 8px;
-            text-transform: uppercase;
-            opacity: 0.85;
-        }
-
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04);
-            border: 1px solid #e2e8f0;
-            position: relative;
-        }
-
-        .results-card {
-            display: none; 
-            border-top: 4px solid var(--cp-blue);
-        }
-
-        h2 { color: var(--cp-blue); font-size: 16px; margin-top: 0; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; font-weight: 700;}
-        h2.section-break { margin-top: 12px; }
-
-        .form-group { margin-bottom: 14px; position: relative; }
-        .form-row { display: flex; gap: 10px; }
-        .form-row .form-group { flex: 1; }
-
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
-        input, select { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 8px; 
-            box-sizing: border-box; 
-            font-size: 16px; 
-            background: #ffffff;
-            color: var(--cp-text);
-            transition: border-color 0.2s;
-        }
-        input:focus, select:focus { outline: none; border-color: var(--cp-blue); }
-        input::placeholder { color: #94a3b8; opacity: 1; }
-
-        .autocomplete-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 999;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            display: none;
-        }
-        .suggestion-item {
-            padding: 12px;
-            cursor: pointer;
-            font-size: 15px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .suggestion-item:hover {
-            background-color: #f1f5f9;
-            color: var(--cp-blue);
-        }
-
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 4px;
-        }
-        .slider-container input[type="range"] {
-            flex: 1;
-            padding: 0;
-            accent-color: var(--cp-blue);
-            cursor: pointer;
-        }
-        .slider-val {
-            font-family: monospace;
-            font-weight: 700;
-            font-size: 15px;
-            color: var(--cp-blue);
-            width: 45px;
-            text-align: right;
-        }
-
-        .component-item { 
-            border-left: 4px solid var(--cp-blue); 
-            background: #f8fafc; 
-            padding: 14px; 
-            margin-bottom: 12px; 
-            border-radius: 6px; 
-            font-size: 0.85rem; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-        .component-header {
-            display: flex;
-            justify-content: space-between;
-            font-weight: 700;
-            font-size: 14px;
-            margin-bottom: 6px;
-            color: var(--cp-blue);
-        }
-        .csi-code {
-            font-family: monospace;
-            color: #64748b;
-            font-size: 11px;
-        }
-        .range-grid {
-            display: grid;
-            grid-template-columns: 100px 1fr;
-            gap: 4px;
-            border-top: 1px dashed #e2e8f0;
-            padding-top: 5px;
-            margin-top: 5px;
-            font-size: 12px;
-        }
-        .range-label {
-            font-weight: 600;
-            color: #475569;
-        }
-        .range-values {
-            font-family: monospace;
-            color: #334155;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .add-more-link {
-            display: block;
-            text-align: center;
-            color: var(--cp-blue);
-            font-weight: 700;
-            font-size: 14px;
-            text-decoration: none;
-            margin: 8px 0 14px 0;
-            padding: 10px;
-            border: 2px dashed #cbd5e1;
-            border-radius: 8px;
-            background: #ffffff;
-            transition: all 0.2s;
-        }
-        .add-more-link:hover {
-            background: #f1f5f9;
-            border-color: var(--cp-blue);
-        }
-
-        .gatekeeper-wrapper {
-            margin: 10px 0 15px 0;
-            padding: 12px;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-        }
-        .gatekeeper-wrapper input {
-            width: auto;
-            cursor: pointer;
-            transform: scale(1.2);
-        }
-        .gatekeeper-label {
-            font-size: 13px;
-            font-weight: 700;
-            color: #166534;
-        }
-
-        .evaluation-block {
-            display: none;
-            border-top: 2px solid #cbd5e1;
-            padding-top: 12px;
-            margin-top: 12px;
-        }
-
-        button.btn-primary { 
-            width: 100%; 
-            background: var(--cp-blue); 
-            color: white; 
-            border: none; 
-            padding: 15px; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            font-size: 15px;
-            cursor: pointer; 
-            text-transform: uppercase; 
-            margin-top: 8px;
-        }
-        
-        button.btn-secondary { 
-            background: var(--cp-yellow); 
-            color: var(--cp-blue); 
-            border: none; 
-            padding: 16px; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            font-size: 15px;
-            cursor: pointer; 
-            text-transform: uppercase; 
-            width: 100%; 
-            margin-top: 15px;
-            box-shadow: 0 4px 10px rgba(255, 193, 19, 0.2);
-        }
-        
-        .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
-        .summary-row.sub-header { background: #f1f5f9; font-weight: 700; border-bottom: 1px solid #cbd5e1; padding: 6px; font-size: 0.8rem; color: #475569; }
-        .grand-total { font-size: 1.15rem; font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
-        
-        .footer-note { text-align: center; font-size: 10px; color: #94a3b8; margin: 20px 0 10px 0; line-height: 1.4; }
-        .legal-disclaimer { font-size: 9px; color: #cbd5e1; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px; text-align: justify; }
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: var(--slate); max-width: 1200px; margin: 0 auto; }
+        h1 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; }
+        .control-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 11pt; }
+        .card { border: 1px solid var(--border); padding: 24px; border-radius: 8px; background: #f8fafc; }
+        .price-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); }
+        .price-row.total { border-top: 2px solid var(--primary); font-weight: bold; color: var(--primary); border-bottom: none; margin-top: 15px; font-size: 13pt;}
+        button { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; font-size: 11pt; }
+        button:hover { opacity: 0.9; }
     </style>
+
+    <script>
+        const master_data = {{ master_data | safe }};
+    </script>
 </head>
 <body>
 
-<div class="wrapper">
-    <div class="header-banner">
-        <img src="/static/logo.png" alt="CostPredict" class="brand-logo">
-        <div class="tagline">CONSTRUCTION PRICING MADE PREDICTIVE</div>
-    </div>
+    <h1>CostPredict Estimator Dashboard</h1>
 
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">
-            <h2 style="margin: 0; border: none; padding: 0;">Step 1. Project Description</h2>
-            <button type="button" onclick="clearProjectForm()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Clear Form</button>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Project Type</label>
-                <select id="project_type" onchange="saveState()">
-                    <option value="Residential">Residential</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Mixed-Use">Mixed-Use</option>
-                    <option value="Industrial">Industrial</option>
+    <div class="grid">
+        <div>
+            <div class="control-group">
+                <label for="category-select">Material Category</label>
+                <select id="category-select" onchange="populateItems()">
+                    <option value="">-- Select Category --</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>Project Zip Code</label>
-                <input type="number" id="location" pattern="[0-9]*" inputmode="numeric" placeholder="12345" oninput="saveState()">
+
+            <div class="control-group">
+                <label for="item-select">Specific Component Item</label>
+                <select id="item-select" onchange="calculateCosts()">
+                    <option value="">-- Select Item --</option>
+                </select>
             </div>
-        </div>
-        <div class="form-group">
-            <label>Estimated Purchase Date</label>
-            <input type="text" id="start_date" placeholder="mm / dd / yyyy or month / year" oninput="saveState()">
-        </div>
-    </div>
 
-    <div class="card" id="project_details_card">
-        <h2>Step 2. Project Details</h2>
-        
-        <div class="form-group">
-            <label>Main Material Category</label>
-            <input type="text" id="category_search" placeholder="Type or select category (e.g., Cabinets, Flooring)..." onfocus="showCategories()" oninput="filterCategories()">
-            <div id="category_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-
-        <div class="form-group">
-            <label>Exact Material Subcategory</label>
-            <input type="text" id="subcategory_search" placeholder="Select a category first..." disabled onfocus="showSubcategories()" oninput="filterSubcategories()">
-            <div id="subcategory_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-
-        <div class="form-group">
-            <label>Quantity Needed</label>
-            <input type="number" id="quantity" pattern="[0-9]*" inputmode="numeric" placeholder="Enter number quantity" min="1">
-        </div>
-        
-        <div class="form-group">
-            <label>Material Waste Allowance Factor</label>
-            <div class="slider-container">
-                <input type="range" id="waste_factor" min="0" max="30" value="10" oninput="updateSliderLabel(this.value)">
-                <span class="slider-val" id="waste_label">10%</span>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Is Labor Required?</label>
-            <select id="labor_required">
-                <option value="Yes">Yes (Include Labor)</option>
-                <option value="No">No (Material Only)</option>
-            </select>
-        </div>
-
-        <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
-    </div>
-
-    <div class="card results-card" id="results_panel">
-        <h2>Cost Prediction</h2>
-        <div id="components_list" style="margin-bottom: 10px;"></div>
-
-        <a href="#project_details_card" class="add-more-link" onclick="focusFormInput()">➕ Add Another Material</a>
-
-        <div class="gatekeeper-wrapper" onclick="toggleGatekeeper()">
-            <input type="checkbox" id="scoping_complete_checkbox" onclick="event.stopPropagation()">
-            <div class="gatekeeper-label">I have finished adding all materials to this project</div>
-        </div>
-
-        <div class="evaluation-block" id="evaluation_panel">
-            <h2>Project Total Cost Prediction</h2>
-            
-            <div class="summary-row sub-header">
-                <span>Cost Subtotal Breakdown</span>
-                <span style="font-family: monospace; display: flex; gap: 40px;"><span>MIN</span><span>AVG</span><span>MAX</span></span>
-            </div>
-            <div class="summary-row">
-                <span>Material Base Subtotal:</span>
-                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_mat_min">$0.00</span><span id="lbl_mat_avg" style="font-weight:700;">$0.00</span><span id="lbl_mat_max">$0.00</span></span>
-            </div>
-            <div class="summary-row">
-                <span>Labor Assembly Subtotal:</span>
-                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_lab_min">$0.00</span><span id="lbl_lab_avg" style="font-weight:700;">$0.00</span><span id="lbl_lab_max">$0.00</span></span>
-            </div>
-            <div class="summary-row">
-                <span>Regional Sales Tax:</span>
-                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_tax_min">$0.00</span><span id="lbl_tax_avg" style="font-weight:700;">$0.00</span><span id="lbl_tax_max">$0.00</span></span>
+            <div class="control-group">
+                <label for="quantity-input">Project Target Quantity</label>
+                <input type="number" id="quantity-input" value="1000" min="1" oninput="calculateCosts()">
             </div>
             
-            <div class="summary-row grand-total" style="border-bottom: none; margin-bottom: 12px; padding-bottom: 4px;">
-                <span>Pricing Prediction:</span>
-                <span style="font-family: monospace; display: flex; gap: 15px;"><span id="lbl_total_min" style="font-size:0.95rem; opacity:0.8;">$0.00</span><span id="lbl_total_avg">$0.00</span><span id="lbl_total_max" style="font-size:0.95rem; opacity:0.8;">$0.00</span></span>
-            </div>
-            
-            <form id="pdf_form" action="/generate" method="post">
-                <input type="hidden" name="payload" id="payload_input">
-                <button type="submit" class="btn-secondary">Print Full Project Report</button>
+            <form action="/generate" method="POST" onsubmit="preparePayload(event)">
+                <input type="hidden" name="payload" id="payload-field">
+                <button type="submit">📥 Export Project PDF Report</button>
             </form>
         </div>
-    </div>
-    
-    <div class="footer-note">
-        CostPredict Engine v2.5 © 2026
-        <div class="legal-disclaimer">
-            <strong>LEGAL LIABILITY DISCLAIMER:</strong> All cost evaluations, asset measurements, and predictive material output parameters generated by CostPredict are automated configurations provided solely for baseline budgeting and scoping evaluations. These values do not constitute structural advice, architectural blueprints, or binding contractual pricing guarantees. Actual regional material rates, labor availability, and construction engineering demands will vary by project conditions. Users must independently verify all bills of quantities with a licensed professional contractor prior to project execution.
+
+        <div class="card">
+            <h3>Estimation Matrix Breakdown</h3>
+            <div class="price-row"><span>CSI Reference Code:</span> <span id="out-csi">-</span></div>
+            <div class="price-row"><span>Unit of Measure:</span> <span id="out-unit">-</span></div>
+            
+            <h4>Unit Baseline Costs</h4>
+            <div class="price-row"><span>Material Unit Cost (Avg):</span> <span id="unit-mat">$0.00</span></div>
+            <div class="price-row"><span>Labor Unit Cost (Avg):</span> <span id="unit-lab">$0.00</span></div>
+            
+            <h4>Calculated Scope Totals</h4>
+            <div class="price-row"><span>Total Material Cost:</span> <span id="total-mat">$0.00</span></div>
+            <div class="price-row"><span>Total Labor Cost:</span> <span id="total-lab">$0.00</span></div>
+            <div class="price-row total"><span>Estimated Project Subtotal:</span> <span id="total-combined">$0.00</span></div>
         </div>
     </div>
-</div>
 
-<script>
-    const masterDataFile = {{ master_data|safe }} || {};
-    
-    let projectScope = [];
-    let activeCategoryKey = "";
-
-    window.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('location').value = localStorage.getItem('cp_location') || '';
-        document.getElementById('start_date').value = localStorage.getItem('cp_start_date') || '';
-        document.getElementById('project_type').value = localStorage.getItem('cp_project_type') || 'Residential';
-        
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.form-group')) {
-                hideAllSuggestions();
-            }
+    <script>
+        // Populate the primary Category Dropdown from master JSON keys on window mount
+        window.addEventListener('DOMContentLoaded', () => {
+            const catSelect = document.getElementById('category-select');
+            Object.keys(master_data).forEach(category => {
+                let opt = document.createElement('option');
+                opt.value = category;
+                opt.textContent = category;
+                catSelect.appendChild(opt);
+            });
         });
-        
-        document.getElementById('scoping_complete_checkbox').addEventListener('change', (e) => {
-            document.getElementById('evaluation_panel').style.display = e.target.checked ? 'block' : 'none';
-        });
-    });
 
-    function saveState() {
-        localStorage.setItem('cp_location', document.getElementById('location').value);
-        localStorage.setItem('cp_start_date', document.getElementById('start_date').value);
-        localStorage.setItem('cp_project_type', document.getElementById('project_type').value);
-    }
+        function populateItems() {
+            const catSelect = document.getElementById('category-select').value;
+            const itemSelect = document.getElementById('item-select');
+            
+            itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
+            
+            if (!catSelect || !master_data[catSelect]) return;
 
-    function clearProjectForm() {
-        localStorage.removeItem('cp_location');
-        localStorage.removeItem('cp_start_date');
-        localStorage.setItem('cp_project_type', 'Residential');
-
-        document.getElementById('location').value = '';
-        document.getElementById('start_date').value = '';
-        document.getElementById('project_type').value = 'Residential';
-        
-        document.getElementById('category_search').value = '';
-        const subInput = document.getElementById('subcategory_search');
-        subInput.value = '';
-        subInput.disabled = true;
-        subInput.placeholder = "Select a category first...";
-        document.getElementById('quantity').value = '';
-        document.getElementById('waste_factor').value = 10;
-        updateSliderLabel(10);
-
-        projectScope = [];
-        activeCategoryKey = "";
-
-        document.getElementById('scoping_complete_checkbox').checked = false;
-        document.getElementById('evaluation_panel').style.display = 'none';
-        document.getElementById('results_panel').style.display = 'none';
-    }
-
-    function focusFormInput() {
-        document.getElementById('category_search').focus();
-    }
-
-    function updateSliderLabel(val) {
-        document.getElementById('waste_label').innerText = val + '%';
-    }
-
-    function hideAllSuggestions() {
-        document.getElementById('category_suggestions').style.display = 'none';
-        document.getElementById('subcategory_suggestions').style.display = 'none';
-    }
-
-    function toggleGatekeeper() {
-        const box = document.getElementById('scoping_complete_checkbox');
-        box.checked = !box.checked;
-        document.getElementById('evaluation_panel').style.display = box.checked ? 'block' : 'none';
-    }
-
-    function showCategories() {
-        hideAllSuggestions();
-        const container = document.getElementById('category_suggestions');
-        container.innerHTML = '';
-        
-        Object.keys(masterDataFile).forEach(cat => {
-            let div = document.createElement('div');
-            div.className = 'suggestion-item';
-            div.innerHTML = cat.replace(/([A-Z])/g, ' $1').trim();
-            div.onclick = () => selectCategory(cat);
-            container.appendChild(div);
-        });
-        container.style.display = 'block';
-    }
-
-    function filterCategories() {
-        const query = document.getElementById('category_search').value.toLowerCase();
-        const container = document.getElementById('category_suggestions');
-        container.innerHTML = '';
-        
-        Object.keys(masterDataFile).forEach(cat => {
-            const cleanName = cat.replace(/([A-Z])/g, ' $1').trim();
-            if (cleanName.toLowerCase().includes(query)) {
-                let div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = cleanName;
-                div.onclick = () => selectCategory(cat);
-                container.appendChild(div);
-            }
-        });
-        container.style.display = 'block';
-    }
-
-    function selectCategory(catKey) {
-        activeCategoryKey = catKey;
-        const cleanName = catKey.replace(/([A-Z])/g, ' $1').trim();
-        document.getElementById('category_search').value = cleanName;
-        hideAllSuggestions();
-
-        const subInput = document.getElementById('subcategory_search');
-        subInput.disabled = false;
-        subInput.value = '';
-        subInput.placeholder = "Type or select dynamic items...";
-    }
-
-    function showSubcategories() {
-        if (!activeCategoryKey || !masterDataFile[activeCategoryKey]) return;
-        hideAllSuggestions();
-        
-        const container = document.getElementById('subcategory_suggestions');
-        container.innerHTML = '';
-        
-        Object.keys(masterDataFile[activeCategoryKey].items).forEach(item => {
-            let div = document.createElement('div');
-            div.className = 'suggestion-item';
-            div.innerHTML = item;
-            div.onclick = () => selectSubcategory(item);
-            container.appendChild(div);
-        });
-        container.style.display = 'block';
-    }
-
-    function filterSubcategories() {
-        if (!activeCategoryKey || !masterDataFile[activeCategoryKey]) return;
-        const query = document.getElementById('subcategory_search').value.toLowerCase();
-        const container = document.getElementById('subcategory_suggestions');
-        container.innerHTML = '';
-        
-        Object.keys(masterDataFile[activeCategoryKey].items).forEach(item => {
-            if (item.toLowerCase().includes(query)) {
-                let div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = item;
-                div.onclick = () => selectSubcategory(item);
-                container.appendChild(div);
-            }
-        });
-        container.style.display = 'block';
-    }
-
-    function selectSubcategory(itemValue) {
-        document.getElementById('subcategory_search').value = itemValue;
-        hideAllSuggestions();
-
-        const slider = document.getElementById('waste_factor');
-        if (activeCategoryKey === "Concrete" || activeCategoryKey === "Drywall") {
-            slider.value = 15;
-        } else if (itemValue.includes("Tile") || itemValue.includes("Marble") || itemValue.includes("Granite")) {
-            slider.value = 15;
-        } else {
-            slider.value = 10;
-        }
-        updateSliderLabel(slider.value);
-    }
-
-    function processComponentIntent() {
-        const sub = document.getElementById('subcategory_search').value;
-        const qty = parseFloat(document.getElementById('quantity').value);
-        const laborReq = document.getElementById('labor_required').value === "Yes";
-        const wastePct = parseFloat(document.getElementById('waste_factor').value);
-
-        if (!activeCategoryKey || !masterDataFile[activeCategoryKey] || !sub || isNaN(qty) || qty <= 0) {
-            alert("Please input a valid quantity and select your materials.");
-            return;
+            const items = master_data[catSelect].items;
+            Object.keys(items).forEach(itemName => {
+                let opt = document.createElement('option');
+                opt.value = itemName;
+                opt.textContent = itemName;
+                itemSelect.appendChild(opt);
+            });
+            calculateCosts();
         }
 
-        let wasteFactor = 1 + (wastePct / 100);
-        let finalQty = Math.ceil(qty * wasteFactor);
+        function calculateCosts() {
+            const cat = document.getElementById('category-select').value;
+            const item = document.getElementById('item-select').value;
+            const qty = parseFloat(document.getElementById('quantity-input').value) || 0;
 
-        const metadata = masterDataFile[activeCategoryKey];
-        const itemPricingRow = metadata.items[sub] || {
-            min_mat: 35.00, avg_mat: 45.00, max_mat: 60.00,
-            min_lab: 25.00, avg_lab: 35.00, max_lab: 45.00
-        };
-        
-        let unitMinMat = parseFloat(itemPricingRow.min_mat);
-        let unitAvgMat = parseFloat(itemPricingRow.avg_mat);
-        let unitMaxMat = parseFloat(itemPricingRow.max_mat);
-        
-        let unitMinLab = laborReq ? parseFloat(itemPricingRow.min_lab) : 0;
-        let unitAvgLab = laborReq ? parseFloat(itemPricingRow.avg_lab) : 0;
-        let unitMaxLab = laborReq ? parseFloat(itemPricingRow.max_lab) : 0;
-
-        let zipValue = document.getElementById('location').value.trim();
-        let itemConfidence = 96;
-        if (!zipValue || zipValue.length < 5) itemConfidence -= 40;
-        if (sub.includes("Cabinet") || sub.includes("Custom")) itemConfidence -= 8;
-        itemConfidence = Math.max(30, itemConfidence);
-
-        let tierText = "High";
-        let colorHex = "#16a34a";
-        if (itemConfidence < 60) { tierText = "Low"; colorHex = "#ea580c"; }
-        else if (itemConfidence < 85) { tierText = "Moderate"; colorHex = "#d97706"; }
-
-        projectScope.push({
-            code: metadata.code,
-            desc: sub,
-            qty: finalQty,
-            unit: metadata.unit,
-            confidence_str: `${itemConfidence}% (${tierText})`,
-            confidence_color: colorHex,
-            mat_min: finalQty * unitMinMat,
-            mat_avg: finalQty * unitAvgMat,
-            mat_max: finalQty * unitMaxMat,
-            lab_min: finalQty * unitMinLab,
-            lab_avg: finalQty * unitAvgLab,
-            lab_max: finalQty * unitMaxLab
-        });
-
-        renderProjectState();
-        
-        document.getElementById('quantity').value = '';
-        document.getElementById('subcategory_search').value = '';
-        
-        const resultsPanel = document.getElementById('results_panel');
-        resultsPanel.style.display = 'block';
-        resultsPanel.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function renderProjectState() {
-        const listDiv = document.getElementById('components_list');
-        listDiv.innerHTML = '';
-        
-        let totalMatMin = 0, totalMatAvg = 0, totalMatMax = 0;
-        let totalLabMin = 0, totalLabAvg = 0, totalLabMax = 0;
-
-        projectScope.forEach(item => {
-            totalMatMin += item.mat_min; totalMatAvg += item.mat_avg; totalMatMax += item.mat_max;
-            totalLabMin += item.lab_min; totalLabAvg += item.lab_avg; totalLabMax += item.lab_max;
-
-            let itemMinSub = item.mat_min + item.lab_min;
-            let itemAvgSub = item.mat_avg + item.lab_avg;
-            let itemMaxSub = item.mat_max + item.lab_max;
-
-            let div = document.createElement('div');
-            div.className = 'component-item';
-            div.innerHTML = `
-                <div class="component-header">
-                    <span>${item.desc}</span>
-                    <span class="csi-code">${item.code}</span>
-                </div>
-                <div class="range-grid">
-                    <span class="range-label">Unit Price</span>
-                    <span class="range-values">
-                        <span>Min: $${(item.mat_min / item.qty).toFixed(2)}</span>
-                        <span>Avg: $${(item.mat_avg / item.qty).toFixed(2)}</span>
-                        <span>Max: $${(item.mat_max / item.qty).toFixed(2)}</span>
-                    </span>
-                </div>
-                <div class="range-grid">
-                    <span class="range-label">Project Qty</span>
-                    <span class="range-values">
-                        <span>Min: $${item.mat_min.toFixed(2)}</span>
-                        <span>Avg: $${item.mat_avg.toFixed(2)}</span>
-                        <span>Max: $${item.mat_max.toFixed(2)}</span>
-                    </span>
-                </div>
-                <div class="range-grid">
-                    <span class="range-label">Project Labor</span>
-                    <span class="range-values">
-                        <span>Min: $${item.lab_min.toFixed(2)}</span>
-                        <span>Avg: $${item.lab_avg.toFixed(2)}</span>
-                        <span>Max: $${item.lab_max.toFixed(2)}</span>
-                    </span>
-                </div>
-                <div class="range-grid" style="border-top: 1px solid #cbd5e1; font-weight:700;">
-                    <span class="range-label" style="color:var(--cp-blue);">Item Subtotal</span>
-                    <span class="range-values" style="color:var(--cp-blue);">
-                        <span>Min: $${itemMinSub.toFixed(2)}</span>
-                        <span>Avg: $${itemAvgSub.toFixed(2)}</span>
-                        <span>Max: $${itemMaxSub.toFixed(2)}</span>
-                    </span>
-                </div>
-                <div style="font-size:11px; margin-top:6px; color:#64748b; font-style:italic;">Calculated Scope Size: ${item.qty} ${item.unit}</div>
-                <div style="font-size:11px; margin-top:4px; padding-top:4px; border-top:1px dashed #e2e8f0; color:#475569; font-weight:600;">
-                    Item Pricing Confidence: <span style="color:${item.confidence_color}; font-weight:800; font-family:monospace;">${item.confidence_str}</span>
-                </div>
-            `;
-            listDiv.appendChild(div);
-        });
-
-        let zipValue = document.getElementById('location').value.trim();
-        let taxRate = zipValue.startsWith("606") ? 0.1025 : 0.0800;
-        
-        let taxMin = totalMatMin * taxRate;
-        let taxAvg = totalMatAvg * taxRate;
-        let taxMax = totalMatMax * taxRate;
-
-        let grandTotalMin = totalMatMin + totalLabMin + taxMin;
-        let grandTotalAvg = totalMatAvg + totalLabAvg + taxAvg;
-        let grandTotalMax = totalMatMax + totalLabMax + taxMax;
-
-        document.getElementById('lbl_mat_min').innerHTML = `$${totalMatMin.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-        document.getElementById('lbl_mat_avg').innerHTML = `$${totalMatAvg.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-        document.getElementById('lbl_mat_max').innerHTML = `$${totalMatMax.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-
-        document.getElementById('lbl_lab_min').innerHTML = `$${totalLabMin.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-        document.getElementById('lbl_lab_avg').innerHTML = `$${totalLabAvg.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-        document.getElementById('lbl_lab_max').innerHTML = `$${totalLabMax.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-
-        document.getElementById('lbl_tax_min').innerHTML = `$${taxMin.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-        document.getElementById('lbl_tax_avg').innerHTML = `$${taxAvg.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-        document.getElementById('lbl_tax_max').innerHTML = `$${taxMax.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-
-        document.getElementById('lbl_total_min').innerHTML = `$${grandTotalMin.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_total_avg').innerHTML = `$${grandTotalAvg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('lbl_total_max').innerHTML = `$${grandTotalMax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-
-        const fullPayload = {
-            metadata: {
-                project_type: document.getElementById('project_type').value,
-                location: zipValue,
-                start_date: document.getElementById('start_date').value
-            },
-            line_items: projectScope,
-            totals: { 
-                mat_min: totalMatMin, mat_avg: totalMatAvg, mat_max: totalMatMax,
-                lab_min: totalLabMin, lab_avg: totalLabAvg, lab_max: totalLabMax,
-                tax_min: taxMin, tax_avg: taxAvg, tax_max: taxMax,
-                grand_min: grandTotalMin, grand_avg: grandTotalAvg, grand_max: grandTotalMax
+            if (!cat || !item || !master_data[cat] || !master_data[cat].items[item]) {
+                resetDisplay();
+                return;
             }
-        };
 
-        document.getElementById('payload_input').value = JSON.stringify(fullPayload);
-    }
-</script>
+            const target = master_data[cat];
+            const pricing = target.items[item];
+
+            // Enforce explicit types using global Number object parsing wrappers
+            const avgMat = Number(pricing.avg_mat || 45.00);
+            const avgLab = Number(pricing.avg_lab || 35.00);
+
+            const matTotal = avgMat * qty;
+            const labTotal = avgLab * qty;
+            const combined = matTotal + labTotal;
+
+            // Output safely back into presentation DOM fields
+            document.getElementById('out-csi').textContent = target.code || "09 00 00";
+            document.getElementById('out-unit').textContent = target.unit || "PCS";
+            
+            document.getElementById('unit-mat').textContent = `$${avgMat.toFixed(2)}`;
+            document.getElementById('unit-lab').textContent = `$${avgLab.toFixed(2)}`;
+            
+            document.getElementById('total-mat').textContent = `$${matTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('total-lab').textContent = `$${labTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('total-combined').textContent = `$${combined.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        function resetDisplay() {
+            ['out-csi', 'out-unit'].forEach(id => document.getElementById(id).textContent = '-');
+            ['unit-mat', 'unit-lab', 'total-mat', 'total-lab', 'total-combined'].forEach(id => document.getElementById(id).textContent = '$0.00');
+        }
+
+        function preparePayload(event) {
+            const cat = document.getElementById('category-select').value;
+            const item = document.getElementById('item-select').value;
+            const qty = parseFloat(document.getElementById('quantity-input').value) || 0;
+
+            if (!cat || !item) {
+                event.preventDefault();
+                alert('Please complete item and selection values before exporting reports.');
+                return;
+            }
+
+            const pricing = master_data[cat].items[item];
+            
+            // Build structured payload schema array to pass cleanly to main.py endpoint
+            const payloadData = {
+                line_items: [{
+                    desc: `${cat} - ${item}`,
+                    qty: qty,
+                    unit: master_data[cat].unit || "PCS",
+                    mat_avg: Number(pricing.avg_mat || 45.00),
+                    lab_avg: Number(pricing.avg_lab || 35.00)
+                }]
+            };
+
+            document.getElementById('payload-field').value = JSON.stringify(payloadData);
+        }
+    </script>
 </body>
 </html>
