@@ -2,102 +2,140 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CostPredict Dashboard</title>
+    <title>CostPredict Engine</title>
+    <style>
+        .container { max-width: 800px; margin: 20px auto; font-family: sans-serif; }
+        .suggestions { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; position: absolute; background: white; width: 300px; z-index: 1000; }
+        .suggestion-item { padding: 8px; cursor: pointer; }
+        .suggestion-item:hover { background: #e2e8f0; }
+        .component-item { border: 1px solid #e2e8f0; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="form-group">
-            <label>Category</label>
-            <input type="text" id="category_search" placeholder="Search..." onkeyup="filterCategories()" onclick="showCategories()">
-            <div id="category_suggestions" class="suggestions" style="display:none; border:1px solid #ccc;"></div>
-        </div>
+<div class="container">
+    <div style="position:relative;">
+        <input type="text" id="category_search" placeholder="Search Category..." onkeyup="filterCategories()" onclick="showCategories()" autocomplete="off">
+        <div id="category_suggestions" class="suggestions" style="display:none;"></div>
+    </div>
 
-        <div class="form-group">
-            <label>Subcategory</label>
-            <input type="text" id="subcategory_search" placeholder="Select a category first..." onkeyup="filterSubcategories()" onclick="showSubcategories()" disabled>
-            <div id="subcategory_suggestions" class="suggestions" style="display:none; border:1px solid #ccc;"></div>
-        </div>
+    <div style="position:relative; margin-top:10px;">
+        <input type="text" id="subcategory_search" placeholder="Select a category first..." onkeyup="filterSubcategories()" onclick="showSubcategories()" disabled autocomplete="off">
+        <div id="subcategory_suggestions" class="suggestions" style="display:none;"></div>
+    </div>
 
+    <div style="margin-top:10px;">
         <input type="number" id="quantity" placeholder="Quantity">
+        <label>Waste %: <input type="number" id="waste_factor" value="10"></label>
         <button onclick="processComponentIntent()">Add to Project</button>
     </div>
 
-    <script>
-        // 1. Data Injection from Flask
-        const rawData = {{ master_data | tojson | safe }} || [];
-        let normalizedCatalog = [];
-        let activeCategoryKey = "";
+    <div id="results_panel" style="display:none; margin-top:20px;">
+        <h3>Project Scope</h3>
+        <div id="components_list"></div>
+        <div id="totals" style="margin-top:20px; font-weight:bold;">
+            <p>Min Total: <span id="lbl_total_min"></span></p>
+            <p>Avg Total: <span id="lbl_total_avg"></span></p>
+            <p>Max Total: <span id="lbl_total_max"></span></p>
+        </div>
+    </div>
+</div>
 
-        // 2. Data Normalization (Engineered for the clean 8-column CSV structure)
-        function initializeDataNormalization() {
-            // Mapping the clean CSV headers to internal object properties
-            normalizedCatalog = rawData.map(item => ({
-                category: item.Category || "General",
-                subcategory: item.Subcategory || "Unknown",
-                min_mat: parseFloat(item.min_mat) || 0,
-                avg_mat: parseFloat(item.avg_mat) || 0,
-                max_mat: parseFloat(item.max_mat) || 0,
-                min_lab: parseFloat(item.min_lab) || 0,
-                avg_lab: parseFloat(item.avg_lab) || 0,
-                max_lab: parseFloat(item.max_lab) || 0
-            }));
-            console.log("CostPredict: Engine initialized with", normalizedCatalog.length, "items.");
+<script>
+    const rawData = {{ master_data | tojson | safe }} || [];
+    let normalizedCatalog = [];
+    let projectScope = [];
+    let activeCategoryKey = "";
+
+    // 1. Data Normalization
+    function initializeDataNormalization() {
+        normalizedCatalog = rawData.map(item => ({
+            category: item.Category || "General",
+            subcategory: item.Subcategory || "Unknown",
+            min_mat: parseFloat(item.min_mat) || 0,
+            avg_mat: parseFloat(item.avg_mat) || 0,
+            max_mat: parseFloat(item.max_mat) || 0,
+            min_lab: parseFloat(item.min_lab) || 0,
+            avg_lab: parseFloat(item.avg_lab) || 0,
+            max_lab: parseFloat(item.max_lab) || 0
+        }));
+    }
+    window.addEventListener('DOMContentLoaded', initializeDataNormalization);
+
+    // 2. Search Logic
+    function showCategories() {
+        const container = document.getElementById('category_suggestions');
+        container.innerHTML = '';
+        [...new Set(normalizedCatalog.map(i => i.category))].sort().forEach(cat => {
+            let div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerText = cat;
+            div.onclick = () => {
+                activeCategoryKey = cat;
+                document.getElementById('category_search').value = cat;
+                document.getElementById('subcategory_search').disabled = false;
+                container.style.display = 'none';
+            };
+            container.appendChild(div);
+        });
+        container.style.display = 'block';
+    }
+
+    function showSubcategories() {
+        if (!activeCategoryKey) return;
+        const container = document.getElementById('subcategory_suggestions');
+        container.innerHTML = '';
+        normalizedCatalog.filter(i => i.category === activeCategoryKey).forEach(i => {
+            let div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerText = i.subcategory;
+            div.onclick = () => {
+                document.getElementById('subcategory_search').value = i.subcategory;
+                container.style.display = 'none';
+            };
+            container.appendChild(div);
+        });
+        container.style.display = 'block';
+    }
+
+    // 3. Math Engine
+    function processComponentIntent() {
+        const subName = document.getElementById('subcategory_search').value;
+        const qty = parseFloat(document.getElementById('quantity').value) || 0;
+        const waste = 1 + (parseFloat(document.getElementById('waste_factor').value) / 100 || 0);
+        const item = normalizedCatalog.find(i => i.subcategory === subName);
+
+        if (!item || qty <= 0) {
+            alert("Please select an item and enter quantity.");
+            return;
         }
 
-        window.addEventListener('DOMContentLoaded', initializeDataNormalization);
+        const finalQty = qty * waste;
+        projectScope.push({
+            desc: item.subcategory,
+            min: finalQty * (item.min_mat + item.min_lab),
+            avg: finalQty * (item.avg_mat + item.avg_lab),
+            max: finalQty * (item.max_mat + item.max_lab)
+        });
 
-        // 3. Dropdown Logic
-        function showCategories() {
-            const container = document.getElementById('category_suggestions');
-            container.innerHTML = '';
-            const cats = [...new Set(normalizedCatalog.map(i => i.category))].sort();
-            cats.forEach(c => {
-                let div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerText = c;
-                div.style.padding = "5px";
-                div.onclick = () => {
-                    activeCategoryKey = c;
-                    document.getElementById('category_search').value = c;
-                    document.getElementById('subcategory_search').disabled = false;
-                    container.style.display = 'none';
-                };
-                container.appendChild(div);
-            });
-            container.style.display = 'block';
-        }
+        renderProject();
+    }
 
-        function filterSubcategories() {
-            const query = document.getElementById('subcategory_search').value.toLowerCase();
-            const container = document.getElementById('subcategory_suggestions');
-            container.innerHTML = '';
-            
-            normalizedCatalog
-                .filter(i => i.category === activeCategoryKey && i.subcategory.toLowerCase().includes(query))
-                .forEach(i => {
-                    let div = document.createElement('div');
-                    div.className = 'suggestion-item';
-                    div.innerText = i.subcategory;
-                    div.style.padding = "5px";
-                    div.onclick = () => {
-                        document.getElementById('subcategory_search').value = i.subcategory;
-                        container.style.display = 'none';
-                    };
-                    container.appendChild(div);
-                });
-            container.style.display = 'block';
-        }
+    function renderProject() {
+        const listDiv = document.getElementById('components_list');
+        listDiv.innerHTML = '';
+        let tMin = 0, tAvg = 0, tMax = 0;
 
-        function processComponentIntent() {
-            const sub = document.getElementById('subcategory_search').value;
-            const item = normalizedCatalog.find(i => i.subcategory === sub);
-            if (item) {
-                alert("Selected: " + item.subcategory + " | Avg Mat: $" + item.avg_mat);
-            } else {
-                alert("Please select a valid item from the dropdown.");
-            }
-        }
-    </script>
+        projectScope.forEach(p => {
+            tMin += p.min; tAvg += p.avg; tMax += p.max;
+            listDiv.innerHTML += `<div class="component-item">${p.desc}: $${p.avg.toFixed(2)}</div>`;
+        });
+
+        document.getElementById('results_panel').style.display = 'block';
+        document.getElementById('lbl_total_min').innerText = '$' + tMin.toFixed(2);
+        document.getElementById('lbl_total_avg').innerText = '$' + tAvg.toFixed(2);
+        document.getElementById('lbl_total_max').innerText = '$' + tMax.toFixed(2);
+    }
+</script>
 </body>
 </html>
