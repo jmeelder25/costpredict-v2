@@ -2,7 +2,7 @@ name: Monthly AI Pricing Enrichment Pipeline
 
 on:
   schedule:
-    - cron: '0 0 */14 * *' # Midnight every 14 days
+    - cron: '0 0 */14 * *'
   workflow_dispatch: 
 
 jobs:
@@ -11,7 +11,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Define the categories you want to process
         category: [
           "Baseboard", "Bathtubs and Showers", "Builders Hardware", "Cabinets", 
           "Ceilings", "Columns", "Concrete and Cement and Masonry", "Countertops", 
@@ -20,13 +19,8 @@ jobs:
           "Insulation", "Jack Posts", "Ladders", "Lumber and Composites", 
           "Material Handling Equipment", "Metals", "Mirrors", "Molding", "Paint", 
           "Roofing", "Scaffolding", "Siding and Stone Veneer", "Sinks", 
-          "Stairs and Railings", "Toilets", "Tools", "Vanities", "Ventilation", "Windows",
-          "Site Work and Landscaping", "Electrical Supplies", "HVAC and Ductwork", 
-          "Rough Plumbing and Pipes", "Lighting Fixtures", "Safety Equipment", 
-          "Appliances", "Fire Protection", "Signage", "Adhesives and Sealants",
-          "Water Heaters", "Smart Home and Security"
+          "Stairs and Railings", "Toilets", "Tools", "Vanities", "Ventilation", "Windows"
         ]
-        # You can add more zip codes to the list below to auto-generate data for them
         zip: ["60601"] 
     
     env:
@@ -35,32 +29,14 @@ jobs:
       TARGET_ZIP: ${{ matrix.zip }}
     
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Requirements
-        run: pip install pandas google-genai
-
-      - name: Run Enrichment Pipeline
-        run: python enrich_prices.py
-
-      - name: Commit and Push Update
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pandas google-genai
+      - run: python enrich_prices.py
+      - name: Commit and Push
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          
-          # Stage the specific category file
-          git add "data/${{ matrix.category }}.csv"
-          
-          # Only commit if changes exist
-          if ! git diff --quiet --staged; then
-            git commit -m "Chore: Auto-update ${{ matrix.category }} for ${{ matrix.zip }} [Skip CI]"
-            git push
-          else
-            echo "No changes for ${{ matrix.category }}."
-          fi
+          git add "data/${{ matrix.zip }}/${{ matrix.category }}.csv"
+          git diff --quiet --staged || (git commit -m "Update ${{ matrix.category }} for ${{ matrix.zip }}" && git push)
