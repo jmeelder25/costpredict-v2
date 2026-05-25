@@ -13,14 +13,43 @@
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .results-card { display: none; border-top: 4px solid var(--cp-blue); }
         h2 { color: var(--cp-blue); font-size: 16px; margin: 0 0 16px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
+        
         .form-group { margin-bottom: 14px; position: relative; }
         .form-row { display: flex; gap: 10px; margin-bottom: 14px; }
         .form-row .form-group { flex: 1; margin-bottom: 0; }
+        
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        
+        /* Updated Checkbox Styling */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .checkbox-container:hover { border-color: var(--cp-blue); background-color: #f1f5f9; }
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin: 0 12px 0 0; /* Creates exact spacing between box and text */
+            cursor: pointer;
+        }
+        .checkbox-container span {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--cp-blue);
+            line-height: 1;
+        }
+
         .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .suggestion-item { padding: 12px; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid #f1f5f9; }
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--cp-blue); font-weight: 600; }
+        
         .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; cursor: pointer; }
         .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; width: 100%; margin-top: 15px; cursor: pointer; font-weight: 800; }
         .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.95rem; }
@@ -42,10 +71,17 @@
 
     <div class="card">
         <h2>Add Material</h2>
-        <div class="form-group"><label>Category</label><input type="text" id="category_search" placeholder="Type to search..." onfocus="showCategories('')" oninput="showCategories(this.value)"><div id="category_suggestions" class="autocomplete-suggestions"></div></div>
+        <div class="form-group"><label>Category</label><input type="text" id="category_search" placeholder="Click to select..." onfocus="showCategories('')" oninput="showCategories(this.value)"><div id="category_suggestions" class="autocomplete-suggestions"></div></div>
         <div class="form-group"><label>Subcategory</label><input type="text" id="subcategory_search" placeholder="Select category first..." disabled onfocus="showSubcategories('')" oninput="showSubcategories(this.value)"><div id="subcategory_suggestions" class="autocomplete-suggestions"></div></div>
         <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1"></div>
-        <div class="form-group"><label><input type="checkbox" id="include_labor" checked> Include Labor Estimate</label></div>
+        
+        <div class="form-group">
+            <label class="checkbox-container">
+                <input type="checkbox" id="include_labor" checked>
+                <span>Include Labor Estimate</span>
+            </label>
+        </div>
+
         <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
     </div>
 
@@ -67,10 +103,36 @@
     let projectScope = [];
     let masterCategories = {};
 
-    window.onload = async () => {
-        try { const res = await fetch('/categories.json'); masterCategories = await res.json(); }
-        catch (e) { console.error("Could not load categories.json", e); }
+    // Fallback data in case the JSON file is still missing
+    const fallbackCategories = {
+        "Drywall": ["Panel", "Tape", "Compound"],
+        "Flooring": ["Hardwood", "Laminate", "Tile"],
+        "Lumber": ["2x4 Studs", "Plywood Sheets", "Treated Lumber"],
+        "Plumbing": ["PVC Pipe", "Copper Pipe", "Fittings"]
     };
+
+    window.onload = async () => {
+        try { 
+            // Note the new path here: /static/categories.json
+            const res = await fetch('/static/categories.json'); 
+            if (!res.ok) throw new Error("File not found on server");
+            masterCategories = await res.json(); 
+        }
+        catch (e) { 
+            console.warn("Could not load categories.json from server. Using fallback data.", e); 
+            masterCategories = fallbackCategories;
+        }
+    };
+
+    // Close dropdowns if clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#category_search') && !e.target.closest('#category_suggestions')) {
+            document.getElementById('category_suggestions').style.display = 'none';
+        }
+        if (!e.target.closest('#subcategory_search') && !e.target.closest('#subcategory_suggestions')) {
+            document.getElementById('subcategory_suggestions').style.display = 'none';
+        }
+    });
 
     function showCategories(query) {
         const container = document.getElementById('category_suggestions');
@@ -84,8 +146,9 @@
     function selectCat(cat) {
         document.getElementById('category_search').value = cat;
         document.getElementById('subcategory_search').disabled = false;
-        document.getElementById('subcategory_search').placeholder = "Type to search...";
+        document.getElementById('subcategory_search').placeholder = "Click to select...";
         document.getElementById('category_suggestions').style.display = 'none';
+        document.getElementById('subcategory_search').focus();
     }
 
     function showSubcategories(query) {
@@ -119,19 +182,24 @@
         msg.innerText = "Checking local rates...";
         document.getElementById('results_panel').style.display = 'block';
 
-        const response = await fetch(`/api/pricing?category=${cat}&zip=${zip}`);
-        if (response.status === 404) {
-            msg.innerText = "Generating estimates for this location... please wait.";
-            return;
+        try {
+            const response = await fetch(`/api/pricing?category=${cat}&zip=${zip}`);
+            if (response.status === 404) {
+                msg.innerText = "Generating estimates for this location... please wait.";
+                return;
+            }
+            const data = await response.json();
+            projectScope.push({ ...data, subcategory: sub, qty: qty, includeLabor: includeLabor });
+            
+            // Update Payload
+            document.getElementById('payload_input').value = JSON.stringify({ 
+                line_items: projectScope, project_type: pType, project_date: pDate, zip_code: zip 
+            });
+            msg.innerText = "Cost Prediction";
+            renderProjectState();
+        } catch (e) {
+            msg.innerText = "Error fetching data. Please try again.";
         }
-        const data = await response.json();
-        projectScope.push({ ...data, subcategory: sub, qty: qty, includeLabor: includeLabor });
-        
-        // Update Payload
-        document.getElementById('payload_input').value = JSON.stringify({ 
-            line_items: projectScope, project_type: pType, project_date: pDate, zip_code: zip 
-        });
-        renderProjectState();
     }
 
     function renderProjectState() {
