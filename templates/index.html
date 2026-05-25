@@ -6,56 +6,58 @@
     <title>CostPredict | Pricing Made Predictive</title>
     <style>
         :root { --cp-blue: #23408A; --cp-yellow: #FFC113; --cp-bg: #f8fafc; --cp-text: #0f172a; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--cp-bg); color: var(--cp-text); margin: 0; padding: 12px; -webkit-font-smoothing: antialiased; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--cp-bg); color: var(--cp-text); margin: 0; padding: 12px; }
         .wrapper { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-        .header-banner { background: #ffffff; padding: 16px; border-radius: 12px; border-bottom: 4px solid var(--cp-blue); box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04); text-align: center; }
-        .brand-logo { height: 42px; width: auto; max-width: 90%; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(35, 64, 138, 0.04); border: 1px solid #e2e8f0; }
+        .header-banner { background: #ffffff; padding: 16px; border-radius: 12px; border-bottom: 4px solid var(--cp-blue); text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .results-card { display: none; border-top: 4px solid var(--cp-blue); }
-        h2 { color: var(--cp-blue); font-size: 16px; margin: 0 0 16px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; font-weight: 700; }
+        h2 { color: var(--cp-blue); font-size: 16px; margin: 0 0 16px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
         .form-group { margin-bottom: 14px; position: relative; }
         .form-row { display: flex; gap: 10px; }
-        .form-row .form-group { flex: 1; }
+        .form-group { flex: 1; }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
         input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
-        .suggestion-item:hover { background-color: #f1f5f9; color: var(--cp-blue); }
+        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 999; display: none; }
+        .suggestion-item { padding: 12px; cursor: pointer; }
+        .suggestion-item:hover { background-color: #f1f5f9; }
         .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; cursor: pointer; }
-        .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; font-weight: 700; width: 100%; margin-top: 15px; cursor: pointer; }
-        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.9rem; border-bottom: 1px dashed #e2e8f0; }
-        .grand-total { font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; margin-top: 8px; }
+        .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; width: 100%; margin-top: 15px; cursor: pointer; }
+        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.9rem; }
+        .grand-total { font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; }
     </style>
 </head>
 <body>
 <div class="wrapper">
-    <div class="header-banner">
-        <img src="/static/logo.png" alt="CostPredict" class="brand-logo" onerror="this.src='logo.png'">
-    </div>
+    <div class="header-banner"><h3>CostPredict Estimator</h3></div>
+    
     <div class="card">
-        <h2>Step 1. Project Description</h2>
+        <h2>Project Info</h2>
         <div class="form-row">
-            <div class="form-group"><label>Project Type</label><select id="project_type"><option value="Residential">Residential</option><option value="Commercial">Commercial</option></select></div>
-            <div class="form-group"><label>Zip Code</label><input type="number" id="location" placeholder="12345"></div>
+            <div class="form-group"><label>Type</label><select id="project_type"><option>Residential</option><option>Commercial</option></select></div>
+            <div class="form-group"><label>Zip Code</label><input type="number" id="location" placeholder="12345" onchange="renderProjectState()"></div>
         </div>
-        <div class="form-group"><label>Estimated Purchase Date</label><input type="text" id="start_date" placeholder="mm/dd/yyyy or month/year"></div>
     </div>
-    <div class="card" id="project_details_card">
-        <h2>Step 2. Project Details</h2>
-        <div class="form-group"><label>Main Material Category</label><input type="text" id="category_search" oninput="showCategories(this.value)"><div id="category_suggestions" class="autocomplete-suggestions"></div></div>
-        <div class="form-group"><label>Exact Material Subcategory</label><input type="text" id="subcategory_search" disabled oninput="showSubcategories(this.value)"><div id="subcategory_suggestions" class="autocomplete-suggestions"></div></div>
-        <div class="form-group"><label>Quantity Needed</label><input type="number" id="quantity" placeholder="Enter quantity"></div>
+
+    <div class="card">
+        <h2>Add Material</h2>
+        <div class="form-group"><label>Category</label><input type="text" id="category_search" oninput="showCategories(this.value)"><div id="category_suggestions" class="autocomplete-suggestions"></div></div>
+        <div class="form-group"><label>Subcategory</label><input type="text" id="subcategory_search" disabled oninput="showSubcategories(this.value)"><div id="subcategory_suggestions" class="autocomplete-suggestions"></div></div>
+        <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1"></div>
+        <div class="form-group"><label><input type="checkbox" id="include_labor" checked> Include Labor</label></div>
         <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
     </div>
+
     <div class="card results-card" id="results_panel">
         <h2>Cost Prediction</h2>
         <div id="components_list"></div>
-        <div class="summary-row"><span>Material Base:</span><span id="lbl_mat_avg">$0</span></div>
-        <div class="summary-row"><span>Labor Assembly:</span><span id="lbl_lab_avg">$0</span></div>
-        <div class="summary-row grand-total"><span>Total Prediction:</span><span id="lbl_total_avg">$0</span></div>
-        <form id="pdf_form" action="/generate" method="post"><input type="hidden" name="payload" id="payload_input"><button type="submit" class="btn-secondary">Print Full Project Report</button></form>
+        <div class="summary-row"><span>Material:</span><span id="lbl_mat">$0.00</span></div>
+        <div class="summary-row"><span>Labor:</span><span id="lbl_lab">$0.00</span></div>
+        <div class="summary-row"><span>Sales Tax:</span><span id="lbl_tax">$0.00</span></div>
+        <div class="summary-row grand-total"><span>Total:</span><span id="lbl_total">$0.00</span></div>
+        <form action="/generate" method="post"><input type="hidden" name="payload" id="payload_input"><button type="submit" class="btn-secondary">Print Project Report</button></form>
     </div>
 </div>
+
 <script>
     let masterDataFile = {{ master_data | tojson | safe }};
     let projectScope = [];
@@ -66,12 +68,7 @@
         container.innerHTML = '';
         matches.forEach(cat => {
             let div = document.createElement('div'); div.className = 'suggestion-item'; div.innerText = cat;
-            div.onclick = () => { 
-                document.getElementById('category_search').value = cat; 
-                document.getElementById('subcategory_search').disabled = false; 
-                document.getElementById('subcategory_search').value = '';
-                container.style.display = 'none'; 
-            };
+            div.onclick = () => { document.getElementById('category_search').value = cat; document.getElementById('subcategory_search').disabled = false; container.style.display = 'none'; };
             container.appendChild(div);
         });
         container.style.display = matches.length ? 'block' : 'none';
@@ -80,8 +77,8 @@
     function showSubcategories(query) {
         const cat = document.getElementById('category_search').value;
         const container = document.getElementById('subcategory_suggestions');
-        const itemsObj = masterDataFile[cat] ? masterDataFile[cat].items : {};
-        const matches = Object.keys(itemsObj).filter(i => i.toLowerCase().includes(query.toLowerCase()));
+        const items = masterDataFile[cat]?.items || {};
+        const matches = Object.keys(items).filter(i => i.toLowerCase().includes(query.toLowerCase()));
         container.innerHTML = '';
         matches.forEach(sub => {
             let div = document.createElement('div'); div.className = 'suggestion-item'; div.innerText = sub;
@@ -95,26 +92,31 @@
         const cat = document.getElementById('category_search').value;
         const sub = document.getElementById('subcategory_search').value;
         const qty = parseFloat(document.getElementById('quantity').value) || 0;
+        const includeLabor = document.getElementById('include_labor').checked;
         const itemData = masterDataFile[cat]?.items[sub];
         
-        if (!itemData) return alert("Please select a valid category and subcategory.");
+        if (!itemData) return alert("Please select a valid item.");
         
-        // itemData now contains full pricing breakdown: min_mat, avg_mat, max_mat, min_lab, avg_lab, max_lab
-        projectScope.push({ category: cat, subcategory: sub, ...itemData, qty });
+        projectScope.push({ ...itemData, subcategory: sub, qty, includeLabor });
         renderProjectState();
     }
 
     function renderProjectState() {
         let mat = 0, lab = 0;
-        projectScope.forEach(p => { 
-            mat += p.avg_mat * p.qty; 
-            lab += p.avg_lab * p.qty; 
+        const zip = document.getElementById('location').value;
+        const taxRate = 0.08; // Set your base rate here
+
+        projectScope.forEach(p => {
+            // Using Number() ensures we don't get NaN if data is clean
+            mat += (Number(p.avg_mat) || 0) * p.qty;
+            if (p.includeLabor) lab += (Number(p.avg_lab) || 0) * p.qty;
         });
-        
-        document.getElementById('lbl_mat_avg').innerText = `$${mat.toFixed(2)}`;
-        document.getElementById('lbl_lab_avg').innerText = `$${lab.toFixed(2)}`;
-        document.getElementById('lbl_total_avg').innerText = `$${(mat + lab).toFixed(2)}`;
-        
+
+        let tax = mat * taxRate;
+        document.getElementById('lbl_mat').innerText = `$${mat.toFixed(2)}`;
+        document.getElementById('lbl_lab').innerText = `$${lab.toFixed(2)}`;
+        document.getElementById('lbl_tax').innerText = `$${tax.toFixed(2)}`;
+        document.getElementById('lbl_total').innerText = `$${(mat + lab + tax).toFixed(2)}`;
         document.getElementById('payload_input').value = JSON.stringify({line_items: projectScope});
         document.getElementById('results_panel').style.display = 'block';
     }
