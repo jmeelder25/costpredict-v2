@@ -2,47 +2,60 @@ name: Monthly AI Pricing Enrichment Pipeline
 
 on:
   schedule:
-    # Fires at midnight every Sunday, every 14 days
-    - cron: '0 0 */14 * *'
+    - cron: '0 0 */14 * *' # Midnight every 14 days
   workflow_dispatch: 
 
 jobs:
-  run-pipeline:
+  process-category:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        category: [
+          "Baseboard", "Bathtubs and Showers", "Builders Hardware", "Cabinets", 
+          "Ceilings", "Columns", "Concrete and Cement and Masonry", "Countertops", 
+          "Decking", "Doors", "Drywall", "Erosion Control", "Fans", "Fasteners", 
+          "Faucets", "Fencing and Gates", "Flooring", "Glass and Acrylic", "Gutters", 
+          "Insulation", "Jack Posts", "Ladders", "Lumber and Composites", 
+          "Material Handling Equipment", "Metals", "Mirrors", "Molding", "Paint", 
+          "Roofing", "Scaffolding", "Siding and Stone Veneer", "Sinks", 
+          "Stairs and Railings", "Toilets", "Tools", "Vanities", "Ventilation", "Windows",
+          "Site Work and Landscaping", "Electrical Supplies", "HVAC and Ductwork", 
+          "Rough Plumbing and Pipes", "Lighting Fixtures", "Safety Equipment", 
+          "Appliances", "Fire Protection", "Signage", "Adhesives and Sealants",
+          "Water Heaters", "Smart Home and Security"
+        ]
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      CURRENT_CATEGORY: ${{ matrix.category }}
     
     steps:
-      - name: Check out repository code
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python Environment
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
 
-      - name: Install Project Requirements
-        run: |
-          pip install pandas google-genai
-          # If you add scraping later, add playwright/requests here
+      - name: Install Requirements
+        run: pip install pandas google-genai
 
-      - name: Execute Pricing Generation Engine
+      - name: Run Enrichment for ${{ matrix.category }}
         run: python enrich_prices.py
 
-      - name: Commit and Push Updated Pricing Array back to Git
+      - name: Commit and Push Update
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           
-          # Add all csv files in the data directory
-          git add data/*.csv
+          # Stage only the file for the current matrix category
+          git add "data/${{ matrix.category }}.csv"
           
-          # Check for changes and commit
+          # Only commit if changes exist
           if ! git diff --quiet --staged; then
-            git commit -m "Chore: Automated monthly pricing sync [Skip CI]"
+            git commit -m "Chore: Auto-update ${{ matrix.category }} pricing [Skip CI]"
             git push
           else
-            echo "No changes detected to commit."
+            echo "No changes for ${{ matrix.category }}."
           fi
