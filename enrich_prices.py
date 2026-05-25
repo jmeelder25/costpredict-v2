@@ -1,14 +1,14 @@
 import pandas as pd
 import os
 import json
-import time
 from google import genai
+from datetime import datetime
 
 # Initialize Gemini Client
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 def get_pricing_from_ai(category, items, zip_code, is_new=False):
-    """Asks Gemini to standardize and price items based on a specific zip code."""
+    """Standardizes or generates items localized to a specific Zip Code."""
     action = "generate a comprehensive catalog" if is_new else "standardize and price"
     prompt = f"""
     You are an expert construction estimator.
@@ -28,36 +28,30 @@ def get_pricing_from_ai(category, items, zip_code, is_new=False):
         text = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
     except Exception as e:
-        print(f"DEBUG: AI Error: {e}")
+        print(f"DEBUG: AI Error for {category}: {e}")
         return []
 
 def enrich_and_save():
-    os.makedirs('data', exist_ok=True)
-    
     category = os.environ.get("CURRENT_CATEGORY")
-    zip_code = os.environ.get("TARGET_ZIP", "60601") # Default to Chicago
+    zip_code = os.environ.get("TARGET_ZIP", "60601")
     
     if not category: return
     
-    filename = os.path.join('data', f"{category}.csv")
+    # Organize data by zip code folder
+    output_dir = os.path.join('data', zip_code)
+    os.makedirs(output_dir, exist_ok=True)
+    filename = os.path.join(output_dir, f"{category}.csv")
     
     if os.path.exists(filename):
         df = pd.read_csv(filename)
         item_list = df['item_name'].dropna().tolist()
-        print(f"Standardizing {len(item_list)} items for {category} in {zip_code}...")
-        
         data = get_pricing_from_ai(category, item_list, zip_code, is_new=False)
-        if data:
-            df = pd.DataFrame(data)
-            df.to_csv(filename, index=False)
-            print(f"Success! Updated {category}")
     else:
-        print(f"Generating new catalog for {category} in {zip_code}...")
         data = get_pricing_from_ai(category, [], zip_code, is_new=True)
-        if data:
-            df = pd.DataFrame(data)
-            df.to_csv(filename, index=False)
-            print(f"Success! Created {category}")
+        
+    if data:
+        pd.DataFrame(data).to_csv(filename, index=False)
+        print(f"Success! Saved {category} for {zip_code}")
 
 if __name__ == "__main__":
     enrich_and_save()
