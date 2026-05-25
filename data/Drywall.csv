@@ -1,12 +1,2 @@
-﻿item_name  ,min_mat,avg_mat ,max_mat,min_lab,avg_lab,max_lab
-Corner Beads,,,,,,
-Corner Caps,,,,,,
-Drywall Benches ,,,,,,
-Drywall Framing,,,,,,
-Drywall Joint Compound,,,,,,
-Drywall Panels,,,,,,
-Drywall Repair,,,,,,
-Drywall Sheets,,,,,,
-Drywall Stilts,,,,,,
-Drywall Tape,,,,,,
-Drywall Tools,,,,,,
+item_name,min_mat,avg_mat,max_mat,min_lab,avg_lab,max_lab
+drywall,0.45,0.65,0.95,1.15,1.85,3.0
