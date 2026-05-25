@@ -11,6 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Define the categories you want to process
         category: [
           "Baseboard", "Bathtubs and Showers", "Builders Hardware", "Cabinets", 
           "Ceilings", "Columns", "Concrete and Cement and Masonry", "Countertops", 
@@ -25,9 +26,13 @@ jobs:
           "Appliances", "Fire Protection", "Signage", "Adhesives and Sealants",
           "Water Heaters", "Smart Home and Security"
         ]
+        # You can add more zip codes to the list below to auto-generate data for them
+        zip: ["60601"] 
+    
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       CURRENT_CATEGORY: ${{ matrix.category }}
+      TARGET_ZIP: ${{ matrix.zip }}
     
     steps:
       - name: Check out repository
@@ -41,7 +46,7 @@ jobs:
       - name: Install Requirements
         run: pip install pandas google-genai
 
-      - name: Run Enrichment for ${{ matrix.category }}
+      - name: Run Enrichment Pipeline
         run: python enrich_prices.py
 
       - name: Commit and Push Update
@@ -49,12 +54,12 @@ jobs:
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           
-          # Stage only the file for the current matrix category
+          # Stage the specific category file
           git add "data/${{ matrix.category }}.csv"
           
           # Only commit if changes exist
           if ! git diff --quiet --staged; then
-            git commit -m "Chore: Auto-update ${{ matrix.category }} pricing [Skip CI]"
+            git commit -m "Chore: Auto-update ${{ matrix.category }} for ${{ matrix.zip }} [Skip CI]"
             git push
           else
             echo "No changes for ${{ matrix.category }}."
