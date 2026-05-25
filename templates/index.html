@@ -8,86 +8,44 @@
         :root { --cp-blue: #23408A; --cp-yellow: #FFC113; --cp-bg: #f8fafc; --cp-text: #0f172a; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--cp-bg); color: var(--cp-text); margin: 0; padding: 12px; }
         .wrapper { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-        
-        /* Restored Image Logo Header */
         .header-banner { background: #ffffff; padding: 20px; border-radius: 12px; border-bottom: 4px solid var(--cp-blue); text-align: center; }
         .header-banner img { max-height: 60px; width: auto; display: block; margin: 0 auto; }
-
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .results-card { display: none; border-top: 4px solid var(--cp-blue); }
         h2 { color: var(--cp-blue); font-size: 16px; margin: 0 0 16px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
-        
         .form-group { margin-bottom: 14px; position: relative; }
         .form-row { display: flex; gap: 10px; margin-bottom: 14px; }
         .form-row .form-group { flex: 1; margin-bottom: 0; }
-        
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
         input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        input[type="checkbox"] { width: auto; margin-right: 8px; transform: scale(1.2); }
-        .checkbox-label { display: flex; align-items: center; font-size: 0.95rem; cursor: pointer; color: var(--cp-text); }
-
         .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .suggestion-item { padding: 12px; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid #f1f5f9; }
-        .suggestion-item:last-child { border-bottom: none; }
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--cp-blue); font-weight: 600; }
-        
-        .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
-        .btn-primary:hover { background: #1e3573; }
-        .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; width: 100%; margin-top: 15px; cursor: pointer; font-weight: 800; font-size: 1rem; }
-        
+        .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; width: 100%; margin-top: 15px; cursor: pointer; font-weight: 800; }
         .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.95rem; }
         .grand-total { font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; font-size: 1.1rem; }
     </style>
 </head>
 <body>
 <div class="wrapper">
-    <div class="header-banner">
-        <img src="/static/logo.png" alt="CostPredict Logo">
-    </div>
+    <div class="header-banner"><img src="/static/logo.png" alt="CostPredict Logo"></div>
     
     <div class="card">
         <h2>Project Info</h2>
         <div class="form-row">
-            <div class="form-group">
-                <label>Type</label>
-                <select id="project_type">
-                    <option value="Residential">Residential</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Mixed-Use">Mixed-Use</option>
-                    <option value="Industrial">Industrial</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Zip Code</label>
-                <input type="number" id="location" placeholder="12345">
-            </div>
+            <div class="form-group"><label>Type</label><select id="project_type"><option>Residential</option><option>Commercial</option><option>Mixed-Use</option><option>Industrial</option></select></div>
+            <div class="form-group"><label>Zip Code</label><input type="number" id="location" placeholder="12345"></div>
         </div>
-        <div class="form-group">
-            <label>Project Date</label>
-            <input type="date" id="project_date">
-        </div>
+        <div class="form-group"><label>Project Date</label><input type="text" id="project_date" placeholder="mm/dd/yyyy or mm/yyyy"></div>
     </div>
 
     <div class="card">
         <h2>Add Material</h2>
-        <div class="form-group">
-            <label>Category</label>
-            <input type="text" id="category_search" placeholder="Select or type..." onfocus="showCategories(this.value)" oninput="showCategories(this.value)">
-            <div id="category_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-        <div class="form-group">
-            <label>Subcategory</label>
-            <input type="text" id="subcategory_search" placeholder="Select or type..." disabled onfocus="showSubcategories(this.value)" oninput="showSubcategories(this.value)">
-            <div id="subcategory_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1" min="1"></div>
-        </div>
-        <div class="form-group">
-            <label class="checkbox-label"><input type="checkbox" id="include_labor" checked> Include Labor Estimate</label>
-        </div>
-
+        <div class="form-group"><label>Category</label><input type="text" id="category_search" placeholder="Type to search..." onfocus="showCategories('')" oninput="showCategories(this.value)"><div id="category_suggestions" class="autocomplete-suggestions"></div></div>
+        <div class="form-group"><label>Subcategory</label><input type="text" id="subcategory_search" placeholder="Select category first..." disabled onfocus="showSubcategories('')" oninput="showSubcategories(this.value)"><div id="subcategory_suggestions" class="autocomplete-suggestions"></div></div>
+        <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1"></div>
+        <div class="form-group"><label><input type="checkbox" id="include_labor" checked> Include Labor Estimate</label></div>
         <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
     </div>
 
@@ -96,16 +54,12 @@
         <div class="summary-row"><span>Material:</span><span id="lbl_mat">$0.00</span></div>
         <div class="summary-row"><span>Labor:</span><span id="lbl_lab">$0.00</span></div>
         <div class="summary-row grand-total"><span>Total:</span><span id="lbl_total">$0.00</span></div>
-        
-        <form action="/generate" method="post">
-            <input type="hidden" name="payload" id="payload_input">
-            <button type="submit" class="btn-secondary">Print Project Report</button>
-        </form>
+        <form action="/generate" method="post"><input type="hidden" name="payload" id="payload_input"><button type="submit" class="btn-secondary">Print Project Report</button></form>
     </div>
 
     <footer style="margin-top: 20px; padding: 20px; text-align: center; color: #64748b; font-size: 0.75rem; border-top: 1px solid #e2e8f0;">
         <p>&copy; 2026 CostPredict. All rights reserved.</p>
-        <p>Legal Disclaimer: Estimates are for informational purposes only and are subject to market conditions. Always verify with licensed professionals before commencing construction work.</p>
+        <p>Legal Disclaimer: Estimates are for informational purposes only and are subject to market conditions. Always verify with licensed professionals.</p>
     </footer>
 </div>
 
@@ -114,23 +68,41 @@
     let masterCategories = {};
 
     window.onload = async () => {
-        try {
-            const res = await fetch('/categories.json');
-            masterCategories = await res.json();
-        } catch (e) {
-            console.error("Could not load categories.json", e);
-        }
+        try { const res = await fetch('/categories.json'); masterCategories = await res.json(); }
+        catch (e) { console.error("Could not load categories.json", e); }
     };
 
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('#category_search') && !e.target.closest('#category_suggestions')) {
-            document.getElementById('category_suggestions').style.display = 'none';
-        }
-        if (!e.target.closest('#subcategory_search') && !e.target.closest('#subcategory_suggestions')) {
-            document.getElementById('subcategory_suggestions').style.display = 'none';
-        }
-    });
+    function showCategories(query) {
+        const container = document.getElementById('category_suggestions');
+        const matches = Object.keys(masterCategories).filter(c => c.toLowerCase().includes(query.toLowerCase()));
+        if (matches.length > 0) {
+            container.innerHTML = matches.map(cat => `<div class="suggestion-item" onclick="selectCat('${cat}')">${cat}</div>`).join('');
+            container.style.display = 'block';
+        } else { container.style.display = 'none'; }
+    }
+
+    function selectCat(cat) {
+        document.getElementById('category_search').value = cat;
+        document.getElementById('subcategory_search').disabled = false;
+        document.getElementById('subcategory_search').placeholder = "Type to search...";
+        document.getElementById('category_suggestions').style.display = 'none';
+    }
+
+    function showSubcategories(query) {
+        const cat = document.getElementById('category_search').value;
+        const container = document.getElementById('subcategory_suggestions');
+        const items = masterCategories[cat] || [];
+        const matches = items.filter(i => i.toLowerCase().includes(query.toLowerCase()));
+        if (matches.length > 0) {
+            container.innerHTML = matches.map(sub => `<div class="suggestion-item" onclick="selectSub('${sub}')">${sub}</div>`).join('');
+            container.style.display = 'block';
+        } else { container.style.display = 'none'; }
+    }
+
+    function selectSub(sub) {
+        document.getElementById('subcategory_search').value = sub;
+        document.getElementById('subcategory_suggestions').style.display = 'none';
+    }
 
     async function processComponentIntent() {
         const cat = document.getElementById('category_search').value;
@@ -143,98 +115,31 @@
         const msg = document.getElementById('status_msg');
 
         if (!zip || !cat || !pDate) return alert("Please fill Zip Code, Project Date, and Category.");
-
+        
         msg.innerText = "Checking local rates...";
         document.getElementById('results_panel').style.display = 'block';
 
-        try {
-            const response = await fetch(`/api/pricing?category=${cat}&zip=${zip}`);
-            
-            if (response.status === 404) {
-                msg.innerText = "Generating estimates for this location... please wait.";
-                return;
-            }
-
-            const data = await response.json();
-            
-            projectScope.push({ 
-                ...data, 
-                subcategory: sub, 
-                qty: qty, 
-                includeLabor: includeLabor 
-            });
-            
-            msg.innerText = "Cost Prediction";
-            renderProjectState(pType, pDate, zip);
-            
-        } catch (e) {
-            msg.innerText = "Error fetching data. Check connection.";
+        const response = await fetch(`/api/pricing?category=${cat}&zip=${zip}`);
+        if (response.status === 404) {
+            msg.innerText = "Generating estimates for this location... please wait.";
+            return;
         }
+        const data = await response.json();
+        projectScope.push({ ...data, subcategory: sub, qty: qty, includeLabor: includeLabor });
+        
+        // Update Payload
+        document.getElementById('payload_input').value = JSON.stringify({ 
+            line_items: projectScope, project_type: pType, project_date: pDate, zip_code: zip 
+        });
+        renderProjectState();
     }
 
-    function renderProjectState(pType, pDate, zip) {
-        let mat = 0;
-        let lab = 0;
-        
-        projectScope.forEach(p => {
-            mat += (Number(p.avg_mat) || 0) * p.qty;
-            if (p.includeLabor) {
-                lab += (Number(p.avg_lab) || 0) * p.qty;
-            }
-        });
-
+    function renderProjectState() {
+        let mat = projectScope.reduce((sum, p) => sum + (Number(p.avg_mat || 0) * p.qty), 0);
+        let lab = projectScope.reduce((sum, p) => p.includeLabor ? sum + (Number(p.avg_lab || 0) * p.qty) : sum, 0);
         document.getElementById('lbl_mat').innerText = `$${mat.toFixed(2)}`;
         document.getElementById('lbl_lab').innerText = `$${lab.toFixed(2)}`;
         document.getElementById('lbl_total').innerText = `$${(mat + lab).toFixed(2)}`;
-        
-        document.getElementById('payload_input').value = JSON.stringify({ 
-            line_items: projectScope,
-            project_type: pType,
-            project_date: pDate,
-            zip_code: zip,
-            total_mat: mat,
-            total_lab: lab,
-            grand_total: mat + lab
-        });
-    }
-
-    // Interactive Dropdown Logic
-    function showCategories(query) {
-        const container = document.getElementById('category_suggestions');
-        const matches = Object.keys(masterCategories).filter(c => c.toLowerCase().includes(query.toLowerCase()));
-        
-        if (matches.length > 0) {
-            container.innerHTML = matches.map(cat => `<div class="suggestion-item" onclick="selectCat('${cat}')">${cat}</div>`).join('');
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
-        }
-    }
-
-    function selectCat(cat) {
-        document.getElementById('category_search').value = cat;
-        document.getElementById('subcategory_search').disabled = false;
-        document.getElementById('category_suggestions').style.display = 'none';
-        document.getElementById('subcategory_search').focus(); // Auto-focus the next box
-    }
-
-    function showSubcategories(query) {
-        const cat = document.getElementById('category_search').value;
-        const container = document.getElementById('subcategory_suggestions');
-        const items = masterCategories[cat] || [];
-        const matches = items.filter(i => i.toLowerCase().includes(query.toLowerCase()));
-        
-        if (matches.length > 0) {
-            container.innerHTML = matches.map(sub => `<div class="suggestion-item" onclick="selectSub('${sub}')">${sub}</div>`).join('');
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
-        }
-    }
-
-    function selectSub(sub) {
-        document.getElementById('subcategory_search').value = sub;
-        document.getElementById('subcategory_suggestions').style.display = 'none';
     }
 </script>
 </body>
