@@ -4,7 +4,6 @@ import json
 from google import genai
 
 # Initialize Gemini Client
-# Ensure GEMINI_API_KEY is set in your GitHub Action Secrets
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 def get_ai_pricing_estimate(item_name):
@@ -16,7 +15,9 @@ def get_ai_pricing_estimate(item_name):
     Do not include markdown code blocks, do not include prefixes or suffixes.
     Example: {{"min_mat": 10.0, "avg_mat": 12.0, "max_mat": 15.0, "min_lab": 5.0, "avg_lab": 7.0, "max_lab": 10.0}}
     """
-    response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+    
+    # FIX: Using the currently active and supported model endpoint
+    response = client.models.generate_content(model="gemini-3.5-flash", contents=prompt)
     
     # Strip markdown and whitespace
     text = response.text.replace("```json", "").replace("```", "").strip()
