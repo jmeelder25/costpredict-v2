@@ -1,38 +1,30 @@
-name: Monthly AI Pricing Enrichment Pipeline
+name: On-Demand Pricing Enrichment
 
 on:
-  workflow_dispatch: 
-
-concurrency:
-  group: pricing-update-group
-  cancel-in-progress: false
+  workflow_dispatch:
+    inputs:
+      category:
+        description: 'Construction Category'
+        required: true
+      zip_code:
+        description: 'Zip Code'
+        required: true
 
 jobs:
-  process-category:
+  enrich:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        category: ["Drywall", "Flooring", "Lumber and Composites"] # Add remaining categories here
-        zip: ["60601", "46201", "80201", "53201", "10001", "33101", "27601", "75201", "90210", "98101"]
-    
-    env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      CURRENT_CATEGORY: ${{ matrix.category }}
-      TARGET_ZIP: ${{ matrix.zip }}
-    
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: pip install pandas google-genai
-      - run: python enrich_prices.py
+      - run: python enrich_prices.py ${{ github.event.inputs.category }} ${{ github.event.inputs.zip_code }}
+      
       - name: Commit and Push
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          # Pull latest changes before pushing to avoid conflicts
           git pull --rebase origin main
-          git add "data/${{ matrix.zip }}/${{ matrix.category }}.csv"
-          git commit -m "Update ${{ matrix.category }} for ${{ matrix.zip }} [Skip CI]"
+          git add "data/${{ github.event.inputs.zip_code }}/${{ github.event.inputs.category }}.csv"
+          git commit -m "Add pricing for ${{ github.event.inputs.category }} in ${{ github.event.inputs.zip_code }}"
           git push
