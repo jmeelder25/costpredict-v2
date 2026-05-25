@@ -34,7 +34,7 @@
         <h2>Project Info</h2>
         <div class="form-row">
             <div class="form-group"><label>Type</label><select id="project_type"><option>Residential</option><option>Commercial</option></select></div>
-            <div class="form-group"><label>Zip Code</label><input type="number" id="location" placeholder="12345" onchange="renderProjectState()"></div>
+            <div class="form-group"><label>Zip Code</label><input type="number" id="location" placeholder="12345" oninput="renderProjectState()"></div>
         </div>
     </div>
 
@@ -104,10 +104,10 @@
     function renderProjectState() {
         let mat = 0, lab = 0;
         const zip = document.getElementById('location').value;
-        const taxRate = 0.08; // Set your base rate here
+        // Simple logic for Chicago (60601) vs others
+        const taxRate = (zip === "60601") ? 0.1025 : 0.08;
 
         projectScope.forEach(p => {
-            // Using Number() ensures we don't get NaN if data is clean
             mat += (Number(p.avg_mat) || 0) * p.qty;
             if (p.includeLabor) lab += (Number(p.avg_lab) || 0) * p.qty;
         });
@@ -117,7 +117,12 @@
         document.getElementById('lbl_lab').innerText = `$${lab.toFixed(2)}`;
         document.getElementById('lbl_tax').innerText = `$${tax.toFixed(2)}`;
         document.getElementById('lbl_total').innerText = `$${(mat + lab + tax).toFixed(2)}`;
-        document.getElementById('payload_input').value = JSON.stringify({line_items: projectScope});
+        
+        // Pass tax and total to the backend payload for the PDF report
+        document.getElementById('payload_input').value = JSON.stringify({
+            line_items: projectScope,
+            tax_amount: tax
+        });
         document.getElementById('results_panel').style.display = 'block';
     }
 </script>
