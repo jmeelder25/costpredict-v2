@@ -7,7 +7,32 @@ from weasyprint import HTML
 
 app = Flask(__name__)
 
-# --- Pricing Reference Logic (KEEPING THIS) ---
+# --- AUTOMATIC DATA ENRICHMENT ---
+def run_enrichment():
+    """Converts raw_scraped_data.csv into the format needed for the app."""
+    raw_file = 'raw_scraped_data.csv'
+    if os.path.exists(raw_file):
+        try:
+            df = pd.read_csv(raw_file)
+            # Truncate to first 7 cols and rename
+            df = df.iloc[:, :7]
+            df.columns = ['item_name', 'min_mat', 'avg_mat', 'max_mat', 'min_lab', 'avg_lab', 'max_lab']
+            
+            # Force numeric for all pricing columns
+            cols = ['min_mat', 'avg_mat', 'max_mat', 'min_lab', 'avg_lab', 'max_lab']
+            for col in cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
+            
+            os.makedirs('data', exist_ok=True)
+            df.to_csv('data/Catalog Materials.csv', index=False)
+            print("Enrichment complete: data/Catalog Materials.csv generated.")
+        except Exception as e:
+            print(f"Enrichment error: {e}")
+
+# Run enrichment on startup
+run_enrichment()
+
+# --- Pricing Reference Logic (Safety Net) ---
 PRICING_REF = {}
 
 def load_pricing_reference():
@@ -30,7 +55,7 @@ def get_ai_estimate(item_name):
         if ref_key in item_key: return values
     return {"min_mat": 10.0, "avg_mat": 15.0, "max_mat": 20.0, "min_lab": 10.0, "avg_lab": 15.0, "max_lab": 20.0}
 
-# --- Main Data Loading (UPDATED) ---
+# --- Main Data Loading ---
 def load_master_data():
     load_pricing_reference()
     raw_master_data = {}
@@ -47,7 +72,6 @@ def load_master_data():
             items_dictionary = {}
             
             for _, row in df.iterrows():
-                # Uses 'item_name' as set by your enrich_prices.py
                 item_name = str(row['item_name']).strip()
                 if not item_name or item_name.lower() == "nan": continue
                 
@@ -80,7 +104,6 @@ def generate_pdf():
         html_content = "<html><body><h1>Project Report</h1><table border='1'><tr><th>Description</th><th>Qty</th><th>Material</th><th>Labor</th></tr>"
         for item in line_items:
             mat = float(item.get('avg_mat', 0))
-            # Respects the checkbox choice from the frontend
             lab = float(item.get('avg_lab', 0)) if item.get('includeLabor', True) else 0
             html_content += f"<tr><td>{item.get('subcategory')}</td><td>{item.get('qty')}</td><td>${mat:.2f}</td><td>${lab:.2f}</td></tr>"
         html_content += "</table></body></html>"
