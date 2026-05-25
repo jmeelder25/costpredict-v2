@@ -1,0 +1,5 @@
+{
+  "Drywall": ["Panel", "Tape", "Compound"],
+  "Flooring": ["Hardwood", "Laminate", "Tile"],
+  "Lumber": ["2x4 Studs", "Plywood Sheets"]
+}
