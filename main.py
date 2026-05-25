@@ -1,75 +1,81 @@
 import os
 import glob
 import json
-import base64
 import pandas as pd
 from flask import Flask, render_template, request, make_response
 from weasyprint import HTML
 
 app = Flask(__name__)
 
-# --- Market Estimation Logic (Used when data is missing) ---
-def get_ai_estimate(item_name, cost_type):
-    """
-    Provides a market-based estimate when CSV data is missing.
-    Adjust these values to reflect your actual market pricing.
-    """
-    item = item_name.lower()
-    # Simple logic-based estimation
-    if "bracket" in item: return 12.50 if cost_type == "mat" else 15.00
-    if "hanger" in item: return 5.75 if cost_type == "mat" else 10.00
-    if "tile" in item: return 2.80 if cost_type == "mat" else 5.00
-    return 15.00 if cost_type == "mat" else 15.00
+# --- Pricing Reference Logic ---
+# This dictionary will store your fallback estimates from pricing_reference.csv
+PRICING_REF = {}
 
-# --- Data Loading Logic ---
+def load_pricing_reference():
+    """Loads fallback pricing data from a CSV to prevent hardcoded defaults."""
+    ref_file = "data/pricing_reference.csv"
+    if os.path.exists(ref_file):
+        try:
+            df = pd.read_csv(ref_file)
+            for _, row in df.iterrows():
+                item_name = str(row['item_name']).lower().strip()
+                PRICING_REF[item_name] = {
+                    "min_mat": float(row['min_mat']), "avg_mat": float(row['avg_mat']), "max_mat": float(row['max_mat']),
+                    "min_lab": float(row['min_lab']), "avg_lab": float(row['avg_lab']), "max_lab": float(row['max_lab'])
+                }
+        except Exception as e:
+            print(f"Error loading pricing_reference.csv: {e}")
+
+def get_ai_estimate(item_name):
+    """Searches for a keyword match in the reference data, else returns a base fallback."""
+    item_key = item_name.lower()
+    for ref_key, values in PRICING_REF.items():
+        if ref_key in item_key:
+            return values
+    # Global fallback if no keyword match is found
+    return {"min_mat": 10.0, "avg_mat": 15.0, "max_mat": 20.0, 
+            "min_lab": 10.0, "avg_lab": 15.0, "max_lab": 20.0}
+
+# --- Main Data Loading ---
 def load_master_data():
+    load_pricing_reference()
     raw_master_data = {}
     csv_files = glob.glob(os.path.join("data", "*.csv"))
     
     for file_path in csv_files:
+        # Skip the reference file so it isn't treated as a category
+        if "pricing_reference" in file_path: continue
+        
         filename = os.path.basename(file_path)
         category_name = filename.replace("Building Materials Spreadsheet-05.16.2026.xlsx - ", "").replace(".csv", "")
         
-        if category_name in ["Stores", "Summary"]: continue
-            
         try:
             df = pd.read_csv(file_path)
-            if df.empty: continue
-            
-            df.columns = [str(c).strip().lower().replace('ï»¿', '') for c in df.columns]
+            # Ensure headers are standard
+            df.columns = [str(c).strip().lower() for c in df.columns]
             name_col = df.columns[0]
-            
             items_dictionary = {}
+            
             for _, row in df.iterrows():
-                row_data = {str(k).strip().lower(): v for k, v in row.items()}
                 item_name = str(row[name_col]).strip()
+                if not item_name or item_name.lower() == "nan": continue
                 
-                if not item_name or item_name.lower() in ["nan", ""]: continue
-                
-                # Pricing retrieval with AI Estimate fallback
-                def get_price(keys, cost_type):
-                    for k in keys:
-                        if k in row_data and pd.notna(row_data[k]):
-                            try:
-                                return float(str(row_data[k]).replace('$', '').replace(',', '').strip())
-                            except: continue
-                    return get_ai_estimate(item_name, cost_type)
-
-                items_dictionary[item_name] = {
-                    "min_mat": get_price(['min_mat', 'material_min', 'mat_min'], "mat"),
-                    "avg_mat": get_price(['avg_mat', 'material_avg', 'mat_avg'], "mat"),
-                    "max_mat": get_price(['max_mat', 'material_max', 'mat_max'], "mat"),
-                    "min_lab": get_price(['min_lab', 'labor_min', 'lab_min'], "lab"),
-                    "avg_lab": get_price(['avg_lab', 'labor_avg', 'lab_avg'], "lab"),
-                    "max_lab": get_price(['max_lab', 'labor_max', 'lab_max'], "lab")
-                }
+                try:
+                    # Attempt to extract exact pricing from the category CSV
+                    items_dictionary[item_name] = {
+                        "min_mat": float(row['min_mat']), "avg_mat": float(row['avg_mat']), "max_mat": float(row['max_mat']),
+                        "min_lab": float(row['min_lab']), "avg_lab": float(row['avg_lab']), "max_lab": float(row['max_lab'])
+                    }
+                except (ValueError, KeyError):
+                    # Fallback to the reference file or AI estimate
+                    items_dictionary[item_name] = get_ai_estimate(item_name)
             
             raw_master_data[category_name] = {"items": items_dictionary}
         except Exception as e:
-            print(f"[ERROR] Failed parsing {filename}: {e}")
-            
+            print(f"Error loading {filename}: {e}")
     return raw_master_data
 
+# Load data into memory once on startup
 MASTER_DATA_CACHE = load_master_data()
 
 @app.route('/')
