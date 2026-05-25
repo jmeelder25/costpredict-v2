@@ -14,7 +14,7 @@ def get_ai_pricing_estimate(item_name):
     "min_mat", "avg_mat", "max_mat", "min_lab", "avg_lab", "max_lab".
     Use float values only.
     """
-    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
     return json.loads(response.text)
 
 def enrich_and_save():
