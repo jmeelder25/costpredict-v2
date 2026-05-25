@@ -96,17 +96,25 @@
         const sub = document.getElementById('subcategory_search').value;
         const qty = parseFloat(document.getElementById('quantity').value) || 0;
         const itemData = masterDataFile[cat]?.items[sub];
+        
         if (!itemData) return alert("Please select a valid category and subcategory.");
+        
+        // itemData now contains full pricing breakdown: min_mat, avg_mat, max_mat, min_lab, avg_lab, max_lab
         projectScope.push({ category: cat, subcategory: sub, ...itemData, qty });
         renderProjectState();
     }
 
     function renderProjectState() {
         let mat = 0, lab = 0;
-        projectScope.forEach(p => { mat += p.avg_mat * p.qty; lab += p.avg_lab * p.qty; });
+        projectScope.forEach(p => { 
+            mat += p.avg_mat * p.qty; 
+            lab += p.avg_lab * p.qty; 
+        });
+        
         document.getElementById('lbl_mat_avg').innerText = `$${mat.toFixed(2)}`;
         document.getElementById('lbl_lab_avg').innerText = `$${lab.toFixed(2)}`;
         document.getElementById('lbl_total_avg').innerText = `$${(mat + lab).toFixed(2)}`;
+        
         document.getElementById('payload_input').value = JSON.stringify({line_items: projectScope});
         document.getElementById('results_panel').style.display = 'block';
     }
