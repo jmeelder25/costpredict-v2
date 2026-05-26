@@ -3,24 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CostPredict Estimator</title>
+    <title>CostPredict | Pricing Made Predictive</title>
     <style>
-        /* CSS Styling */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
-        header { background: #23408A; color: white; padding: 25px; text-align: center; }
-        .wrapper { max-width: 600px; margin: 30px auto; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h3 { margin-top: 0; color: #23408A; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { width: 100%; background: #23408A; color: white; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 1rem; }
-        .btn:hover { background: #1a2f66; }
-        footer { text-align: center; color: #777; font-size: 0.9rem; margin-top: 50px; padding-bottom: 20px; }
-        
-        /* Autocomplete Styling */
-        .autocomplete-container { position: relative; }
-        .autocomplete-suggestions { position: absolute; border: 1px solid #ccc; width: 100%; max-height: 200px; overflow-y: auto; z-index: 1000; background: white; border-radius: 4px; display: none; }
-        .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; }
-        .suggestion-item:hover { background: #f0f0f0; }
+        :root {
+            --primary: #1e293b;
+            --accent: #2563eb;
+            --text: #0f172a;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        main {
+            flex: 1;
+            max-width: 800px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .search-section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .search-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .search-container {
+            position: relative;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent);
+        }
+
+        /* Target State Selector to enforce your test pools */
+        select {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: white;
+        }
+
+        .results-section {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 600px) {
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .card h3 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .card .price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .error-message {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+            color: #b91c1c;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+
+        footer {
+            background-color: var(--primary);
+            color: #94a3b8;
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.85rem;
+            margin-top: auto;
+        }
     </style>
 </head>
 <body>
@@ -29,91 +159,154 @@
         <h1>CostPredict</h1>
     </header>
 
-    <div class="wrapper">
-        <div class="card">
-            <h3>Project Details</h3>
-            <select id="project_type">
-                <option>Residential</option>
-                <option>Commercial</option>
-            </select>
-            <input type="number" id="location" placeholder="Zip Code">
+    <main>
+        <div class="search-section">
+            <label class="search-label" for="catalog-search">Search Construction Subcategories</label>
+            <div class="search-container">
+                <select id="state-select">
+                    <option value="IL">IL</option>
+                    <option value="IN">IN</option>
+                    <option value="CO">CO</option>
+                    <option value="WI">WI</option>
+                    <option value="NY">NY</option>
+                    <option value="FL">FL</option>
+                    <option value="NC">NC</option>
+                    <option value="TX">TX</option>
+                    <option value="CA">CA</option>
+                    <option value="WA">WA</option>
+                </select>
+                
+                <input type="text" id="catalog-search" list="catalog-suggestions" placeholder="e.g., Ready Mix, 2x4 Studs, Panel 4x8...">
+                <datalist id="catalog-suggestions"></datalist>
+            </div>
+            
+            <div id="error-display" class="error-message"></div>
         </div>
 
-        <div class="card">
-            <h3>Add Material</h3>
-            <div class="autocomplete-container">
-                <input type="text" id="category_search" placeholder="Search Category..." oninput="showCategories(this.value)" onfocus="showCategories('')">
-                <div id="category_suggestions" class="autocomplete-suggestions"></div>
+        <div id="results-display" class="results-section">
+            <div class="card">
+                <h3>Average Material Cost</h3>
+                <div class="price" id="mat-cost">$0.00</div>
             </div>
-
-            <div class="autocomplete-container">
-                <input type="text" id="subcategory_search" placeholder="Search Subcategory..." disabled oninput="showSubcategories(this.value)" onfocus="showSubcategories('')">
-                <div id="subcategory_suggestions" class="autocomplete-suggestions"></div>
+            <div class="card">
+                <h3>Average Labor Cost</h3>
+                <div class="price" id="lab-cost">$0.00</div>
             </div>
-
-            <button class="btn" onclick="processComponentIntent()">Add to Estimate</button>
         </div>
-    </div>
+    </main>
 
     <footer>
-        &copy; 2026 CostPredict Construction Tools
+        &copy; 2026 CostPredict. All rights reserved.
     </footer>
 
     <script>
-        let masterCategories = {};
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('catalog-search');
+            const suggestionsDatalist = document.getElementById('catalog-suggestions');
+            const resultsSection = document.getElementById('results-display');
+            const errorDisplay = document.getElementById('error-display');
+            const matCostEl = document.getElementById('mat-cost');
+            const labCostEl = document.getElementById('lab-cost');
+            const stateSelect = document.getElementById('state-select');
 
-        // Load the catalog index generated by main.py
-        fetch('/static/categories.json')
-            .then(res => res.json())
-            .then(data => masterCategories = data);
+            // --- STEP 1: LOAD PRE-LOADED CATALOG FROM STATIC JSON ---
+            fetch('/static/categories.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Catalog data could not be parsed or found.');
+                    }
+                    return response.json();
+                })
+                .then(catalog => {
+                    populateSuggestions(catalog);
+                })
+                .catch(err => {
+                    showError('System boot tracking error: Dynamic category compilation failure.');
+                    console.error(err);
+                });
 
-        function showCategories(val) {
-            const list = document.getElementById('category_suggestions');
-            const filtered = Object.keys(masterCategories).filter(c => c.toLowerCase().includes(val.toLowerCase()));
-            
-            list.innerHTML = filtered.map(c => `<div class="suggestion-item" onclick="selectCat('${c}')">${c}</div>`).join('');
-            list.style.display = filtered.length ? 'block' : 'none';
-        }
-
-        function selectCat(c) {
-            document.getElementById('category_search').value = c;
-            document.getElementById('category_suggestions').style.display = 'none';
-            const subInput = document.getElementById('subcategory_search');
-            subInput.disabled = false;
-            subInput.placeholder = "Select subcategory...";
-        }
-
-        function showSubcategories(val) {
-            const cat = document.getElementById('category_search').value;
-            const list = document.getElementById('subcategory_suggestions');
-            const subs = masterCategories[cat] || [];
-            const filtered = subs.filter(s => s.toLowerCase().includes(val.toLowerCase()));
-            
-            list.innerHTML = filtered.map(s => `<div class="suggestion-item" onclick="selectSub('${s}')">${s}</div>`).join('');
-            list.style.display = filtered.length ? 'block' : 'none';
-        }
-
-        function selectSub(s) {
-            document.getElementById('subcategory_search').value = s;
-            document.getElementById('subcategory_suggestions').style.display = 'none';
-        }
-
-        async function processComponentIntent() {
-            const cat = document.getElementById('category_search').value;
-            const sub = document.getElementById('subcategory_search').value;
-            const zip = document.getElementById('location').value;
-            
-            if(!cat || !sub) { alert("Please select both a category and subcategory."); return; }
-            
-            const response = await fetch(`/api/pricing?subcategory=${sub}`);
-            
-            if(response.status === 404) {
-                alert("Pricing data is being generated. Please wait a moment and try again.");
-            } else {
-                const data = await response.json();
-                alert(`Added ${sub}: Mat $${data.avg_mat}, Lab $${data.avg_lab}`);
+            // Map standard entries to search datalist elements
+            function populateSuggestions(catalog) {
+                suggestionsDatalist.innerHTML = '';
+                Object.keys(catalog).forEach(category => {
+                    const subcategories = catalog[category];
+                    subcategories.forEach(sub => {
+                        const option = document.createElement('option');
+                        option.value = sub;
+                        suggestionsDatalist.appendChild(option);
+                    });
+                });
             }
-        }
+
+            // --- STEP 2: EVENT LISTENER HANDLING PICK SELECTION ---
+            searchInput.addEventListener('input', (e) => {
+                const value = e.target.value.strip ? e.target.value.strip() : e.target.value.trim();
+                
+                // Inspect inside options to see if input matches a full catalog option item
+                const options = Array.from(suggestionsDatalist.options).map(opt => opt.value);
+                if (options.includes(value)) {
+                    fetchPricingData(value);
+                }
+            });
+
+            // --- STEP 3: API QUERY EXECUTION ---
+            function fetchPricingData(subcategory) {
+                clearFeedback();
+                
+                // Encode spaces and characters safely
+                const targetUrl = `/api/pricing?subcategory=${encodeURIComponent(subcategory)}`;
+
+                fetch(targetUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Data record target missing or currently empty.');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        renderMetrics(data);
+                    })
+                    .catch(err => {
+                        showError('Subcategory CSV empty or unconfigured in storage.');
+                        resultsSection.style.display = 'none';
+                        console.error(err);
+                    });
+            }
+
+            // --- STEP 4: INTERFACE RENDER MULTIPLIER MULTI-BOUND VALUES ---
+            function renderMetrics(record) {
+                let matVal = record.avg_mat || 0;
+                let labVal = record.avg_lab || 0;
+
+                // Simple simulated regional modifier adjustment directly corresponding to selection layout
+                const activeState = stateSelect.value;
+                let regionalMultiplier = 1.0;
+                
+                if (activeState === "NY" || activeState === "CA") {
+                    regionalMultiplier = 1.25;
+                } else if (activeState === "IN") {
+                    regionalMultiplier = 0.95;
+                }
+
+                const finalMat = (matVal * regionalMultiplier).toFixed(2);
+                const finalLab = (labVal * regionalMultiplier).toFixed(2);
+
+                matCostEl.textContent = `$${finalMat}`;
+                labCostEl.textContent = `$${finalLab}`;
+                
+                resultsSection.style.display = 'grid';
+            }
+
+            function showError(message) {
+                errorDisplay.textContent = message;
+                errorDisplay.style.display = 'block';
+            }
+
+            function clearFeedback() {
+                errorDisplay.style.display = 'none';
+                errorDisplay.textContent = '';
+            }
+        });
     </script>
 </body>
 </html>
