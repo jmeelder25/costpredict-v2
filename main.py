@@ -6,18 +6,18 @@ from flask import Flask, render_template, request, make_response, jsonify
 
 app = Flask(__name__)
 
-# --- SYSTEM BOOTSTRAP: GENERATES THE "GOLDEN 50" CATALOG ---
+# --- SYSTEM BOOTSTRAP: GENERATES THE CATALOG ---
 def bootstrap_system():
-    """Generates 50 categories with 10 high-value subcategories each."""
+    """Generates categories with high-value subcategories, ensuring no illegal characters in filenames."""
     catalog = {
         "01-General": ["Permits", "Dumpster", "Cleaning", "Temp Power", "Safety Signs", "Storage", "Testing", "Inspections", "Jobsite Trailer", "Water Service"],
         "03-Concrete": ["Ready Mix", "Rebar", "Anchor Bolts", "Expansion Joint", "Vapor Barrier", "Curing Compound", "Release Agent", "Form Ties", "Wire Mesh", "Sona Tubes"],
         "06-Rough-Carpentry": ["2x4 Studs", "2x6 Joists", "4x8 Plywood", "OSB Sheathing", "LVL Beams", "Rim Board", "Joist Hangers", "Hurricane Ties", "Blocking", "Shim Stock"],
-        "09-Drywall": ["Standard 4x8", "Fire-Rated 5/8", "Greenboard", "Joint Tape", "Joint Compound", "Corner Bead", "Drywall Screws", "Sandpaper", "Primer", "Texture"],
+        # Updated "Fire-Rated 5/8" to "Fire-Rated 5-8" to prevent directory errors
+        "09-Drywall": ["Standard 4x8", "Fire-Rated 5-8", "Greenboard", "Joint Tape", "Joint Compound", "Corner Bead", "Drywall Screws", "Sandpaper", "Primer", "Texture"],
         "22-Plumbing": ["PEX Tubing", "PVC Pipe", "Copper Pipe", "Toilet", "Shower Valve", "Supply Lines", "Drain Fittings", "Water Heater", "Sink", "Faucets"],
         "26-Electrical": ["12-2 Romex", "14-2 Romex", "Main Panel", "Breakers", "Outlets", "Light Switches", "Can Lights", "Junction Boxes", "Conduit", "Wire Nuts"],
         "31-Earthwork": ["Excavation", "Grading", "Gravel", "Trenching", "Compaction", "Backfill", "Topsoil", "Sod Prep", "Boulder Removal", "Finish Grade"],
-        # Note: You can add the remaining 43 categories here in the same dictionary format.
     }
     
     for cat, subs in catalog.items():
@@ -31,7 +31,6 @@ def bootstrap_system():
 
 # --- CATALOG SCANNER ---
 def refresh_catalog():
-    """Scans the /data directory and updates static/categories.json."""
     catalog = {}
     if os.path.exists("data"):
         for cat in os.listdir("data"):
@@ -45,15 +44,6 @@ def refresh_catalog():
 # Run setup
 bootstrap_system()
 refresh_catalog()
-
-# --- GITHUB TRIGGER ---
-def trigger_github_action(category, subcategory, zip_code):
-    repo = os.environ.get('GITHUB_REPO')
-    token = os.environ.get('GITHUB_TOKEN')
-    if not repo or not token: return
-    url = f"https://api.github.com/repos/{repo}/actions/workflows/monthly_scrape.yml/dispatches"
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
-    requests.post(url, json={"ref": "main", "inputs": {"cat": category, "sub": subcategory, "zip": zip_code}}, headers=headers)
 
 # --- ROUTES ---
 @app.route('/')
@@ -84,5 +74,6 @@ def generate_pdf():
     return response
 
 if __name__ == '__main__':
-    # Render provides the port in an environment variable
+    # Fix: Corrected port binding for Render
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
