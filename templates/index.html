@@ -2,168 +2,87 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CostPredict | Pricing Made Predictive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostPredict | Estimator</title>
     <style>
-        :root { --cp-blue: #23408A; --cp-yellow: #FFC113; --cp-bg: #f8fafc; --cp-text: #0f172a; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--cp-bg); color: var(--cp-text); margin: 0; padding: 12px; }
-        .wrapper { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-        .header-banner { background: #ffffff; padding: 20px; border-radius: 12px; border-bottom: 4px solid var(--cp-blue); text-align: center; }
-        .header-banner img { max-height: 60px; width: auto; display: block; margin: 0 auto; }
-        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .results-card { display: none; border-top: 4px solid var(--cp-blue); }
-        h2 { color: var(--cp-blue); font-size: 16px; margin: 0 0 16px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
-        
-        .form-group { margin-bottom: 14px; position: relative; }
-        .form-row { display: flex; gap: 10px; margin-bottom: 14px; }
-        .form-row .form-group { flex: 1; margin-bottom: 0; }
-        
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.8rem; color: #475569; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        
-        /* Updated Checkbox Styling */
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            background-color: #f8fafc;
-            border: 1px solid #cbd5e1;
-            padding: 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .checkbox-container:hover { border-color: var(--cp-blue); background-color: #f1f5f9; }
-        .checkbox-container input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin: 0 12px 0 0; /* Creates exact spacing between box and text */
-            cursor: pointer;
-        }
-        .checkbox-container span {
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--cp-blue);
-            line-height: 1;
-        }
-
-        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .suggestion-item { padding: 12px; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid #f1f5f9; }
-        .suggestion-item:hover { background-color: #f1f5f9; color: var(--cp-blue); font-weight: 600; }
-        
-        .btn-primary { width: 100%; background: var(--cp-blue); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 700; cursor: pointer; }
-        .btn-secondary { background: var(--cp-yellow); color: var(--cp-blue); border: none; padding: 16px; border-radius: 8px; width: 100%; margin-top: 15px; cursor: pointer; font-weight: 800; }
-        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.95rem; }
-        .grand-total { font-weight: bold; color: var(--cp-blue); border-top: 2px solid var(--cp-blue); padding-top: 10px; font-size: 1.1rem; }
+        :root { --cp-blue: #23408A; --cp-yellow: #FFC113; --cp-bg: #f8fafc; }
+        body { font-family: sans-serif; background: var(--cp-bg); margin: 0; padding: 20px; }
+        .wrapper { max-width: 500px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        label { display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        .checkbox-container { display: flex; align-items: center; padding: 10px; background: #f1f5f9; border-radius: 6px; cursor: pointer; }
+        .btn-primary { width: 100%; background: var(--cp-blue); color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .autocomplete-suggestions { position: absolute; background: white; border: 1px solid #ccc; width: calc(100% - 40px); max-height: 150px; overflow-y: auto; z-index: 10; display: none; }
+        .suggestion-item { padding: 10px; cursor: pointer; }
+        .suggestion-item:hover { background: #e2e8f0; }
     </style>
 </head>
 <body>
 <div class="wrapper">
-    <div class="header-banner"><img src="/static/logo.png" alt="CostPredict Logo"></div>
-    
     <div class="card">
-        <h2>Project Info</h2>
-        <div class="form-row">
-            <div class="form-group"><label>Type</label><select id="project_type"><option>Residential</option><option>Commercial</option><option>Mixed-Use</option><option>Industrial</option></select></div>
-            <div class="form-group"><label>Zip Code</label><input type="number" id="location" placeholder="12345"></div>
-        </div>
-        <div class="form-group"><label>Project Date</label><input type="text" id="project_date" placeholder="mm/dd/yyyy or mm/yyyy"></div>
+        <h2>Project Information</h2>
+        <label>Type</label>
+        <select id="project_type"><option>Residential</option><option>Commercial</option></select>
+        <label>Zip Code</label>
+        <input type="number" id="location" placeholder="12345">
+        <label>Date</label>
+        <input type="date" id="project_date">
     </div>
 
     <div class="card">
         <h2>Add Material</h2>
-        <div class="form-group"><label>Category</label><input type="text" id="category_search" placeholder="Click to select..." onfocus="showCategories('')" oninput="showCategories(this.value)"><div id="category_suggestions" class="autocomplete-suggestions"></div></div>
-        <div class="form-group"><label>Subcategory</label><input type="text" id="subcategory_search" placeholder="Select category first..." disabled onfocus="showSubcategories('')" oninput="showSubcategories(this.value)"><div id="subcategory_suggestions" class="autocomplete-suggestions"></div></div>
-        <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1"></div>
+        <label>Category</label>
+        <input type="text" id="category_search" placeholder="Search..." oninput="showCategories(this.value)" onfocus="showCategories('')">
+        <div id="category_suggestions" class="autocomplete-suggestions"></div>
         
-        <div class="form-group">
-            <label class="checkbox-container">
-                <input type="checkbox" id="include_labor" checked>
-                <span>Include Labor Estimate</span>
-            </label>
-        </div>
-
+        <label>Subcategory</label>
+        <input type="text" id="subcategory_search" placeholder="Select category first..." disabled oninput="showSubcategories(this.value)" onfocus="showSubcategories('')">
+        <div id="subcategory_suggestions" class="autocomplete-suggestions"></div>
+        
+        <label>Quantity</label>
+        <input type="number" id="quantity" value="1">
+        
+        <label class="checkbox-container">
+            <input type="checkbox" id="include_labor" checked> &nbsp; Include Labor
+        </label>
+        <br>
         <button class="btn-primary" onclick="processComponentIntent()">Add to Project</button>
     </div>
-
-    <div class="card results-card" id="results_panel">
-        <h2 id="status_msg">Cost Prediction</h2>
-        <div class="summary-row"><span>Material:</span><span id="lbl_mat">$0.00</span></div>
-        <div class="summary-row"><span>Labor:</span><span id="lbl_lab">$0.00</span></div>
-        <div class="summary-row grand-total"><span>Total:</span><span id="lbl_total">$0.00</span></div>
-        <form action="/generate" method="post"><input type="hidden" name="payload" id="payload_input"><button type="submit" class="btn-secondary">Print Project Report</button></form>
-    </div>
-
-    <footer style="margin-top: 20px; padding: 20px; text-align: center; color: #64748b; font-size: 0.75rem; border-top: 1px solid #e2e8f0;">
-        <p>&copy; 2026 CostPredict. All rights reserved.</p>
-        <p>Legal Disclaimer: Estimates are for informational purposes only and are subject to market conditions. Always verify with licensed professionals.</p>
-    </footer>
 </div>
 
 <script>
-    let projectScope = [];
     let masterCategories = {};
+    let projectScope = [];
 
-    // Fallback data in case the JSON file is still missing
-    const fallbackCategories = {
-        "Drywall": ["Panel", "Tape", "Compound"],
-        "Flooring": ["Hardwood", "Laminate", "Tile"],
-        "Lumber": ["2x4 Studs", "Plywood Sheets", "Treated Lumber"],
-        "Plumbing": ["PVC Pipe", "Copper Pipe", "Fittings"]
-    };
+    // Load dynamic catalog
+    fetch('/static/categories.json')
+        .then(res => res.json())
+        .then(data => masterCategories = data);
 
-    window.onload = async () => {
-        try { 
-            // Note the new path here: /static/categories.json
-            const res = await fetch('/static/categories.json'); 
-            if (!res.ok) throw new Error("File not found on server");
-            masterCategories = await res.json(); 
-        }
-        catch (e) { 
-            console.warn("Could not load categories.json from server. Using fallback data.", e); 
-            masterCategories = fallbackCategories;
-        }
-    };
-
-    // Close dropdowns if clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('#category_search') && !e.target.closest('#category_suggestions')) {
-            document.getElementById('category_suggestions').style.display = 'none';
-        }
-        if (!e.target.closest('#subcategory_search') && !e.target.closest('#subcategory_suggestions')) {
-            document.getElementById('subcategory_suggestions').style.display = 'none';
-        }
-    });
-
-    function showCategories(query) {
-        const container = document.getElementById('category_suggestions');
-        const matches = Object.keys(masterCategories).filter(c => c.toLowerCase().includes(query.toLowerCase()));
-        if (matches.length > 0) {
-            container.innerHTML = matches.map(cat => `<div class="suggestion-item" onclick="selectCat('${cat}')">${cat}</div>`).join('');
-            container.style.display = 'block';
-        } else { container.style.display = 'none'; }
+    function showCategories(val) {
+        const list = document.getElementById('category_suggestions');
+        const filtered = Object.keys(masterCategories).filter(c => c.toLowerCase().includes(val.toLowerCase()));
+        list.innerHTML = filtered.map(c => `<div class="suggestion-item" onclick="selectCat('${c}')">${c}</div>`).join('');
+        list.style.display = filtered.length ? 'block' : 'none';
     }
 
-    function selectCat(cat) {
-        document.getElementById('category_search').value = cat;
-        document.getElementById('subcategory_search').disabled = false;
-        document.getElementById('subcategory_search').placeholder = "Click to select...";
+    function selectCat(c) {
+        document.getElementById('category_search').value = c;
         document.getElementById('category_suggestions').style.display = 'none';
-        document.getElementById('subcategory_search').focus();
+        document.getElementById('subcategory_search').disabled = false;
     }
 
-    function showSubcategories(query) {
+    function showSubcategories(val) {
         const cat = document.getElementById('category_search').value;
-        const container = document.getElementById('subcategory_suggestions');
-        const items = masterCategories[cat] || [];
-        const matches = items.filter(i => i.toLowerCase().includes(query.toLowerCase()));
-        if (matches.length > 0) {
-            container.innerHTML = matches.map(sub => `<div class="suggestion-item" onclick="selectSub('${sub}')">${sub}</div>`).join('');
-            container.style.display = 'block';
-        } else { container.style.display = 'none'; }
+        const list = document.getElementById('subcategory_suggestions');
+        const filtered = (masterCategories[cat] || []).filter(s => s.toLowerCase().includes(val.toLowerCase()));
+        list.innerHTML = filtered.map(s => `<div class="suggestion-item" onclick="selectSub('${s}')">${s}</div>`).join('');
+        list.style.display = filtered.length ? 'block' : 'none';
     }
 
-    function selectSub(sub) {
-        document.getElementById('subcategory_search').value = sub;
+    function selectSub(s) {
+        document.getElementById('subcategory_search').value = s;
         document.getElementById('subcategory_suggestions').style.display = 'none';
     }
 
@@ -171,43 +90,16 @@
         const cat = document.getElementById('category_search').value;
         const sub = document.getElementById('subcategory_search').value;
         const zip = document.getElementById('location').value;
-        const qty = parseFloat(document.getElementById('quantity').value) || 1;
-        const includeLabor = document.getElementById('include_labor').checked;
-        const pType = document.getElementById('project_type').value;
-        const pDate = document.getElementById('project_date').value;
-        const msg = document.getElementById('status_msg');
-
-        if (!zip || !cat || !pDate) return alert("Please fill Zip Code, Project Date, and Category.");
         
-        msg.innerText = "Checking local rates...";
-        document.getElementById('results_panel').style.display = 'block';
-
-        try {
-            const response = await fetch(`/api/pricing?category=${cat}&zip=${zip}`);
-            if (response.status === 404) {
-                msg.innerText = "Generating estimates for this location... please wait.";
-                return;
-            }
-            const data = await response.json();
-            projectScope.push({ ...data, subcategory: sub, qty: qty, includeLabor: includeLabor });
-            
-            // Update Payload
-            document.getElementById('payload_input').value = JSON.stringify({ 
-                line_items: projectScope, project_type: pType, project_date: pDate, zip_code: zip 
-            });
-            msg.innerText = "Cost Prediction";
-            renderProjectState();
-        } catch (e) {
-            msg.innerText = "Error fetching data. Please try again.";
+        const response = await fetch(`/api/pricing?category=${cat}&subcategory=${sub}&zip=${zip}`);
+        const data = await response.json();
+        
+        if(response.status === 404) {
+            alert("Generating pricing data. Please try again in a moment.");
+        } else {
+            projectScope.push({...data, subcategory: sub});
+            alert("Added " + sub + " to estimate.");
         }
-    }
-
-    function renderProjectState() {
-        let mat = projectScope.reduce((sum, p) => sum + (Number(p.avg_mat || 0) * p.qty), 0);
-        let lab = projectScope.reduce((sum, p) => p.includeLabor ? sum + (Number(p.avg_lab || 0) * p.qty) : sum, 0);
-        document.getElementById('lbl_mat').innerText = `$${mat.toFixed(2)}`;
-        document.getElementById('lbl_lab').innerText = `$${lab.toFixed(2)}`;
-        document.getElementById('lbl_total').innerText = `$${(mat + lab).toFixed(2)}`;
     }
 </script>
 </body>
