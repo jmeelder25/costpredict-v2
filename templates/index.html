@@ -7,11 +7,15 @@
     <style>
         :root {
             --primary: #1e293b;
+            --primary-light: #334155;
             --accent: #2563eb;
+            --accent-hover: #1d4ed8;
             --text: #0f172a;
+            --text-muted: #64748b;
             --bg: #f8fafc;
             --card-bg: #ffffff;
             --border: #e2e8f0;
+            --success: #10b981;
         }
 
         * {
@@ -33,23 +37,60 @@
         header {
             background-color: var(--primary);
             color: white;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         header h1 {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 700;
             letter-spacing: -0.025em;
         }
 
-        main {
+        .system-badge {
+            background-color: var(--primary-light);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .container {
             flex: 1;
-            max-width: 800px;
+            max-width: 1400px;
             width: 100%;
             margin: 2rem auto;
-            padding: 0 1rem;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
         }
 
         .search-section {
@@ -57,79 +98,205 @@
             padding: 2rem;
             border-radius: 8px;
             border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
 
-        .search-label {
-            display: block;
+        .section-title {
+            font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .search-container {
-            position: relative;
+            color: var(--primary);
+            margin-bottom: 1rem;
             display: flex;
+            align-items: center;
             gap: 0.5rem;
         }
 
-        input[type="text"] {
-            flex: 1;
+        .search-container {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        select {
             padding: 0.75rem 1rem;
             border: 1px solid var(--border);
             border-radius: 6px;
             font-size: 1rem;
+            background-color: white;
+            font-weight: 500;
+            color: var(--primary);
             outline: none;
-            transition: border-color 0.2s;
+            cursor: pointer;
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1.2rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
         }
 
         input[type="text"]:focus {
             border-color: var(--accent);
         }
 
-        /* Target State Selector to enforce your test pools */
-        select {
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 1rem;
-            background-color: white;
-        }
-
+        /* Dynamic Metrics Cards Display */
         .results-section {
-            display: none;
+            display: none; 
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
-            margin-top: 2rem;
         }
 
-        @media (max-width: 600px) {
-            .results-section {
-                grid-template-columns: 1fr;
-            }
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+            position: relative;
         }
 
-        .card {
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .metric-card.labor::before {
+            background: #a855f7;
+        }
+
+        .metric-card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .metric-card .price {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: monospace;
+        }
+
+        /* MASTER CATALOG EXPLORER DASHBOARD */
+        .catalog-explorer {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        /* Column Grid wrapping the dynamic division containers */
+        .division-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .division-block {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .division-header {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .sub-links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .quick-tag {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--primary-light);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .quick-tag:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* Sidebar Panels */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel-box {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            text-align: center;
         }
 
-        .card h3 {
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #64748b;
-            margin-bottom: 0.5rem;
-        }
-
-        .card .price {
-            font-size: 2rem;
-            font-weight: 700;
+        .panel-box h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
             color: var(--primary);
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .panel-box p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .state-list-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+        }
+
+        .state-pill {
+            background: #eff6ff;
+            color: var(--accent);
+            border: 1px solid #bfdbfe;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
 
         .error-message {
@@ -140,15 +307,16 @@
             padding: 1rem;
             border-radius: 6px;
             margin-top: 1rem;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         footer {
             background-color: var(--primary);
             color: #94a3b8;
             text-align: center;
-            padding: 1rem;
+            padding: 1.25rem;
             font-size: 0.85rem;
+            border-top: 1px solid var(--primary-light);
             margin-top: auto;
         }
     </style>
@@ -157,43 +325,82 @@
 
     <header>
         <h1>CostPredict</h1>
+        <div class="system-badge">
+            <span class="status-dot"></span>
+            <span>Golden 50 Master Index Enabled</span>
+        </div>
     </header>
 
-    <main>
-        <div class="search-section">
-            <label class="search-label" for="catalog-search">Search Construction Subcategories</label>
-            <div class="search-container">
-                <select id="state-select">
-                    <option value="IL">IL</option>
-                    <option value="IN">IN</option>
-                    <option value="CO">CO</option>
-                    <option value="WI">WI</option>
-                    <option value="NY">NY</option>
-                    <option value="FL">FL</option>
-                    <option value="NC">NC</option>
-                    <option value="TX">TX</option>
-                    <option value="CA">CA</option>
-                    <option value="WA">WA</option>
-                </select>
-                
-                <input type="text" id="catalog-search" list="catalog-suggestions" placeholder="e.g., Ready Mix, 2x4 Studs, Panel 4x8...">
-                <datalist id="catalog-suggestions"></datalist>
-            </div>
+    <div class="container">
+        <div class="main-panel">
             
-            <div id="error-display" class="error-message"></div>
+            <div class="search-section">
+                <div class="section-title">Predictive Pricing Explorer</div>
+                <div class="search-container">
+                    <select id="state-select">
+                        <option value="IL">IL</option>
+                        <option value="IN">IN</option>
+                        <option value="CO">CO</option>
+                        <option value="WI">WI</option>
+                        <option value="NY">NY</option>
+                        <option value="FL">FL</option>
+                        <option value="NC">NC</option>
+                        <option value="TX">TX</option>
+                        <option value="CA">CA</option>
+                        <option value="WA">WA</option>
+                    </select>
+                    
+                    <div class="input-wrapper">
+                        <input type="text" id="catalog-search" list="catalog-suggestions" placeholder="Search catalog items (e.g., Ready Mix, Brick, 2x4 Studs)...">
+                        <datalist id="catalog-suggestions"></datalist>
+                    </div>
+                </div>
+                <div id="error-display" class="error-message"></div>
+            </div>
+
+            <div id="results-display" class="results-section">
+                <div class="metric-card material">
+                    <h3>Average Material Cost</h3>
+                    <div class="price" id="mat-cost">$0.00</div>
+                </div>
+                <div class="metric-card labor">
+                    <h3>Average Labor Cost</h3>
+                    <div class="price" id="lab-cost">$0.00</div>
+                </div>
+            </div>
+
+            <div class="catalog-explorer">
+                <div class="section-title">Master Division Item Matrix</div>
+                <div class="division-grid" id="master-directory-grid">
+                    </div>
+            </div>
+
         </div>
 
-        <div id="results-display" class="results-section">
-            <div class="card">
-                <h3>Average Material Cost</h3>
-                <div class="price" id="mat-cost">$0.00</div>
+        <div class="sidebar">
+            <div class="panel-box">
+                <h4>System Architecture</h4>
+                <p>Bypasses live calculation boundaries during local tests by reading directly from structured CSV elements mapped inside your environment schema.</p>
             </div>
-            <div class="card">
-                <h3>Average Labor Cost</h3>
-                <div class="price" id="lab-cost">$0.00</div>
+            
+            <div class="panel-box">
+                <h4>Active Regional Boundaries</h4>
+                <p>The interface applies custom cost coefficients based on target location matrix updates:</p>
+                <div class="state-list-tags">
+                    <span class="state-pill">IL</span>
+                    <span class="state-pill">IN</span>
+                    <span class="state-pill">CO</span>
+                    <span class="state-pill">WI</span>
+                    <span class="state-pill">NY</span>
+                    <span class="state-pill">FL</span>
+                    <span class="state-pill">NC</span>
+                    <span class="state-pill">TX</span>
+                    <span class="state-pill">CA</span>
+                    <span class="state-pill">WA</span>
+                </div>
             </div>
         </div>
-    </main>
+    </div>
 
     <footer>
         &copy; 2026 CostPredict. All rights reserved.
@@ -208,77 +415,118 @@
             const matCostEl = document.getElementById('mat-cost');
             const labCostEl = document.getElementById('lab-cost');
             const stateSelect = document.getElementById('state-select');
+            const masterDirectoryGrid = document.getElementById('master-directory-grid');
 
-            // --- STEP 1: LOAD PRE-LOADED CATALOG FROM STATIC JSON ---
+            let flatSubcategoriesList = [];
+
+            // --- STEP 1: PARSE AND MAP THE EXTRACTED CATALOG ---
             fetch('/static/categories.json')
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Catalog data could not be parsed or found.');
-                    }
+                    if (!response.ok) throw new Error('Catalog tracking array missing.');
                     return response.json();
                 })
                 .then(catalog => {
-                    populateSuggestions(catalog);
+                    renderComprehensiveDashboard(catalog);
                 })
                 .catch(err => {
                     showError('System boot tracking error: Dynamic category compilation failure.');
                     console.error(err);
                 });
 
-            // Map standard entries to search datalist elements
-            function populateSuggestions(catalog) {
+            // Dynamically generates the categorized structural matrix boxes
+            function renderComprehensiveDashboard(catalog) {
                 suggestionsDatalist.innerHTML = '';
-                Object.keys(catalog).forEach(category => {
-                    const subcategories = catalog[category];
-                    subcategories.forEach(sub => {
-                        const option = document.createElement('option');
-                        option.value = sub;
-                        suggestionsDatalist.appendChild(option);
+                masterDirectoryGrid.innerHTML = '';
+                flatSubcategoriesList = [];
+
+                // Sort the categories so divisions display orderly (03, 04, 05...)
+                const sortedDivisions = Object.keys(catalog).sort();
+
+                sortedDivisions.forEach(divisionName => {
+                    const subs = catalog[divisionName];
+                    if (!subs || subs.length === 0) return;
+
+                    // 1. Build out structural Division blocks on UI
+                    const divisionBox = document.createElement('div');
+                    divisionBox.className = 'division-block';
+
+                    const headerEl = document.createElement('div');
+                    headerEl.className = 'division-header';
+                    headerEl.textContent = divisionName;
+                    divisionBox.appendChild(headerEl);
+
+                    const linksContainer = document.createElement('div');
+                    linksContainer.className = 'sub-links-container';
+
+                    // 2. Map structural child nodes
+                    subs.forEach(sub => {
+                        // Store inside tracking array for search validations
+                        if (!flatSubcategoriesList.includes(sub)) {
+                            flatSubcategoriesList.push(sub);
+                            
+                            // Inject search autocomplete record option elements
+                            const option = document.createElement('option');
+                            option.value = sub;
+                            suggestionsDatalist.appendChild(option);
+                        }
+
+                        // Generate quick access trigger elements nested cleanly under division headers
+                        const btn = document.createElement('button');
+                        btn.className = 'quick-tag';
+                        btn.textContent = sub;
+                        btn.title = sub;
+                        btn.addEventListener('click', () => {
+                            searchInput.value = sub;
+                            fetchPricingData(sub);
+                        });
+                        linksContainer.appendChild(btn);
                     });
+
+                    divisionBox.appendChild(linksContainer);
+                    masterDirectoryGrid.appendChild(divisionBox);
                 });
             }
 
-            // --- STEP 2: EVENT LISTENER HANDLING PICK SELECTION ---
+            // --- STEP 2: INPUT AND PARAMETER TRIGGERS ---
             searchInput.addEventListener('input', (e) => {
-                const value = e.target.value.strip ? e.target.value.strip() : e.target.value.trim();
-                
-                // Inspect inside options to see if input matches a full catalog option item
-                const options = Array.from(suggestionsDatalist.options).map(opt => opt.value);
-                if (options.includes(value)) {
-                    fetchPricingData(value);
+                const val = e.target.value.trim();
+                if (flatSubcategoriesList.includes(val)) {
+                    fetchPricingData(val);
                 }
             });
 
-            // --- STEP 3: API QUERY EXECUTION ---
+            stateSelect.addEventListener('change', () => {
+                const val = searchInput.value.trim();
+                if (flatSubcategoriesList.includes(val)) {
+                    fetchPricingData(val);
+                }
+            });
+
+            // --- STEP 3: API RECORD RESOLUTION TRACKERS ---
             function fetchPricingData(subcategory) {
                 clearFeedback();
-                
-                // Encode spaces and characters safely
                 const targetUrl = `/api/pricing?subcategory=${encodeURIComponent(subcategory)}`;
 
                 fetch(targetUrl)
                     .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Data record target missing or currently empty.');
-                        }
+                        if (!response.ok) throw new Error('Data matrix targeting array mismatch.');
                         return response.json();
                     })
                     .then(data => {
-                        renderMetrics(data);
+                        calculateAndDisplayMetrics(data);
                     })
                     .catch(err => {
-                        showError('Subcategory CSV empty or unconfigured in storage.');
+                        showError('Target subcategory data matrix unconfigured or empty.');
                         resultsSection.style.display = 'none';
                         console.error(err);
                     });
             }
 
-            // --- STEP 4: INTERFACE RENDER MULTIPLIER MULTI-BOUND VALUES ---
-            function renderMetrics(record) {
+            // --- STEP 4: INTERFACE RENDER AND MULTIPLIER BOUND FACTORING ---
+            function calculateAndDisplayMetrics(record) {
                 let matVal = record.avg_mat || 0;
                 let labVal = record.avg_lab || 0;
 
-                // Simple simulated regional modifier adjustment directly corresponding to selection layout
                 const activeState = stateSelect.value;
                 let regionalMultiplier = 1.0;
                 
@@ -295,6 +543,7 @@
                 labCostEl.textContent = `$${finalLab}`;
                 
                 resultsSection.style.display = 'grid';
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
 
             function showError(message) {
