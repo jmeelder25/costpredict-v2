@@ -310,6 +310,8 @@ def get_golden_catalog():
         ]
     }
 
+app = Flask(__name__)
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -323,7 +325,6 @@ def calculate():
     project_data = request.json
     catalog = get_golden_catalog()
     
-    # Flatten catalog for metadata lookup
     flat_catalog = {item['name']: {"waste": item['default_waste'], "difficulty": item['labor_difficulty']} 
                     for cat in catalog.values() for item in cat}
             
@@ -348,10 +349,9 @@ def calculate():
 @app.route('/api/report', methods=['POST'])
 def generate_report():
     data = request.json
-    # Render report template with calculation data
-    rendered_html = render_template('report.html', items=data)
-    # Generate PDF
+    rendered_html = render_template('report/report.html', items=data)
     pdf = HTML(string=rendered_html).write_pdf()
+    
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = 'inline; filename=estimate.pdf'
