@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CostPredict | SurfacePros</title>
+    <title>CostPredict</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -31,8 +31,8 @@
     <header class="bg-cpblue text-white shadow-md border-b-4 border-cpyellow sticky top-0 z-50">
         <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-cpyellow rounded-full flex items-center justify-center font-bold text-cpblue">SP</div>
-                <h1 class="text-2xl font-bold tracking-wide">CostPredict <span class="text-sm font-normal text-gray-300">by SurfacePros</span></h1>
+                <div class="w-10 h-10 bg-cpyellow rounded-full flex items-center justify-center font-bold text-cpblue">CP</div>
+                <h1 class="text-2xl font-bold tracking-wide">CostPredict</h1>
             </div>
         </div>
     </header>
@@ -128,13 +128,12 @@
     </main>
 
     <footer class="bg-cpblue text-blue-200 py-6 text-center text-sm">
-        &copy; 2026 SurfacePros. Predictive estimates to inform planning. Professional guidance required before finalizing budgets.
+        &copy; 2026 CostPredict. Predictive estimates to inform planning. Professional guidance required before finalizing budgets.
     </footer>
 
     <script>
         let blockCount = 0;
 
-        // Adds a dynamic material block to the UI
         function addMaterialBlock() {
             blockCount++;
             const container = document.getElementById('material-container');
@@ -171,13 +170,11 @@
             container.insertAdjacentHTML('beforeend', html);
         }
 
-        // Simulates the calculation and reveals the tabulation screen
         function calculateTotals() {
             document.getElementById('tabulation-screen').classList.remove('hidden');
-            updateRiskUI(0); // Trigger initial calculation
+            updateRiskUI(0);
         }
 
-        // Handles the Risk Shifter Logic
         function updateRiskUI(months) {
             const riskLabels = {
                 "0": "No Delay (+0% Escalation)",
@@ -188,8 +185,6 @@
             };
             document.getElementById('riskDisplay').innerText = riskLabels[months];
             
-            // In a real app, this would re-fetch or recalculate from the backend. 
-            // For the frontend blueprint, we will mock the table update based on the blocks added.
             const tbody = document.getElementById('results-table-body');
             tbody.innerHTML = '';
             
@@ -201,8 +196,8 @@
             } else {
                 inputs.forEach((input, index) => {
                     const name = input.value || `Material ${index + 1}`;
-                    const baseCost = 1500; // Mock base cost
-                    const escalationMultiplier = 1 + (parseInt(months) * 0.0083); // roughly 10% a year
+                    const baseCost = 1500; 
+                    const escalationMultiplier = 1 + (parseInt(months) * 0.0083); 
                     
                     const avg = baseCost * escalationMultiplier;
                     const min = avg * 0.85;
@@ -227,12 +222,54 @@
             document.getElementById('totalMax').innerText = '$' + (avgTotal * 1.25).toFixed(2);
         }
 
-        // Stub for the PDF download route
-        function downloadPDF() {
-            alert('This will trigger the /api/report backend route to generate the SurfacePros PDF.');
+        async function downloadPDF() {
+            const project_info = {
+                projectType: document.getElementById('projectType').value,
+                zipCode: document.getElementById('zipCode').value || "00000",
+                startDate: document.getElementById('startDate').value || "N/A"
+            };
+
+            const delay_months = document.getElementById('riskSlider').value;
+            const blocks = document.querySelectorAll('[id^="block-"]');
+            const materials = [];
+
+            blocks.forEach(block => {
+                materials.push({
+                    category: block.querySelector('.material-category').value || "Custom",
+                    subcategory: block.querySelector('.material-sub').value || "Material",
+                    quantity: block.querySelector('.material-qty').value || 0,
+                    waste: block.querySelector('.material-waste').value,
+                    labor: block.querySelector('.material-labor').checked
+                });
+            });
+
+            const validMaterials = materials.filter(m => parseFloat(m.quantity) > 0);
+
+            if (validMaterials.length === 0) {
+                alert("Please add at least one material with a quantity greater than 0 before generating a report.");
+                return;
+            }
+
+            const payload = {
+                project_info: project_info,
+                delay_months: delay_months,
+                materials: validMaterials
+            };
+
+            const res = await fetch('/api/report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "CostPredict_Estimate.pdf";
+            a.click();
         }
 
-        // Initialize with one block
         window.onload = () => { addMaterialBlock(); }
     </script>
 </body>
