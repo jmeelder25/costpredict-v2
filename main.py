@@ -1,10 +1,13 @@
 import os
 import json
-from flask import Flask, render_template, request, jsonify
+import io
+from flask import Flask, render_template, request, jsonify, send_file
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
 
-# --- SYSTEM BOOTSTRAP: THE GOLDEN 50 CATALOG ---
+# --- THE GOLDEN 50 CATALOG ENGINE ---
 def get_golden_catalog():
     return {
         "01-General-Requirements": [
@@ -309,14 +312,6 @@ def get_golden_catalog():
         ]
     }
 
-def refresh_catalog():
-    os.makedirs("static", exist_ok=True)
-    with open(os.path.join("static", "categories.json"), "w") as f:
-        json.dump(get_golden_catalog(), f, indent=2)
-
-# Bootstrap on startup
-refresh_catalog()
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -331,44 +326,40 @@ def calculate():
     catalog = get_golden_catalog()
     
     # Flatten catalog for metadata lookup
-    flat_catalog = {}
-    for cat_name, items in catalog.items():
-        for item in items:
-            flat_catalog[item['name']] = {
-                "waste": item['default_waste'],
-                "difficulty": item['labor_difficulty']
-            }
+    flat_catalog = {item['name']: {"waste": item['default_waste'], "difficulty": item['labor_difficulty']} 
+                    for cat in catalog.values() for item in cat}
             
     difficulty_weights = {"None": 0.0, "Low": 1.2, "Medium": 1.5, "High": 2.0}
-    results = []
-    total_labor_score = 0
+    results, total_labor_score = [], 0
     
     for entry in project_data:
-        name = entry['name']
+        meta = flat_catalog.get(entry['name'], {"waste": 0, "difficulty": "None"})
         qty = float(entry['quantity'])
-        
-        meta = flat_catalog.get(name, {"waste": 0, "difficulty": "None"})
-        waste_multiplier = 1 + (meta['waste'] / 100)
-        final_qty = qty * waste_multiplier
-        weight = difficulty_weights.get(meta['difficulty'], 1.0)
-        labor_score = qty * weight
+        final_qty = qty * (1 + (meta['waste'] / 100))
+        labor_score = qty * difficulty_weights.get(meta['difficulty'], 1.0)
         total_labor_score += labor_score
         
         results.append({
-            "name": name,
-            "raw_qty": qty,
-            "waste_applied": waste_multiplier,
+            "name": entry['name'],
             "total_material_needed": round(final_qty, 2),
             "labor_score": round(labor_score, 2)
         })
 
-    return jsonify({
-        "status": "success",
-        "message": "Calculation complete",
-        "total_labor_complexity": round(total_labor_score, 2),
-        "line_items": results
-    })
+    return jsonify({"total_labor_complexity": round(total_labor_score, 2), "line_items": results})
+
+@app.route('/api/report', methods=['POST'])
+def generate_report():
+    data = request.json
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    p.drawString(100, 750, "Construction Estimate Report")
+    y = 720
+    for item in data:
+        p.drawString(100, y, f"{item['name']}: {item['total_material_needed']} units")
+        y -= 20
+    p.save()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="estimate.pdf", mimetype='application/pdf')
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)
