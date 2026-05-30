@@ -579,7 +579,6 @@ def get_golden_catalog():
 
 # 1. Add this at the top for browser testing
 @app.route('/', methods=['GET'])
-def index():
     return "<h1>CostPredict Service is Online</h1>"
 
 # 2. Define the route only ONCE
