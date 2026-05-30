@@ -1,3 +1,7 @@
+print("--- APP STARTING ---")
+import os
+print(f"Current Directory: {os.getcwd()}")
+
 from flask import Flask, request, make_response, render_template
 from weasyprint import HTML
 import datetime
