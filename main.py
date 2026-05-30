@@ -15,7 +15,6 @@ def generate_report():
     # ... your logic here
 
 def get_golden_catalog():
-    # The first 10 items for 01-General-Requirements
     return {
         "01-General-Requirements": [
             {"name": "Dumpster Rental (30 Yd)", "unit": "Weeks", "default_waste": 0, "labor_difficulty": "None"},
@@ -29,7 +28,7 @@ def get_golden_catalog():
             {"name": "Temporary Power Pole", "unit": "Count", "default_waste": 0, "labor_difficulty": "High"},
             {"name": "Water Tank (250 Gal)", "unit": "Count", "default_waste": 0, "labor_difficulty": "Medium"}
         ],
-            "03-Concrete": [
+        "03-Concrete": [
             {"name": "Ready Mix", "unit": "Cu. Yards", "default_waste": 5, "labor_difficulty": "High"},
             {"name": "Rebar", "unit": "Linear Ft.", "default_waste": 10, "labor_difficulty": "Medium"},
             {"name": "Anchor Bolts", "unit": "Count", "default_waste": 5, "labor_difficulty": "Low"},
