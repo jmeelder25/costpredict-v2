@@ -1,13 +1,11 @@
 import os
 import json
-import requests
-import pandas as pd
-from flask import Flask, render_template, request, make_response, jsonify
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
 # --- SYSTEM BOOTSTRAP: THE GOLDEN 50 CATALOG ---
-def bootstrap_system():
+def get_golden_catalog():
     return {
         "01-General-Requirements": [
             {"name": "Dumpster Rental (30 Yd)", "unit": "Weeks", "default_waste": 0, "labor_difficulty": "None"},
@@ -312,25 +310,64 @@ def bootstrap_system():
     }
 
 def refresh_catalog():
-    # Helper to generate the JSON view
-    catalog_data = bootstrap_system()
     os.makedirs("static", exist_ok=True)
     with open(os.path.join("static", "categories.json"), "w") as f:
-        json.dump(catalog_data, f, indent=2)
+        json.dump(get_golden_catalog(), f, indent=2)
+
+# Bootstrap on startup
+refresh_catalog()
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/api/catalog')
+@app.route('/api/catalog', methods=['GET'])
 def api_catalog():
-    return jsonify(bootstrap_system())
+    return jsonify(get_golden_catalog())
 
 @app.route('/calculate', methods=['POST'])
 def calculate():
     project_data = request.json
-    # Processing logic for your catalog
-    return jsonify({"status": "success", "message": "Batch processed"})
+    catalog = get_golden_catalog()
+    
+    # Flatten catalog for metadata lookup
+    flat_catalog = {}
+    for cat_name, items in catalog.items():
+        for item in items:
+            flat_catalog[item['name']] = {
+                "waste": item['default_waste'],
+                "difficulty": item['labor_difficulty']
+            }
+            
+    difficulty_weights = {"None": 0.0, "Low": 1.2, "Medium": 1.5, "High": 2.0}
+    results = []
+    total_labor_score = 0
+    
+    for entry in project_data:
+        name = entry['name']
+        qty = float(entry['quantity'])
+        
+        meta = flat_catalog.get(name, {"waste": 0, "difficulty": "None"})
+        waste_multiplier = 1 + (meta['waste'] / 100)
+        final_qty = qty * waste_multiplier
+        weight = difficulty_weights.get(meta['difficulty'], 1.0)
+        labor_score = qty * weight
+        total_labor_score += labor_score
+        
+        results.append({
+            "name": name,
+            "raw_qty": qty,
+            "waste_applied": waste_multiplier,
+            "total_material_needed": round(final_qty, 2),
+            "labor_score": round(labor_score, 2)
+        })
+
+    return jsonify({
+        "status": "success",
+        "message": "Calculation complete",
+        "total_labor_complexity": round(total_labor_score, 2),
+        "line_items": results
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
