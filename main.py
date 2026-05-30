@@ -4,6 +4,16 @@ from weasyprint import HTML
 
 app = Flask(__name__)
 
+# This route allows you to verify the server is live via a browser
+@app.route('/', methods=['GET'])
+def index():
+    return "<h1>CostPredict Service is Online</h1><p>Status: Ready for POST requests at /api/report</p>"
+
+# Your existing API route follows...
+@app.route('/api/report', methods=['POST'])
+def generate_report():
+    # ... your logic here
+
 def get_golden_catalog():
     # The first 10 items for 01-General-Requirements
     return {
@@ -567,12 +577,16 @@ def get_golden_catalog():
         ]
     }
 
-def get_logistics_modifier(zip_code):
-    return 1.1 if zip_code.startswith('6') else 1.0
+# 1. Add this at the top for browser testing
+@app.route('/', methods=['GET'])
+def index():
+    return "<h1>CostPredict Service is Online</h1>"
 
+# 2. Define the route only ONCE
 @app.route('/api/report', methods=['POST'])
 def generate_report():
-    payload = request.json
+    # --- YOUR LOGIC START ---
+    payload = request.get_json()
     project_info = payload.get('project_info', {})
     materials = payload.get('materials', [])
 
@@ -621,7 +635,9 @@ def generate_report():
         "items": processed_items,
         "total_avg": round(total_avg, 2)
     }
+    # --- YOUR LOGIC END ---
 
+    # 3. Render and return the PDF
     rendered_html = render_template('report/report.html', data=report_data)
     pdf = HTML(string=rendered_html).write_pdf()
 
