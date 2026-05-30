@@ -1,9 +1,7 @@
 import os
-import json
-import io
-from flask import Flask, render_template, request, jsonify, send_file
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from flask import Flask, render_template, request, jsonify, make_response
+from weasyprint import HTML
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -350,16 +348,15 @@ def calculate():
 @app.route('/api/report', methods=['POST'])
 def generate_report():
     data = request.json
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    p.drawString(100, 750, "Construction Estimate Report")
-    y = 720
-    for item in data:
-        p.drawString(100, y, f"{item['name']}: {item['total_material_needed']} units")
-        y -= 20
-    p.save()
-    buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name="estimate.pdf", mimetype='application/pdf')
+    # Render report template with calculation data
+    rendered_html = render_template('report.html', items=data)
+    # Generate PDF
+    pdf = HTML(string=rendered_html).write_pdf()
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=estimate.pdf'
+    return response
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
