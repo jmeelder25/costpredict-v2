@@ -1,7 +1,7 @@
 import os
+import datetime
 from flask import Flask, render_template, request, jsonify, make_response
 from weasyprint import HTML
-import pandas as pd
 
 app = Flask(__name__)
 
@@ -310,51 +310,109 @@ def get_golden_catalog():
         ]
     }
 
-app = Flask(__name__)
+def get_logistics_modifier(zip_code):
+    zip_str = str(zip_code).strip()
+    if zip_str.startswith("606"): return 1.25 
+    if zip_str.startswith("100"): return 1.40 
+    if zip_str.startswith("900"): return 1.30 
+    return 1.0 
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# NEW ROUTE: Serve the Golden Catalog to the Frontend
 @app.route('/api/catalog', methods=['GET'])
-def api_catalog():
+def serve_catalog():
     return jsonify(get_golden_catalog())
-
-@app.route('/calculate', methods=['POST'])
-def calculate():
-    project_data = request.json
-    catalog = get_golden_catalog()
-    
-    flat_catalog = {item['name']: {"waste": item['default_waste'], "difficulty": item['labor_difficulty']} 
-                    for cat in catalog.values() for item in cat}
-            
-    difficulty_weights = {"None": 0.0, "Low": 1.2, "Medium": 1.5, "High": 2.0}
-    results, total_labor_score = [], 0
-    
-    for entry in project_data:
-        meta = flat_catalog.get(entry['name'], {"waste": 0, "difficulty": "None"})
-        qty = float(entry['quantity'])
-        final_qty = qty * (1 + (meta['waste'] / 100))
-        labor_score = qty * difficulty_weights.get(meta['difficulty'], 1.0)
-        total_labor_score += labor_score
-        
-        results.append({
-            "name": entry['name'],
-            "total_material_needed": round(final_qty, 2),
-            "labor_score": round(labor_score, 2)
-        })
-
-    return jsonify({"total_labor_complexity": round(total_labor_score, 2), "line_items": results})
 
 @app.route('/api/report', methods=['POST'])
 def generate_report():
-    data = request.json
-    rendered_html = render_template('report/report.html', items=data)
-    pdf = HTML(string=rendered_html).write_pdf()
+    payload = request.json
     
+    project_info = payload.get('project_info', {})
+    materials = payload.get('materials', [])
+    delay_months = int(payload.get('delay_months', 0))
+
+    zip_code = project_info.get('zipCode', '00000')
+    logistics_mult = get_logistics_modifier(zip_code)
+    escalation_mult = 1.0 + (delay_months * 0.0083) 
+
+    catalog = get_golden_catalog()
+    processed_items = []
+    total_avg = 0
+
+    for item in materials:
+        cat = item.get('category', '').strip()
+        sub = item.get('subcategory', '').strip()
+        qty = float(item.get('quantity', 0))
+        waste_pct = float(item.get('waste', 0))
+        labor_req = item.get('labor', False)
+
+        # 1. Search the Golden Catalog for the subcategory
+        category_list = catalog.get(cat, [])
+        catalog_item = next((x for x in category_list if x["name"] == sub), None)
+
+        # 2. Extract Data from Catalog Engine
+        if catalog_item:
+            labor_diff = catalog_item.get('labor_difficulty', 'Low')
+        else:
+            labor_diff = 'Medium' # Fallback for unknown inputs
+
+        # 3. Dynamic Base Pricing based on Labor Difficulty
+        # (Since the catalog doesn't contain explicit prices, we assign base unit costs dynamically)
+        if labor_diff == 'High':
+            base_rate = 25.00
+        elif labor_diff == 'Medium':
+            base_rate = 15.00
+        elif labor_diff == 'Low':
+            base_rate = 8.00
+        else:
+            base_rate = 2.00 # 'None' difficulty (e.g. rentals or pre-made tools)
+
+        # 4. Calculate Quantities with Waste
+        final_qty = qty * (1 + (waste_pct / 100.0))
+
+        # 5. Base Cost calculation
+        material_cost = final_qty * base_rate
+        # Add a 60% premium if labor is required and the item has labor complexity
+        labor_cost = (material_cost * 0.6) if labor_req and labor_diff != 'None' else 0
+
+        # Apply Modifiers
+        subtotal = (material_cost + labor_cost) * logistics_mult * escalation_mult
+        
+        min_cost = subtotal * 0.85
+        max_cost = subtotal * 1.25
+        total_avg += subtotal
+
+        confidence = "High (92%)" if catalog_item else "Low (50%) - Custom Entry"
+
+        processed_items.append({
+            "name": f"{cat} - {sub}",
+            "confidence": confidence,
+            "min": round(min_cost, 2),
+            "avg": round(subtotal, 2),
+            "max": round(max_cost, 2)
+        })
+
+    report_data = {
+        "date": datetime.datetime.now().strftime("%B %d, %Y"),
+        "project_type": project_info.get('projectType', 'Unknown'),
+        "zip_code": zip_code,
+        "start_date": project_info.get('startDate', 'N/A'),
+        "escalation_applied": f"+{delay_months} Months",
+        "items": processed_items,
+        "total_min": round(total_avg * 0.85, 2),
+        "total_avg": round(total_avg, 2),
+        "total_max": round(total_avg * 1.25, 2)
+    }
+
+    rendered_html = render_template('report/report.html', data=report_data)
+    pdf = HTML(string=rendered_html).write_pdf()
+
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'inline; filename=estimate.pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=CostPredict_Estimate.pdf'
     return response
 
 if __name__ == '__main__':
