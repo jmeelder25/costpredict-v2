@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Construction Estimate</h1>
+    <table>
+        <tr><th>Item</th><th>Quantity</th></tr>
+        {% for item in items %}
+        <tr><td>{{ item.name }}</td><td>{{ item.total_material_needed }}</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
