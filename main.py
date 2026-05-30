@@ -2,6 +2,7 @@ import datetime
 from flask import Flask, request, make_response, render_template
 from weasyprint import HTML
 
+print("DEBUG: Application is initializing...") # ADD THIS LINE
 app = Flask(__name__)
 
 # This route allows you to verify the server is live via a browser
