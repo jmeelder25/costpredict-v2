@@ -1,14 +1,5 @@
-# Web Framework
-flask==3.0.3
-
-# Data Processing
+Flask==3.0.3
 pandas==2.2.2
-
-# PDF Generation
 weasyprint==62.3
-
-# API Communication
 requests==2.32.3
-
-# Production Server
 gunicorn==22.0.0
