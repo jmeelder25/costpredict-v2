@@ -1,11 +1,14 @@
-import datetime
 from flask import Flask, request, make_response, render_template
 from weasyprint import HTML
+import datetime
 
-print("DEBUG: Application is initializing...") # ADD THIS LINE
 app = Flask(__name__)
 
+# Then define your helper functions (get_golden_catalog, etc.)
+# Then define your routes (index, generate_report)
+# Finally, the app.run block at the bottom
 # This route allows you to verify the server is live via a browser
+
 @app.route('/', methods=['GET'])
 def index():
     return "<h1>CostPredict Service is Online</h1><p>Status: Ready for POST requests at /api/report</p>"
@@ -588,7 +591,6 @@ def get_golden_catalog():
 
 # 1. Add this at the top for browser testing
 @app.route('/', methods=['GET'])
-def index():
     return "<h1>CostPredict Service is Online</h1>"
 
 # 2. Define the route only ONCE
