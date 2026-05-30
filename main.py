@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
 def index():
-    return "<h1>CostPredict Service is Online</h1><p>Status: Ready for POST requests at /api/report</p>"
+    return render_template('index.html')
 
 # --- HELPER FUNCTIONS ---
 
