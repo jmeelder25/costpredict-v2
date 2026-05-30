@@ -607,14 +607,6 @@ def get_golden_catalog():
         ]
     }
 
-# 2. Define the report route
-@app.route('/api/report', methods=['POST'])
-def generate_report():
-    # --- YOUR LOGIC START ---
-    payload = request.get_json()
-    project_info = payload.get('project_info', {})
-    materials = payload.get('materials', [])
-
     zip_code = project_info.get('zipCode', '00000')
     logistics_mult = get_logistics_modifier(zip_code)
 
