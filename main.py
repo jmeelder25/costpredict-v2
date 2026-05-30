@@ -10,6 +10,14 @@ app = Flask(__name__)
 def index():
     return "<h1>CostPredict Service is Online</h1><p>Status: Ready for POST requests at /api/report</p>"
 
+def get_logistics_modifier(zip_code):
+    """
+    Returns a multiplier based on the region or zip code.
+    Placeholder: returns 1.0 (no modifier) for now.
+    """
+    # You can add logic here to lookup zip codes in a dictionary or DB
+    return 1.0
+
 # Your existing API route follows...
 @app.route('/api/report', methods=['POST'])
 def generate_report():
