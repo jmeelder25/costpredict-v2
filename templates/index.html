@@ -3,559 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CostPredict | Pricing Made Predictive</title>
+    <title>Construction Estimator Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary: #1e293b;
-            --primary-light: #334155;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --text: #0f172a;
-            --text-muted: #64748b;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --border: #e2e8f0;
-            --success: #10b981;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.5;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        header {
-            background-color: var(--primary);
-            color: white;
-            padding: 1.25rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-        }
-
-        .system-badge {
-            background-color: var(--primary-light);
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--success);
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .container {
-            flex: 1;
-            max-width: 1400px;
-            width: 100%;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 2rem;
-        }
-
-        @media (max-width: 1024px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .main-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
-
-        .search-section {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .search-container {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        select {
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 1rem;
-            background-color: white;
-            font-weight: 500;
-            color: var(--primary);
-            outline: none;
-            cursor: pointer;
-        }
-
-        .input-wrapper {
-            position: relative;
-            flex: 1;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 0.75rem 1.2rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 1rem;
-            outline: none;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--accent);
-        }
-
-        /* Dynamic Metrics Cards Display */
-        .results-section {
-            display: none; 
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .metric-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.75rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
-            position: relative;
-        }
-
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--accent);
-        }
-
-        .metric-card.labor::before {
-            background: #a855f7;
-        }
-
-        .metric-card h3 {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-
-        .metric-card .price {
-            font-size: 2.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            font-family: monospace;
-        }
-
-        /* MASTER CATALOG EXPLORER DASHBOARD */
-        .catalog-explorer {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        /* Column Grid wrapping the dynamic division containers */
-        .division-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .division-block {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 1rem;
-        }
-
-        .division-header {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.25rem;
-            border-bottom: 2px solid var(--border);
-        }
-
-        .sub-links-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-        }
-
-        .quick-tag {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            padding: 0.5rem 0.75rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--primary-light);
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.15s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .quick-tag:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        /* Sidebar Panels */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .panel-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem;
-        }
-
-        .panel-box h4 {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.5rem;
-        }
-
-        .panel-box p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            line-height: 1.4;
-        }
-
-        .state-list-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin-top: 0.75rem;
-        }
-
-        .state-pill {
-            background: #eff6ff;
-            color: var(--accent);
-            border: 1px solid #bfdbfe;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .error-message {
-            display: none;
-            background: #fef2f2;
-            border: 1px solid #fee2e2;
-            color: #b91c1c;
-            padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-        }
-
-        footer {
-            background-color: var(--primary);
-            color: #94a3b8;
-            text-align: center;
-            padding: 1.25rem;
-            font-size: 0.85rem;
-            border-top: 1px solid var(--primary-light);
-            margin-top: auto;
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .card-transition { transition: all 0.2s ease-in-out; }
+        .card-transition:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 flex flex-col min-h-screen font-sans">
 
-    <header>
-        <h1>CostPredict</h1>
-        <div class="system-badge">
-            <span class="status-dot"></span>
-            <span>Golden 50 Master Index Enabled</span>
+    <header class="bg-slate-800 text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                <h1 class="text-2xl font-bold tracking-wide">Project Estimator</h1>
+            </div>
+            
+            <div class="w-full md:w-1/3 relative">
+                <input type="text" id="searchInput" placeholder="Search Construction Subcategories..." 
+                    class="w-full pl-10 pr-4 py-2 rounded-lg text-gray-900 border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                    onkeyup="filterCatalog()">
+                <svg class="w-5 h-5 text-gray-500 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <p class="text-xs text-slate-300 uppercase tracking-wider">Est. Complexity</p>
+                    <p class="text-lg font-bold text-green-400" id="confidenceScore">0</p>
+                </div>
+                <button onclick="submitCalculation()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Generate PDF Report
+                </button>
+            </div>
         </div>
     </header>
 
-    <div class="container">
-        <div class="main-panel">
-            
-            <div class="search-section">
-                <div class="section-title">Predictive Pricing Explorer</div>
-                <div class="search-container">
-                    <select id="state-select">
-                        <option value="IL">IL</option>
-                        <option value="IN">IN</option>
-                        <option value="CO">CO</option>
-                        <option value="WI">WI</option>
-                        <option value="NY">NY</option>
-                        <option value="FL">FL</option>
-                        <option value="NC">NC</option>
-                        <option value="TX">TX</option>
-                        <option value="CA">CA</option>
-                        <option value="WA">WA</option>
-                    </select>
-                    
-                    <div class="input-wrapper">
-                        <input type="text" id="catalog-search" list="catalog-suggestions" placeholder="Search catalog items (e.g., Ready Mix, Brick, 2x4 Studs)...">
-                        <datalist id="catalog-suggestions"></datalist>
-                    </div>
-                </div>
-                <div id="error-display" class="error-message"></div>
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-8 flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Material & Labor Selection</h2>
+                <p class="text-sm text-gray-500">Adjust sliders to define quantities and review automated waste tracking.</p>
             </div>
-
-            <div id="results-display" class="results-section">
-                <div class="metric-card material">
-                    <h3>Average Material Cost</h3>
-                    <div class="price" id="mat-cost">$0.00</div>
-                </div>
-                <div class="metric-card labor">
-                    <h3>Average Labor Cost</h3>
-                    <div class="price" id="lab-cost">$0.00</div>
-                </div>
-            </div>
-
-            <div class="catalog-explorer">
-                <div class="section-title">Master Division Item Matrix</div>
-                <div class="division-grid" id="master-directory-grid">
-                    </div>
-            </div>
-
-        </div>
-
-        <div class="sidebar">
-            <div class="panel-box">
-                <h4>System Architecture</h4>
-                <p>Bypasses live calculation boundaries during local tests by reading directly from structured CSV elements mapped inside your environment schema.</p>
-            </div>
-            
-            <div class="panel-box">
-                <h4>Active Regional Boundaries</h4>
-                <p>The interface applies custom cost coefficients based on target location matrix updates:</p>
-                <div class="state-list-tags">
-                    <span class="state-pill">IL</span>
-                    <span class="state-pill">IN</span>
-                    <span class="state-pill">CO</span>
-                    <span class="state-pill">WI</span>
-                    <span class="state-pill">NY</span>
-                    <span class="state-pill">FL</span>
-                    <span class="state-pill">NC</span>
-                    <span class="state-pill">TX</span>
-                    <span class="state-pill">CA</span>
-                    <span class="state-pill">WA</span>
-                </div>
+            <div class="text-right">
+                <p class="text-sm text-gray-500">Total Items Selected</p>
+                <p class="text-2xl font-bold text-blue-600" id="totalItems">0</p>
             </div>
         </div>
-    </div>
 
-    <footer>
-        &copy; 2026 CostPredict. All rights reserved.
+        <div id="catalog-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="col-span-full text-center py-12 text-gray-400" id="loadingState">
+                Loading categories...
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-sm border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+            <p>&copy; 2026 Construction Management System. All rights reserved.</p>
+        </div>
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('catalog-search');
-            const suggestionsDatalist = document.getElementById('catalog-suggestions');
-            const resultsSection = document.getElementById('results-display');
-            const errorDisplay = document.getElementById('error-display');
-            const matCostEl = document.getElementById('mat-cost');
-            const labCostEl = document.getElementById('lab-cost');
-            const stateSelect = document.getElementById('state-select');
-            const masterDirectoryGrid = document.getElementById('master-directory-grid');
+        async function loadCatalog() {
+            try {
+                const response = await fetch('/api/catalog');
+                const data = await response.json();
+                renderCatalog(data);
+            } catch (error) {
+                document.getElementById('loadingState').innerText = "Error connecting to backend.";
+            }
+        }
 
-            let flatSubcategoriesList = [];
-
-            // --- STEP 1: PARSE AND MAP THE EXTRACTED CATALOG ---
-            fetch('/static/categories.json')
-                .then(response => {
-                    if (!response.ok) throw new Error('Catalog tracking array missing.');
-                    return response.json();
-                })
-                .then(catalog => {
-                    renderComprehensiveDashboard(catalog);
-                })
-                .catch(err => {
-                    showError('System boot tracking error: Dynamic category compilation failure.');
-                    console.error(err);
+        function renderCatalog(data) {
+            const grid = document.getElementById('catalog-grid');
+            grid.innerHTML = ''; 
+            for (const [category, items] of Object.entries(data)) {
+                const formattedTitle = category.replace(/-/g, ' ').replace(/^\d+-/, '');
+                let section = `<div class="category-card bg-white p-5 rounded-xl shadow-sm border border-gray-200 card-transition" data-category="${category.toLowerCase()}">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+                            <h3 class="text-xl font-bold text-slate-800">${formattedTitle}</h3>
+                        </div>
+                        <div class="space-y-5">`;
+                items.forEach((item, index) => {
+                    const itemId = `${category}-item-${index}`;
+                    section += `
+                        <div class="subcategory-item bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <h4 class="font-semibold text-slate-700">${item.name}</h4>
+                            <div class="flex items-center gap-4 mt-3">
+                                <input type="range" min="0" max="500" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                    id="slider-${itemId}" oninput="document.getElementById('output-${itemId}').value = this.value; updateTotals();">
+                                <input type="number" min="0" value="0" class="w-16 text-center border rounded px-2 py-1 text-sm font-semibold" 
+                                    id="output-${itemId}" data-name="${item.name}" oninput="document.getElementById('slider-${itemId}').value = this.value; updateTotals();">
+                            </div>
+                        </div>`;
                 });
+                section += `</div></div>`;
+                grid.innerHTML += section;
+            }
+            document.getElementById('loadingState').style.display = 'none';
+        }
 
-            // Dynamically generates the categorized structural matrix boxes
-            function renderComprehensiveDashboard(catalog) {
-                suggestionsDatalist.innerHTML = '';
-                masterDirectoryGrid.innerHTML = '';
-                flatSubcategoriesList = [];
+        function updateTotals() {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            let activeItems = 0;
+            inputs.forEach(i => { if (parseInt(i.value) > 0) activeItems++; });
+            document.getElementById('totalItems').innerText = activeItems;
+        }
 
-                // Sort the categories so divisions display orderly (03, 04, 05...)
-                const sortedDivisions = Object.keys(catalog).sort();
+        async function submitCalculation() {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            const payload = Array.from(inputs).map(i => ({
+                name: i.dataset.name,
+                quantity: parseFloat(i.value) || 0
+            })).filter(i => i.quantity > 0);
 
-                sortedDivisions.forEach(divisionName => {
-                    const subs = catalog[divisionName];
-                    if (!subs || subs.length === 0) return;
-
-                    // 1. Build out structural Division blocks on UI
-                    const divisionBox = document.createElement('div');
-                    divisionBox.className = 'division-block';
-
-                    const headerEl = document.createElement('div');
-                    headerEl.className = 'division-header';
-                    headerEl.textContent = divisionName;
-                    divisionBox.appendChild(headerEl);
-
-                    const linksContainer = document.createElement('div');
-                    linksContainer.className = 'sub-links-container';
-
-                    // 2. Map structural child nodes
-                    subs.forEach(sub => {
-                        // Store inside tracking array for search validations
-                        if (!flatSubcategoriesList.includes(sub)) {
-                            flatSubcategoriesList.push(sub);
-                            
-                            // Inject search autocomplete record option elements
-                            const option = document.createElement('option');
-                            option.value = sub;
-                            suggestionsDatalist.appendChild(option);
-                        }
-
-                        // Generate quick access trigger elements nested cleanly under division headers
-                        const btn = document.createElement('button');
-                        btn.className = 'quick-tag';
-                        btn.textContent = sub;
-                        btn.title = sub;
-                        btn.addEventListener('click', () => {
-                            searchInput.value = sub;
-                            fetchPricingData(sub);
-                        });
-                        linksContainer.appendChild(btn);
-                    });
-
-                    divisionBox.appendChild(linksContainer);
-                    masterDirectoryGrid.appendChild(divisionBox);
-                });
+            if(payload.length === 0) {
+                alert("Please add quantities.");
+                return;
             }
 
-            // --- STEP 2: INPUT AND PARAMETER TRIGGERS ---
-            searchInput.addEventListener('input', (e) => {
-                const val = e.target.value.trim();
-                if (flatSubcategoriesList.includes(val)) {
-                    fetchPricingData(val);
-                }
+            const response = await fetch('/calculate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
+            const result = await response.json();
+            
+            document.getElementById('confidenceScore').innerText = result.total_labor_complexity;
+            alert(`Calculation Success!\nTotal Labor Complexity: ${result.total_labor_complexity}\nCheck console for details.`);
+            console.log("Calculation Breakdown:", result.line_items);
+        }
 
-            stateSelect.addEventListener('change', () => {
-                const val = searchInput.value.trim();
-                if (flatSubcategoriesList.includes(val)) {
-                    fetchPricingData(val);
-                }
-            });
-
-            // --- STEP 3: API RECORD RESOLUTION TRACKERS ---
-            function fetchPricingData(subcategory) {
-                clearFeedback();
-                const targetUrl = `/api/pricing?subcategory=${encodeURIComponent(subcategory)}`;
-
-                fetch(targetUrl)
-                    .then(response => {
-                        if (!response.ok) throw new Error('Data matrix targeting array mismatch.');
-                        return response.json();
-                    })
-                    .then(data => {
-                        calculateAndDisplayMetrics(data);
-                    })
-                    .catch(err => {
-                        showError('Target subcategory data matrix unconfigured or empty.');
-                        resultsSection.style.display = 'none';
-                        console.error(err);
-                    });
-            }
-
-            // --- STEP 4: INTERFACE RENDER AND MULTIPLIER BOUND FACTORING ---
-            function calculateAndDisplayMetrics(record) {
-                let matVal = record.avg_mat || 0;
-                let labVal = record.avg_lab || 0;
-
-                const activeState = stateSelect.value;
-                let regionalMultiplier = 1.0;
-                
-                if (activeState === "NY" || activeState === "CA") {
-                    regionalMultiplier = 1.25;
-                } else if (activeState === "IN") {
-                    regionalMultiplier = 0.95;
-                }
-
-                const finalMat = (matVal * regionalMultiplier).toFixed(2);
-                const finalLab = (labVal * regionalMultiplier).toFixed(2);
-
-                matCostEl.textContent = `$${finalMat}`;
-                labCostEl.textContent = `$${finalLab}`;
-                
-                resultsSection.style.display = 'grid';
-                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-
-            function showError(message) {
-                errorDisplay.textContent = message;
-                errorDisplay.style.display = 'block';
-            }
-
-            function clearFeedback() {
-                errorDisplay.style.display = 'none';
-                errorDisplay.textContent = '';
-            }
-        });
+        document.addEventListener('DOMContentLoaded', loadCatalog);
     </script>
 </body>
 </html>
