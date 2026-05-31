@@ -9,7 +9,15 @@ app = Flask(__name__)
 # --- 1. HELPER FUNCTIONS ---
 
 def get_logistics_modifier(zip_code):
-    return 1.0
+    return 1.0 
+
+def get_tax_rate(zip_code):
+    zip_str = str(zip_code).strip()
+    if zip_str.startswith('606'): return 0.1025
+    elif zip_str.startswith('902'): return 0.0950
+    elif zip_str.startswith('100'): return 0.08875
+    elif zip_str.startswith('770'): return 0.0825
+    else: return 0.0750
 
 def get_golden_catalog():
     return {
@@ -573,16 +581,29 @@ def get_golden_catalog():
         ]
     }
 
+
 def calculate_estimate_data(payload):
-    """Calculates all math. Both the checkout screen and PDF use this exact logic."""
     project_info = payload.get('project_info', {})
     materials = payload.get('materials', [])
     zip_code = project_info.get('zipCode', '00000')
-    logistics_mult = get_logistics_modifier(zip_code)
-    catalog = get_golden_catalog()
     
+    # NEW: Quality Level & Market Activity Logic
+    quality_mult = 1.3 if project_info.get('qualityLevel') == 'Premium' else 1.0
+    market_activity_index = 1.05
+    
+    logistics_mult = get_logistics_modifier(zip_code)
+    tax_rate = get_tax_rate(zip_code)
+    
+    risk_months = int(payload.get('risk_months', 0))
+    inflation_mult = 1.0 + (risk_months * 0.0075) 
+    
+    catalog = get_golden_catalog()
     processed_items = []
+    
+    total_min = 0
     total_avg = 0
+    total_max = 0
+    
     conversions = {"Cu. Yards": 27, "sqyd": 9, "sqft": 1, "linear foot": 1, "each": 1}
 
     for item in materials:
@@ -601,29 +622,50 @@ def calculate_estimate_data(payload):
         elif labor_diff == 'Low': base_rate = 8.00
         else: base_rate = 2.00
 
+        # Apply Quality and Market adjustments to base rate
+        effective_rate = base_rate * quality_mult * market_activity_index
+        
         unit = catalog_item.get('unit', 'sqft') if catalog_item else 'sqft'
         multiplier = conversions.get(unit, 1)
         
         final_qty = (qty * multiplier) * (1 + (waste_pct / 100.0))
-        material_cost = final_qty * base_rate
+        material_cost = final_qty * effective_rate
         labor_cost = (material_cost * 0.6) if labor_req and labor_diff != 'None' else 0
 
-        subtotal = (material_cost + labor_cost) * logistics_mult
-        total_avg += subtotal
+        subtotal_avg = (material_cost + labor_cost) * logistics_mult * inflation_mult
+        
+        item_min = subtotal_avg * 0.85
+        item_max = subtotal_avg * 1.25
+
+        total_min += item_min
+        total_avg += subtotal_avg
+        total_max += item_max
+
+        conf_score = "96%" if catalog_item and labor_diff == 'Low' else ("91%" if catalog_item else "50% (Custom)")
 
         processed_items.append({
             "name": f"{cat} - {sub}",
-            "confidence": "High (92%)" if catalog_item else "Low (50%) - Custom",
-            "min": round(subtotal * 0.85, 2),
-            "avg": round(subtotal, 2),
-            "max": round(subtotal * 1.25, 2)
+            "confidence": conf_score,
+            "min": round(item_min, 2),
+            "avg": round(subtotal_avg, 2),
+            "max": round(item_max, 2)
         })
 
     return {
         "date": datetime.datetime.now().strftime("%B %d, %Y"),
         "project_type": project_info.get('projectType', 'Unknown'),
+        "zip_code": zip_code,
+        "tax_rate_display": f"{round(tax_rate * 100, 2)}%",
         "items": processed_items,
-        "total_avg": round(total_avg, 2)
+        "subtotal_min": round(total_min, 2),
+        "subtotal_avg": round(total_avg, 2),
+        "subtotal_max": round(total_max, 2),
+        "tax_min": round(total_min * tax_rate, 2),
+        "tax_avg": round(total_avg * tax_rate, 2),
+        "tax_max": round(total_max * tax_rate, 2),
+        "grand_total_min": round(total_min * (1 + tax_rate), 2),
+        "grand_total_avg": round(total_avg * (1 + tax_rate), 2),
+        "grand_total_max": round(total_max * (1 + tax_rate), 2)
     }
 
 # --- 2. ROUTES ---
@@ -638,28 +680,24 @@ def get_catalog():
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate_totals():
-    """Step 1: Returns math results to the browser for the checkout screen."""
     try:
-        data = calculate_estimate_data(request.get_json())
-        return jsonify(data)
+        return jsonify(calculate_estimate_data(request.get_json()))
     except Exception as e:
-        print(f"CRITICAL ERROR IN CALCULATION: {e}") 
+        print(f"CRITICAL ERROR: {e}") 
         return "Internal Server Error", 500
 
 @app.route('/api/report', methods=['POST'])
 def generate_report():
-    """Step 2: Generates the PDF when the user clicks 'Download PDF'."""
     try:
         report_data = calculate_estimate_data(request.get_json())
         rendered_html = render_template('report/report.html', data=report_data)
         pdf = HTML(string=rendered_html).write_pdf()
-
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = 'inline; filename=CostPredict_Estimate.pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=Predictive_Pricing_Report.pdf'
         return response
     except Exception as e:
-        print(f"CRITICAL ERROR IN PDF: {e}") 
+        print(f"CRITICAL ERROR: {e}") 
         return "Internal Server Error", 500
 
 if __name__ == '__main__':
