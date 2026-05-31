@@ -1,24 +1,33 @@
 print("--- APP STARTING ---")
 import os
-print(f"Current Directory: {os.getcwd()}")
-
-from flask import Flask, request, make_response, render_template
+from flask import Flask, request, make_response, render_template, jsonify
 from weasyprint import HTML
 import datetime
 
 app = Flask(__name__)
 
-# --- ROUTES ---
+# --- 1. HELPER FUNCTIONS (Must be defined first) ---
+
+def get_logistics_modifier(zip_code):
+    return 1.0 
+
+def get_golden_catalog():
+    # Keep your existing dictionary here
+    return {
+        "03-Concrete": [
+            {"name": "Ready Mix", "unit": "Cu. Yards", "default_waste": 5, "labor_difficulty": "High"}
+        ]
+        # ... rest of your catalog
+    }
+
+# --- 2. ROUTES ---
 
 @app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
-from flask import jsonify # Ensure jsonify is added to your imports at the top
-
 @app.route('/api/catalog', methods=['GET'])
 def get_catalog():
-    # This calls your existing, hardcoded function and returns it as JSON
     return jsonify(get_golden_catalog())
 
 @app.route('/api/report', methods=['POST'])
@@ -35,7 +44,6 @@ def generate_report():
         processed_items = []
         total_avg = 0
 
-        # Conversion table for units
         conversions = {
             "Cu. Yards": 27, 
             "sqyd": 9,
@@ -55,13 +63,8 @@ def generate_report():
             catalog_item = next((x for x in category_list if x["name"] == sub), None)
 
             labor_diff = catalog_item.get('labor_difficulty', 'Low') if catalog_item else 'Medium'
+            base_rate = {"High": 25.0, "Medium": 15.0, "Low": 8.0}.get(labor_diff, 2.0)
 
-            if labor_diff == 'High': base_rate = 25.00
-            elif labor_diff == 'Medium': base_rate = 15.00
-            elif labor_diff == 'Low': base_rate = 8.00
-            else: base_rate = 2.00
-
-            # Dynamic Unit Conversion
             unit = catalog_item.get('unit', 'sqft') if catalog_item else 'sqft'
             multiplier = conversions.get(unit, 1)
             
@@ -74,7 +77,6 @@ def generate_report():
 
             processed_items.append({
                 "name": f"{cat} - {sub}",
-                "confidence": "High (92%)" if catalog_item else "Low (50%) - Custom",
                 "min": round(subtotal * 0.85, 2),
                 "avg": round(subtotal, 2),
                 "max": round(subtotal * 1.25, 2)
@@ -82,7 +84,6 @@ def generate_report():
 
         report_data = {
             "date": datetime.datetime.now().strftime("%B %d, %Y"),
-            "project_type": project_info.get('projectType', 'Unknown'),
             "items": processed_items,
             "total_avg": round(total_avg, 2)
         }
@@ -92,7 +93,6 @@ def generate_report():
 
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = 'inline; filename=CostPredict_Estimate.pdf'
         return response
 
     except Exception as e:
@@ -101,37 +101,6 @@ def generate_report():
 
 if __name__ == '__main__':
     app.run()
-
-# --- HELPER FUNCTIONS ---
-
-def get_logistics_modifier(zip_code):
-    """Returns a multiplier based on the region or zip code."""
-    return 1.0 
-
-def get_golden_catalog():
-    # Insert your massive dictionary here (the one you provided earlier)
-    return {
-        # ... your categories ...
-    }
-
-# --- API ENDPOINTS ---
-
-@app.route('/api/report', methods=['POST'])
-def generate_report():
-    # --- YOUR LOGIC START ---
-    payload = request.get_json()
-    project_info = payload.get('project_info', {})
-    materials = payload.get('materials', [])
-
-    zip_code = project_info.get('zipCode', '00000')
-    logistics_mult = get_logistics_modifier(zip_code)
-
-    catalog = get_golden_catalog()
-    processed_items = []
-    total_avg = 0
-    
-    # ... (Your logic continues exactly as you wrote it previously)
-    # Ensure all your logic inside this function is indented by 4 spaces
 
 def get_golden_catalog():
     return {
