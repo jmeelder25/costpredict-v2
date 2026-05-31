@@ -21,6 +21,20 @@ def get_catalog():
     # This calls your existing, hardcoded function and returns it as JSON
     return jsonify(get_golden_catalog())
 
+@app.route('/api/report', methods=['POST'])
+def generate_report():
+    try:
+        # ... (your existing logic) ...
+        # (Replace your existing return at the end with this logic)
+        rendered_html = render_template('report/report.html', data=report_data)
+        pdf = HTML(string=rendered_html).write_pdf()
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        return response
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}") # This will show in your Render logs
+        return "Internal Server Error", 500
+
 # --- HELPER FUNCTIONS ---
 
 def get_logistics_modifier(zip_code):
