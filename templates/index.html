@@ -14,17 +14,15 @@
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
-
     <header class="bg-white py-6 shadow-sm border-b-4 border-brand-yellow">
         <div class="max-w-5xl mx-auto px-4 flex flex-col items-center">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="CostPredict Logo" class="h-16 w-auto mb-2" onerror="this.src='https://via.placeholder.com/150x50?text=Logo'">
+            <img src="/static/logo.png" alt="CostPredict Logo" class="h-16 w-auto mb-2" onerror="this.src='https://via.placeholder.com/150x50?text=Logo'">
             <p class="text-brand-blue font-bold text-lg tracking-wide uppercase">Contractor Predictive Pricing</p>
         </div>
     </header>
 
     <main class="flex-grow max-w-5xl mx-auto w-full p-4 md:p-8">
-        <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
-            
+        <div id="form-container" class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
             <form id="estimate-form">
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Project Information</h2>
@@ -48,7 +46,6 @@
                         </div>
                     </div>
                 </section>
-
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Material & Labor Specifications</h2>
                     <div id="materials-container"></div>
@@ -56,24 +53,29 @@
                         + Add Material Item
                     </button>
                 </section>
-
                 <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition shadow-lg text-lg">
                     Generate Predictive Pricing Report
                 </button>
             </form>
         </div>
-    </main>
 
-    <footer class="bg-brand-blue text-white py-6 mt-8">
-        <div class="max-w-5xl mx-auto px-4 text-center text-sm">
-            &copy; 2026 CostPredict Engine. All rights reserved. Precision pricing for professional contractors.
+        <div id="checkout-section" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg border-2 border-brand-blue">
+            <h2 class="text-2xl font-bold text-brand-blue mb-4 border-b-2 border-brand-yellow pb-2">Review Your Estimate</h2>
+            <div id="checkout-items" class="mb-6 space-y-2 text-gray-700"></div>
+            <div class="text-2xl font-bold text-gray-900 text-right mb-8">
+                Total Estimated Average: $<span id="checkout-total">0.00</span>
+            </div>
+            <div class="flex flex-col md:flex-row gap-4">
+                <button type="button" onclick="editEstimate()" class="md:w-1/3 bg-gray-200 text-gray-800 font-bold py-3 rounded-lg hover:bg-gray-300 transition">← Back to Edit</button>
+                <button type="button" id="download-pdf-btn" class="md:w-2/3 bg-brand-blue text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition shadow-lg">Download PDF Report</button>
+            </div>
         </div>
-    </footer>
+    </main>
 
     <script>
         let goldenCatalog = {};
+        let currentPayload = null;
 
-        // Load Catalog
         document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch('/api/catalog');
             goldenCatalog = await response.json();
@@ -83,84 +85,53 @@
         function addMaterialRow() {
             const container = document.getElementById('materials-container');
             const rowId = 'row-' + Date.now();
+            container.insertAdjacentHTML('beforeend', `<div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 p-4 border border-gray-100 bg-gray-50 rounded-lg relative"><button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-0 right-2 text-red-500 font-bold">×</button><div class="col-span-12 md:col-span-4"><label class="block text-xs font-bold text-gray-500 uppercase">Category</label><select class="main-cat-input w-full p-2 border rounded" required><option value="">Select...</option>${Object.keys(goldenCatalog).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="col-span-12 md:col-span-4"><label class="block text-xs font-bold text-gray-500 uppercase">Subcategory</label><select class="sub-cat-input w-full p-2 border rounded" required disabled><option>Select Main First...</option></select></div><div class="col-span-6 md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase">Qty</label><input type="number" class="qty-input w-full p-2 border rounded" value="0" required></div><div class="col-span-6 md:col-span-2 flex items-center h-10"><input type="checkbox" class="labor-input mr-2"> <label class="text-sm font-bold">Include Labor</label></div><input type="hidden" class="waste-input" value="0"></div>`);
             
-            const rowHtml = `
-                <div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 p-4 border border-gray-100 bg-gray-50 rounded-lg relative">
-                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-0 right-2 text-red-500 font-bold">×</button>
-                    <div class="col-span-12 md:col-span-4">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Main Material Category</label>
-                        <select class="main-cat-input w-full p-2 border rounded" required>
-                            <option value="">Select Category...</option>
-                            ${Object.keys(goldenCatalog).map(c => `<option value="${c}">${c}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="col-span-12 md:col-span-4">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Material Subcategory</label>
-                        <select class="sub-cat-input w-full p-2 border rounded" required disabled>
-                            <option>Select Main First...</option>
-                        </select>
-                    </div>
-                    <div class="col-span-6 md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Qty</label>
-                        <input type="number" class="qty-input w-full p-2 border rounded" placeholder="0" required>
-                    </div>
-                    <div class="col-span-6 md:col-span-2 flex items-center h-10">
-                        <input type="checkbox" class="labor-input mr-2"> <label class="text-sm font-bold">Include Labor</label>
-                    </div>
-                    <input type="hidden" class="waste-input" value="0">
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', rowHtml);
-
-            // Populate Subcategories
             const row = document.getElementById(rowId);
-            const mainSelect = row.querySelector('.main-cat-input');
-            const subSelect = row.querySelector('.sub-cat-input');
-
-            mainSelect.addEventListener('change', function() {
+            row.querySelector('.main-cat-input').addEventListener('change', function() {
                 const items = goldenCatalog[this.value] || [];
-                subSelect.innerHTML = items.map(i => `<option value="${i.name}" data-waste="${i.default_waste}">${i.name}</option>`).join('');
+                const subSelect = row.querySelector('.sub-cat-input');
+                subSelect.innerHTML = items.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
                 subSelect.disabled = false;
-                row.querySelector('.waste-input').value = items.length ? items[0].default_waste : 0;
             });
         }
 
-        // Handle Submission
+        // STEP 1: Calculate on screen
         document.getElementById('estimate-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Generating...";
-
-            const payload = {
-                project_info: {
-                    projectType: document.getElementById('project-type').value,
-                    zipCode: document.getElementById('zip-code').value,
-                    startDate: document.getElementById('start-date').value
-                },
+            currentPayload = {
+                project_info: { projectType: document.getElementById('project-type').value, zipCode: document.getElementById('zip-code').value },
                 materials: Array.from(document.querySelectorAll('.grid.gap-4')).map(row => ({
                     category: row.querySelector('.main-cat-input').value,
                     subcategory: row.querySelector('.sub-cat-input').value,
                     quantity: parseFloat(row.querySelector('.qty-input').value) || 0,
-                    waste: parseFloat(row.querySelector('.waste-input').value) || 0,
                     labor: row.querySelector('.labor-input').checked
                 }))
             };
+            const response = await fetch('/api/calculate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentPayload) });
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('checkout-items').innerHTML = data.items.map(i => `<div class="flex justify-between border-b py-2"><span>${i.name}</span><span class="font-bold">$${i.avg.toFixed(2)}</span></div>`).join('');
+                document.getElementById('checkout-total').textContent = data.total_avg.toFixed(2);
+                document.getElementById('form-container').classList.add('hidden');
+                document.getElementById('checkout-section').classList.remove('hidden');
+            }
+        });
 
-            const response = await fetch('/api/report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+        function editEstimate() {
+            document.getElementById('checkout-section').classList.add('hidden');
+            document.getElementById('form-container').classList.remove('hidden');
+        }
 
+        // STEP 2: Download PDF
+        document.getElementById('download-pdf-btn').addEventListener('click', async () => {
+            const response = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentPayload) });
             if (response.ok) {
                 const blob = await response.blob();
                 window.open(URL.createObjectURL(blob), '_blank');
             } else {
-                alert('Error generating report.');
+                alert('Error generating PDF report.');
             }
-            submitBtn.disabled = false;
-            submitBtn.textContent = "Generate Predictive Pricing Report";
         });
     </script>
 </body>
