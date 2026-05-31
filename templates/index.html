@@ -22,18 +22,17 @@
     </header>
 
     <main class="flex-grow max-w-5xl mx-auto w-full p-4 md:p-8">
+        
         <div id="form-container" class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
             <form id="estimate-form">
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Project Information</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Project Type</label>
                             <select id="project-type" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-brand-blue outline-none">
                                 <option value="Residential">Residential</option>
                                 <option value="Commercial">Commercial</option>
-                                <option value="Mixed-Use">Mixed-Use</option>
-                                <option value="Industrial">Industrial</option>
                             </select>
                         </div>
                         <div>
@@ -41,33 +40,83 @@
                             <input type="text" id="zip-code" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-brand-blue outline-none" required>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Project Start Date</label>
-                            <input type="date" id="start-date" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-brand-blue outline-none" required>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Quality Level</label>
+                            <select id="quality-level" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-brand-blue outline-none">
+                                <option value="Standard">Standard Grade</option>
+                                <option value="Premium">Premium Grade</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Target Date</label>
+                            <input type="month" id="start-date" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-brand-blue outline-none" required>
                         </div>
                     </div>
                 </section>
+
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Material & Labor Specifications</h2>
                     <div id="materials-container"></div>
                     <button type="button" onclick="addMaterialRow()" class="mt-4 bg-gray-100 text-brand-blue font-bold px-6 py-3 rounded-lg hover:bg-brand-yellow transition">
-                        + Add Material Item
+                        + Add Another Material
                     </button>
                 </section>
                 <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition shadow-lg text-lg">
-                    Generate Predictive Pricing Report
+                    Project Complete (Calculate Pricing)
                 </button>
             </form>
         </div>
 
         <div id="checkout-section" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg border-2 border-brand-blue">
-            <h2 class="text-2xl font-bold text-brand-blue mb-4 border-b-2 border-brand-yellow pb-2">Review Your Estimate</h2>
-            <div id="checkout-items" class="mb-6 space-y-2 text-gray-700"></div>
-            <div class="text-2xl font-bold text-gray-900 text-right mb-8">
-                Total Estimated Average: $<span id="checkout-total">0.00</span>
+            <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Interactive Tabulation Screen</h2>
+            
+            <div class="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <label class="block text-lg font-bold text-brand-blue mb-2">Project Timeline Risk Shifter</label>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-bold text-green-600">[ Target ]</span>
+                    <input type="range" id="risk-slider" min="0" max="12" step="3" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span class="text-sm font-bold text-red-600">[ +12 Months ]</span>
+                </div>
+                <div class="text-center mt-2 font-bold text-brand-blue">Shift: +<span id="risk-display">0</span> Months</div>
             </div>
-            <div class="flex flex-col md:flex-row gap-4">
+
+            <div class="overflow-x-auto mb-8">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700 text-sm uppercase">
+                            <th class="p-3 border-b-2">Item / Task Details</th>
+                            <th class="p-3 border-b-2 text-center text-brand-blue">Predictive Confidence</th>
+                            <th class="p-3 border-b-2 text-right text-green-700">Min Cost</th>
+                            <th class="p-3 border-b-2 text-right text-brand-blue">Avg Cost</th>
+                            <th class="p-3 border-b-2 text-right text-red-700">Max Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checkout-items" class="text-sm"></tbody>
+                    <tfoot class="bg-gray-50 border-t-2 border-gray-300">
+                        <tr>
+                            <td class="p-3 font-bold" colspan="2">Subtotals</td>
+                            <td class="p-3 text-right font-bold text-green-700">$<span id="sub-min">0</span></td>
+                            <td class="p-3 text-right font-bold text-brand-blue">$<span id="sub-avg">0</span></td>
+                            <td class="p-3 text-right font-bold text-red-700">$<span id="sub-max">0</span></td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold" colspan="2">Estimated Sales Tax (<span id="tax-rate-label"></span>)</td>
+                            <td class="p-3 text-right text-green-700">$<span id="tax-min">0</span></td>
+                            <td class="p-3 text-right text-brand-blue">$<span id="tax-avg">0</span></td>
+                            <td class="p-3 text-right text-red-700">$<span id="tax-max">0</span></td>
+                        </tr>
+                        <tr class="text-lg bg-gray-100 border-t-2 border-brand-yellow">
+                            <td class="p-4 font-bold text-gray-900" colspan="2">PROJECT TOTAL</td>
+                            <td class="p-4 text-right font-bold text-green-700">$<span id="tot-min">0</span></td>
+                            <td class="p-4 text-right font-bold text-brand-blue">$<span id="tot-avg">0</span></td>
+                            <td class="p-4 text-right font-bold text-red-700">$<span id="tot-max">0</span></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="flex flex-col md:flex-row gap-4 mt-6">
                 <button type="button" onclick="editEstimate()" class="md:w-1/3 bg-gray-200 text-gray-800 font-bold py-3 rounded-lg hover:bg-gray-300 transition">← Back to Edit</button>
-                <button type="button" id="download-pdf-btn" class="md:w-2/3 bg-brand-blue text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition shadow-lg">Download PDF Report</button>
+                <button type="button" id="download-pdf-btn" class="md:w-2/3 bg-brand-blue text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition shadow-lg">Print Predictive Report (PDF)</button>
             </div>
         </div>
     </main>
@@ -85,8 +134,27 @@
         function addMaterialRow() {
             const container = document.getElementById('materials-container');
             const rowId = 'row-' + Date.now();
-            container.insertAdjacentHTML('beforeend', `<div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 p-4 border border-gray-100 bg-gray-50 rounded-lg relative"><button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-0 right-2 text-red-500 font-bold">×</button><div class="col-span-12 md:col-span-4"><label class="block text-xs font-bold text-gray-500 uppercase">Category</label><select class="main-cat-input w-full p-2 border rounded" required><option value="">Select...</option>${Object.keys(goldenCatalog).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="col-span-12 md:col-span-4"><label class="block text-xs font-bold text-gray-500 uppercase">Subcategory</label><select class="sub-cat-input w-full p-2 border rounded" required disabled><option>Select Main First...</option></select></div><div class="col-span-6 md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase">Qty</label><input type="number" class="qty-input w-full p-2 border rounded" value="0" required></div><div class="col-span-6 md:col-span-2 flex items-center h-10"><input type="checkbox" class="labor-input mr-2"> <label class="text-sm font-bold">Include Labor</label></div><input type="hidden" class="waste-input" value="0"></div>`);
-            
+            container.insertAdjacentHTML('beforeend', `
+                <div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 p-5 border border-gray-200 bg-gray-50 rounded-lg relative">
+                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-2 right-3 text-red-500 font-bold">×</button>
+                    <div class="col-span-12 md:col-span-3">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Category</label>
+                        <select class="main-cat-input w-full p-2 border rounded" required><option value="">Select...</option>${Object.keys(goldenCatalog).map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+                    </div>
+                    <div class="col-span-12 md:col-span-3">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Subcategory</label>
+                        <select class="sub-cat-input w-full p-2 border rounded" required disabled><option>Select Main First...</option></select>
+                    </div>
+                    <div class="col-span-6 md:col-span-2">
+                        <label class="block text-xs font-bold text-brand-blue uppercase unit-label">Qty</label>
+                        <input type="number" class="qty-input w-full p-2 border rounded" value="0" required>
+                    </div>
+                    <div class="col-span-6 md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Waste %</label>
+                        <select class="waste-input w-full p-2 border rounded"><option value="5">5%</option><option value="10">10%</option><option value="15">15%</option></select>
+                    </div>
+                    <div class="col-span-12 md:col-span-2 flex items-center h-10"><input type="checkbox" class="labor-input mr-2" checked> <label class="text-sm font-bold">Labor</label></div>
+                </div>`);
             const row = document.getElementById(rowId);
             row.querySelector('.main-cat-input').addEventListener('change', function() {
                 const items = goldenCatalog[this.value] || [];
@@ -96,42 +164,62 @@
             });
         }
 
-        // STEP 1: Calculate on screen
         document.getElementById('estimate-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            buildPayloadAndFetch();
+        });
+
+        function buildPayloadAndFetch() {
             currentPayload = {
-                project_info: { projectType: document.getElementById('project-type').value, zipCode: document.getElementById('zip-code').value },
+                project_info: { 
+                    projectType: document.getElementById('project-type').value, 
+                    zipCode: document.getElementById('zip-code').value,
+                    qualityLevel: document.getElementById('quality-level').value 
+                },
+                risk_months: parseInt(document.getElementById('risk-slider').value),
                 materials: Array.from(document.querySelectorAll('.grid.gap-4')).map(row => ({
                     category: row.querySelector('.main-cat-input').value,
                     subcategory: row.querySelector('.sub-cat-input').value,
                     quantity: parseFloat(row.querySelector('.qty-input').value) || 0,
+                    waste: parseFloat(row.querySelector('.waste-input').value) || 0,
                     labor: row.querySelector('.labor-input').checked
                 }))
             };
-            const response = await fetch('/api/calculate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentPayload) });
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('checkout-items').innerHTML = data.items.map(i => `<div class="flex justify-between border-b py-2"><span>${i.name}</span><span class="font-bold">$${i.avg.toFixed(2)}</span></div>`).join('');
-                document.getElementById('checkout-total').textContent = data.total_avg.toFixed(2);
-                document.getElementById('form-container').classList.add('hidden');
-                document.getElementById('checkout-section').classList.remove('hidden');
+            fetchAndRenderTable(true);
+        }
+
+        // Add Event Listeners for Risk Shifter
+        document.getElementById('risk-slider').addEventListener('input', function() {
+            document.getElementById('risk-display').textContent = this.value;
+            if(currentPayload) {
+                currentPayload.risk_months = parseInt(this.value);
+                fetchAndRenderTable();
             }
         });
 
-        function editEstimate() {
-            document.getElementById('checkout-section').classList.add('hidden');
-            document.getElementById('form-container').classList.remove('hidden');
+        async function fetchAndRenderTable(isFirstLoad = false) {
+            const response = await fetch('/api/calculate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentPayload) });
+            const data = await response.json();
+            document.getElementById('checkout-items').innerHTML = data.items.map(i => `<tr class="border-b"><td class="p-3">${i.name}</td><td class="p-3 text-center"><span class="bg-blue-100 text-brand-blue px-2 py-1 rounded text-xs font-bold">${i.confidence}</span></td><td class="p-3 text-right text-green-700">$${i.min.toLocaleString()}</td><td class="p-3 text-right font-bold text-brand-blue">$${i.avg.toLocaleString()}</td><td class="p-3 text-right text-red-700">$${i.max.toLocaleString()}</td></tr>`).join('');
+            document.getElementById('sub-min').textContent = data.subtotal_min.toLocaleString();
+            document.getElementById('sub-avg').textContent = data.subtotal_avg.toLocaleString();
+            document.getElementById('sub-max').textContent = data.subtotal_max.toLocaleString();
+            document.getElementById('tax-rate-label').textContent = data.tax_rate_display;
+            document.getElementById('tax-min').textContent = data.tax_min.toLocaleString();
+            document.getElementById('tax-avg').textContent = data.tax_avg.toLocaleString();
+            document.getElementById('tax-max').textContent = data.tax_max.toLocaleString();
+            document.getElementById('tot-min').textContent = data.grand_total_min.toLocaleString();
+            document.getElementById('tot-avg').textContent = data.grand_total_avg.toLocaleString();
+            document.getElementById('tot-max').textContent = data.grand_total_max.toLocaleString();
+            if(isFirstLoad) { document.getElementById('form-container').classList.add('hidden'); document.getElementById('checkout-section').classList.remove('hidden'); }
         }
 
-        // STEP 2: Download PDF
+        function editEstimate() { document.getElementById('checkout-section').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); }
+
         document.getElementById('download-pdf-btn').addEventListener('click', async () => {
             const response = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentPayload) });
-            if (response.ok) {
-                const blob = await response.blob();
-                window.open(URL.createObjectURL(blob), '_blank');
-            } else {
-                alert('Error generating PDF report.');
-            }
+            const blob = await response.blob();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Predictive_Pricing_Report.pdf'; a.click();
         });
     </script>
 </body>
