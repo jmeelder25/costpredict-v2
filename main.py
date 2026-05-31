@@ -14,6 +14,13 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+from flask import jsonify # Ensure jsonify is added to your imports at the top
+
+@app.route('/api/catalog', methods=['GET'])
+def get_catalog():
+    # This calls your existing, hardcoded function and returns it as JSON
+    return jsonify(get_golden_catalog())
+
 # --- HELPER FUNCTIONS ---
 
 def get_logistics_modifier(zip_code):
