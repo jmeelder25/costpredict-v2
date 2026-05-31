@@ -99,8 +99,8 @@ def generate_report():
         print(f"CRITICAL ERROR: {e}") 
         return "Internal Server Error", 500
 
-# Now calculate material_cost using final_qty
-material_cost = final_qty * base_rate
+if __name__ == '__main__':
+    app.run()
 
 # --- HELPER FUNCTIONS ---
 
