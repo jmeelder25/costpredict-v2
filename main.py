@@ -573,7 +573,7 @@ def get_golden_catalog():
         ]
     }
 
-    def calculate_estimate_data(payload):
+def calculate_estimate_data(payload):
     """Calculates all math. Both the checkout screen and PDF use this exact logic."""
     project_info = payload.get('project_info', {})
     materials = payload.get('materials', [])
