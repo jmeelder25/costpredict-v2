@@ -24,16 +24,83 @@ def get_catalog():
 @app.route('/api/report', methods=['POST'])
 def generate_report():
     try:
-        # ... (your existing logic) ...
-        # (Replace your existing return at the end with this logic)
+        payload = request.get_json()
+        project_info = payload.get('project_info', {})
+        materials = payload.get('materials', [])
+
+        zip_code = project_info.get('zipCode', '00000')
+        logistics_mult = get_logistics_modifier(zip_code)
+
+        catalog = get_golden_catalog()
+        processed_items = []
+        total_avg = 0
+
+        # Conversion table for units
+        conversions = {
+            "Cu. Yards": 27, 
+            "sqyd": 9,
+            "sqft": 1,
+            "linear foot": 1,
+            "each": 1
+        }
+
+        for item in materials:
+            cat = item.get('category', '').strip()
+            sub = item.get('subcategory', '').strip()
+            qty = float(item.get('quantity', 0))
+            waste_pct = float(item.get('waste', 0))
+            labor_req = item.get('labor', False)
+
+            category_list = catalog.get(cat, [])
+            catalog_item = next((x for x in category_list if x["name"] == sub), None)
+
+            labor_diff = catalog_item.get('labor_difficulty', 'Low') if catalog_item else 'Medium'
+
+            if labor_diff == 'High': base_rate = 25.00
+            elif labor_diff == 'Medium': base_rate = 15.00
+            elif labor_diff == 'Low': base_rate = 8.00
+            else: base_rate = 2.00
+
+            # Dynamic Unit Conversion
+            unit = catalog_item.get('unit', 'sqft') if catalog_item else 'sqft'
+            multiplier = conversions.get(unit, 1)
+            
+            final_qty = (qty * multiplier) * (1 + (waste_pct / 100.0))
+            material_cost = final_qty * base_rate
+            labor_cost = (material_cost * 0.6) if labor_req and labor_diff != 'None' else 0
+
+            subtotal = (material_cost + labor_cost) * logistics_mult
+            total_avg += subtotal
+
+            processed_items.append({
+                "name": f"{cat} - {sub}",
+                "confidence": "High (92%)" if catalog_item else "Low (50%) - Custom",
+                "min": round(subtotal * 0.85, 2),
+                "avg": round(subtotal, 2),
+                "max": round(subtotal * 1.25, 2)
+            })
+
+        report_data = {
+            "date": datetime.datetime.now().strftime("%B %d, %Y"),
+            "project_type": project_info.get('projectType', 'Unknown'),
+            "items": processed_items,
+            "total_avg": round(total_avg, 2)
+        }
+
         rendered_html = render_template('report/report.html', data=report_data)
         pdf = HTML(string=rendered_html).write_pdf()
+
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'inline; filename=CostPredict_Estimate.pdf'
         return response
+
     except Exception as e:
-        print(f"CRITICAL ERROR: {e}") # This will show in your Render logs
+        print(f"CRITICAL ERROR: {e}") 
         return "Internal Server Error", 500
+
+# Now calculate material_cost using final_qty
+material_cost = final_qty * base_rate
 
 # --- HELPER FUNCTIONS ---
 
