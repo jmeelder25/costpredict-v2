@@ -587,6 +587,22 @@ def get_regional_settings(zip_code):
         '9': {"tax_rate": 0.095, "wage": 95.00}, # CA
     }
     
+# =====================================================================
+# 2. REGIONAL SETTINGS (11-STATE TEST)
+# =====================================================================
+def get_regional_settings(zip_code):
+    settings = {"tax_rate": 0.0825, "wage": 65.00}
+    regional_map = {
+        '0': {"tax_rate": 0.088, "wage": 75.00}, # NY
+        '2': {"tax_rate": 0.060, "wage": 58.00}, # VA, NC
+        '3': {"tax_rate": 0.070, "wage": 55.00}, # FL, GA
+        '4': {"tax_rate": 0.070, "wage": 60.00}, # IN
+        '5': {"tax_rate": 0.075, "wage": 70.00}, # WI
+        '6': {"tax_rate": 0.090, "wage": 85.00}, # IL
+        '7': {"tax_rate": 0.080, "wage": 60.00}, # TX
+        '8': {"tax_rate": 0.085, "wage": 62.00}, # AZ
+        '9': {"tax_rate": 0.095, "wage": 95.00}, # CA
+    }
     prefix = str(zip_code)[:1]
     return regional_map.get(prefix, settings)
 
@@ -632,7 +648,6 @@ def calculate_estimate_data(payload):
     q_level = str(project_info.get('qualityLevel') or 'Standard Grade').strip()
     start_date = str(project_info.get('startDate') or '').strip()
     
-    # Get regional rates
     reg = get_regional_settings(zip_code)
     tax_rate, regional_wage = reg['tax_rate'], reg['wage']
     
@@ -645,7 +660,6 @@ def calculate_estimate_data(payload):
     for item in materials:
         if not item: continue
         
-        # Fuzzy Match Lookup
         cat_name_clean = str(item.get('category') or '').strip().lower()
         sub_name_clean = str(item.get('subcategory') or '').strip().lower()
         
@@ -660,12 +674,10 @@ def calculate_estimate_data(payload):
         base_rate = catalog_item.get('base_mat_rate', 15.00) if catalog_item else 15.00
         hrs_per_unit = catalog_item.get('hrs_per_unit', 0.1) if catalog_item else 0.1
         
-        # Calculate quantities
         waste = float(item.get('waste') or 0) / 100
         qty_pure = float(item.get('quantity') or 0)
         qty = qty_pure * (1 + waste)
         
-        # Calculate costs
         rate = base_rate * q_m
         mat_avg = qty * rate * risk_mult
         
@@ -707,6 +719,7 @@ def calculate_estimate_data(payload):
         "mat_sub": [f"{v:,.2f}" for v in totals['mat']],
         "lab_sub": [f"{v:,.2f}" for v in totals['lab']],
         "tax": [f"{v:,.2f}" for v in tax],
+        "tax_label": f"Sales Tax ({tax_rate * 100:.1f}%)",
         "tot": [f"{v:,.2f}" for v in tot]
     }
 
