@@ -102,6 +102,10 @@
             addMaterialRow();
         });
 
+        document.getElementById('risk-slider').addEventListener('input', function() {
+            document.getElementById('risk-display').textContent = this.value;
+        });
+
         function addMaterialRow() {
             const container = document.getElementById('materials-container');
             const rowId = 'row-' + Date.now();
@@ -133,17 +137,26 @@
         document.getElementById('estimate-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
-                project_info: { projectType: document.getElementById('project-type').value, zipCode: document.getElementById('zip-code').value, qualityLevel: document.getElementById('quality-level').value },
+                project_info: { 
+                    projectType: document.getElementById('project-type').value, 
+                    zipCode: document.getElementById('zip-code').value, 
+                    qualityLevel: document.getElementById('quality-level').value 
+                },
+                risk_months: parseInt(document.getElementById('risk-display').textContent),
                 materials: Array.from(document.querySelectorAll('.grid.gap-4')).map(row => ({
-                    category: row.querySelector('.main-cat-input').value, subcategory: row.querySelector('.sub-cat-input').value,
-                    quantity: parseFloat(row.querySelector('.qty-input').value), waste: parseFloat(row.querySelector('.waste-input').value),
+                    category: row.querySelector('.main-cat-input').value, 
+                    subcategory: row.querySelector('.sub-cat-input').value,
+                    quantity: parseFloat(row.querySelector('.qty-input').value) || 0, 
+                    waste: parseFloat(row.querySelector('.waste-input').value) || 0,
                     labor: row.querySelector('.labor-input').checked
                 }))
             };
-            const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-            const data = await response.json();
-            document.getElementById('checkout-items').innerHTML = data.items.map(i => i.is_header ? `<tr class="bg-gray-100 font-bold"><td colspan="6">${i.name}</td></tr>` : `<tr><td>${i.type}</td><td>${i.conf}</td><td class="text-right">${i.u_cost}</td><td class="text-right">$${i.min}</td><td class="text-right">$${i.avg}</td><td class="text-right">$${i.max}</td></tr>`).join('');
-            document.getElementById('form-container').classList.add('hidden'); document.getElementById('checkout-section').classList.remove('hidden');
+            try {
+                const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const data = await response.json();
+                document.getElementById('checkout-items').innerHTML = data.items.map(i => i.is_header ? `<tr class="bg-gray-100 font-bold"><td colspan="6">${i.name}</td></tr>` : `<tr><td>${i.type}</td><td>${i.conf}</td><td class="text-right">${i.u_cost}</td><td class="text-right">$${i.min}</td><td class="text-right">$${i.avg}</td><td class="text-right">$${i.max}</td></tr>`).join('');
+                document.getElementById('form-container').classList.add('hidden'); document.getElementById('checkout-section').classList.remove('hidden');
+            } catch (err) { alert("Calculation error. Please ensure all inputs are valid."); }
         });
 
         function editEstimate() { document.getElementById('checkout-section').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); }
