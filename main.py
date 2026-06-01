@@ -567,42 +567,46 @@ def get_golden_catalog():
         ]
     }
 
-def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, quantity):
-    # Dynamic confidence scoring algorithm demonstrating predictive variable analysis
-    score = 85 # Base starting confidence
+def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, quantity, catalog_item):
+    score = 85 
     
-    # 1. Evaluate Quality Level Complexity
+    # Extract weighting variables from catalog
+    volatility = catalog_item['volatility'] if catalog_item else 1.0
+    winter_risk = catalog_item['winter_risk'] if catalog_item else False
+    
+    # 1. Evaluate Quality Level Complexity (Weighted)
     if quality_level == 'Luxury Grade': 
-        score -= 10 # Harder to predict custom/luxury supply chains
+        score -= (10 * volatility) 
     elif quality_level == 'Budget Grade': 
-        score += 5  # Standardized items are easier to predict
+        score += 5  
         
-    # 2. Evaluate Regional (Zip Code) Volatility
+    # 2. Evaluate Regional Volatility
     if zip_code.startswith('6'): 
-        score -= 3 # Example: Assume midwest zip codes currently have volatile shipping 
+        score -= 3 
     else: 
         score += 2
         
-    # 3. Evaluate Time Decay (Estimated Purchase Date)
+    # 3. Evaluate Time Decay & Seasonality
     try:
         if start_date_str:
             start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
             days_away = (start_date - datetime.datetime.now()).days
             if days_away > 0:
-                # Lose 1.5% confidence for every 30 days out
                 score -= int(days_away / 30) * 1.5 
+                
+            # Seasonality: Heavy penalty for winter projects involving exposed materials in the midwest
+            if winter_risk and start_date.month in [12, 1, 2] and zip_code.startswith('6'):
+                score -= 15 
     except:
-        pass # Silently proceed if date parsing fails
+        pass 
         
-    # 4. Evaluate User-Defined Timeline Risk
-    # Reduces confidence by 2% for every month shifted on the slider
-    score -= (risk_months * 2) 
+    # 4. Evaluate User-Defined Timeline Risk (Weighted)
+    score -= (risk_months * 2 * volatility) 
     
     # 5. Evaluate Quantity Scale Risk
     if quantity > 1000: 
-        score -= 5 # Massive orders may face bulk scarcity
+        score -= 5 
         
-    # Clamp final score between 50% and 99%
     return min(max(int(score), 50), 99)
 
 def calculate_estimate_data(payload):
@@ -615,26 +619,46 @@ def calculate_estimate_data(payload):
     q_level = project_info.get('qualityLevel', 'Standard Grade')
     start_date = project_info.get('startDate', '')
     
-    # Zip-based tax logic
     tax_rate = 0.09 if zip_code.startswith('6') else 0.0825
+    
+    # Regional Labor Rate Logic
+    regional_wage = 85.00 if zip_code.startswith('6') else 65.00
     
     q_m = 1.3 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.0)
     
     processed_items = []
     totals = {"mat": [0.0, 0.0, 0.0], "lab": [0.0, 0.0, 0.0]}
+    catalog = get_golden_catalog()
     
     for item in materials:
+        # Match item to catalog for specific properties
+        cat_items = catalog.get(item.get('category'), [])
+        catalog_item = next((i for i in cat_items if i['name'] == item.get('subcategory')), None)
+        
+        # Base property fallbacks
+        base_rate = catalog_item['base_mat_rate'] if catalog_item else 15.00
+        hrs_per_unit = catalog_item['hrs_per_unit'] if catalog_item else 0.1
+        
         waste = float(item.get('waste', 0)) / 100
         qty = float(item.get('quantity', 0)) * (1 + waste)
-        rate = 15.00 * q_m
+        
+        # Decoupled Calculations
+        rate = base_rate * q_m
         mat_avg = qty * rate * risk_mult
-        lab_avg = (mat_avg * 0.6) if item.get('labor') else 0
+        
+        if item.get('labor'):
+            total_hours = qty * hrs_per_unit
+            if q_level == 'Luxury Grade': 
+                total_hours *= 1.2 # Luxury takes 20% longer to install
+            lab_avg = total_hours * regional_wage * risk_mult
+        else:
+            total_hours = 0
+            lab_avg = 0
         
         m_vals = [round(mat_avg * 0.9, 2), round(mat_avg, 2), round(mat_avg * 1.1, 2)]
         l_vals = [round(lab_avg * 0.9, 2), round(lab_avg, 2), round(lab_avg * 1.1, 2)]
         
-        # Calculate dynamic confidence using all project variables
-        conf = calculate_confidence(zip_code, q_level, start_date, risk, float(item.get('quantity', 0)))
+        conf = calculate_confidence(zip_code, q_level, start_date, risk, float(item.get('quantity', 0)), catalog_item)
         
         processed_items.append({"is_header": True, "name": f"{item['category']} - {item['subcategory']}"})
         processed_items.append({
@@ -642,10 +666,12 @@ def calculate_estimate_data(payload):
             "u_cost": f"${rate:,.2f} x {qty:,.1f}", 
             "min": f"{m_vals[0]:,.2f}", "avg": f"{m_vals[1]:,.2f}", "max": f"{m_vals[2]:,.2f}"
         })
+        
         if item.get('labor'):
+            # Formats the Labor unit cost column to show Rate x Hours
             processed_items.append({
                 "is_header": False, "type": "Labor", "conf_pct": conf,
-                "u_cost": "-", 
+                "u_cost": f"${regional_wage:,.2f}/hr x {total_hours:,.1f} hrs", 
                 "min": f"{l_vals[0]:,.2f}", "avg": f"{l_vals[1]:,.2f}", "max": f"{l_vals[2]:,.2f}"
             })
         
