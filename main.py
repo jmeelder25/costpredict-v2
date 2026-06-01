@@ -1,8 +1,6 @@
 print("--- APP STARTING ---")
-import os
-import traceback
-import base64
-from flask import Flask, request, make_response, render_template, render_template_string, jsonify
+import os, traceback, base64
+from flask import Flask, request, jsonify, render_template
 import datetime
 
 app = Flask(__name__)
@@ -575,7 +573,11 @@ def calculate_estimate_data(payload):
     risk = int(payload.get('risk_months', 0))
     risk_mult = 1 + (risk * 0.01)
     
-    q_level = project_info.get('quality', 'Standard Grade')
+    # Zip-based tax logic
+    zip_code = project_info.get('zipCode', '00000')
+    tax_rate = 0.09 if zip_code.startswith('6') else 0.0825
+    
+    q_level = project_info.get('qualityLevel', 'Standard Grade')
     q_m = 1.3 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.0)
     
     processed_items = []
@@ -588,8 +590,8 @@ def calculate_estimate_data(payload):
         mat_avg = qty * rate * risk_mult
         lab_avg = (mat_avg * 0.6) if item.get('labor') else 0
         
-        m_vals = [mat_avg * 0.9, mat_avg, mat_avg * 1.1]
-        l_vals = [lab_avg * 0.9, lab_avg, lab_avg * 1.1]
+        m_vals = [round(mat_avg * 0.9, 2), round(mat_avg, 2), round(mat_avg * 1.1, 2)]
+        l_vals = [round(lab_avg * 0.9, 2), round(lab_avg, 2), round(lab_avg * 1.1, 2)]
         
         processed_items.append({"is_header": True, "name": f"{item['category']} - {item['subcategory']}"})
         processed_items.append({
@@ -603,24 +605,30 @@ def calculate_estimate_data(payload):
                 "u_cost": "-", 
                 "min": f"{l_vals[0]:,.2f}", "avg": f"{l_vals[1]:,.2f}", "max": f"{l_vals[2]:,.2f}"
             })
+        
         for i in range(3):
             totals["mat"][i] += m_vals[i]
             totals["lab"][i] += l_vals[i]
 
-    tax = 0.0825
+    tax = [(totals['mat'][i] + totals['lab'][i]) * tax_rate for i in range(3)]
+    tot = [(totals['mat'][i] + totals['lab'][i]) + tax[i] for i in range(3)]
+
     return {
-        "items": processed_items, "tax_rate_display": "8.25",
-        "mat_sub": [f"{v:,.2f}" for v in totals["mat"]],
-        "lab_sub": [f"{v:,.2f}" for v in totals["lab"]],
-        "tax": [f"{(totals['mat'][i] + totals['lab'][i]) * tax:,.2f}" for i in range(3)],
-        "tot": [f"{(totals['mat'][i] + totals['lab'][i]) * (1 + tax):,.2f}" for i in range(3)]
+        "items": processed_items,
+        "mat_sub": [f"{v:,.2f}" for v in totals['mat']],
+        "lab_sub": [f"{v:,.2f}" for v in totals['lab']],
+        "tax": [f"{v:,.2f}" for v in tax],
+        "tot": [f"{v:,.2f}" for v in tot]
     }
 
 @app.route('/')
 def index(): return render_template('index.html')
-@app.route('/api/catalog')
+
+@app.route('/api/catalog', methods=['GET'])
 def get_catalog(): return jsonify(get_golden_catalog())
+
 @app.route('/api/calculate', methods=['POST'])
 def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
 
-if __name__ == '__main__': app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
