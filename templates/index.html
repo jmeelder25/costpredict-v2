@@ -12,12 +12,12 @@
         .border-brand-yellow { border-color: #FFC113; }
         .border-brand-blue { border-color: #23408A; }
 
-        /* Print-friendly styles: Hides UI, leaves report data */
         @media print {
-            header, #form-container, .edit-btn, #download-pdf-btn, footer { display: none !important; }
+            header, #form-container, .edit-btn, #download-pdf-btn, .no-print { display: none !important; }
             #checkout-section { border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; }
             body { background: white !important; color: black !important; }
             table { width: 100% !important; border-collapse: collapse !important; }
+            .print-only { display: block !important; }
         }
     </style>
 </head>
@@ -36,82 +36,48 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Project Information</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Project Type</label>
-                            <select id="project-type" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none">
-                                <option value="Residential">Residential</option><option value="Commercial">Commercial</option>
-                                <option value="Mixed-Use">Mixed-Use</option><option value="Industrial">Industrial</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Project Zip Code</label>
-                            <input type="text" id="zip-code" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none" required>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Quality Level</label>
-                            <select id="quality-level" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none">
-                                <option value="Budget Grade">Budget Grade</option><option value="Standard Grade">Standard Grade</option>
-                                <option value="Luxury Grade">Luxury Grade</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Purchase Date</label>
-                            <input type="date" id="start-date" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none" required>
-                        </div>
+                        <div><label class="block text-sm font-bold text-gray-700 mb-1">Project Type</label><select id="project-type" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none"><option value="Residential">Residential</option><option value="Commercial">Commercial</option><option value="Mixed-Use">Mixed-Use</option><option value="Industrial">Industrial</option></select></div>
+                        <div><label class="block text-sm font-bold text-gray-700 mb-1">Project Zip Code</label><input type="text" id="zip-code" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none" required></div>
+                        <div><label class="block text-sm font-bold text-gray-700 mb-1">Quality Level</label><select id="quality-level" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none"><option value="Budget Grade">Budget Grade</option><option value="Standard Grade">Standard Grade</option><option value="Luxury Grade">Luxury Grade</option></select></div>
+                        <div><label class="block text-sm font-bold text-gray-700 mb-1">Estimated Purchase Date</label><input type="date" id="start-date" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none" required></div>
                     </div>
                 </section>
-                <section class="mb-8">
-                    <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Material & Labor Specifications</h2>
-                    <div id="materials-container"></div>
-                    <button type="button" onclick="addMaterialRow()" class="mt-4 bg-gray-100 text-brand-blue font-bold px-6 py-3 rounded-lg hover:bg-brand-yellow transition">+ Add Another Material</button>
-                </section>
-                <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition shadow-lg text-lg">Calculate Pricing</button>
+                <div id="materials-container"></div>
+                <button type="button" onclick="addMaterialRow()" class="mt-4 bg-gray-100 text-brand-blue font-bold px-6 py-3 rounded-lg hover:bg-brand-yellow transition">+ Add Another Material</button>
+                <button type="submit" class="w-full mt-8 bg-brand-blue text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition shadow-lg text-lg">Calculate Pricing</button>
             </form>
         </div>
 
         <div id="checkout-section" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg border-2 border-brand-blue">
-            <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Predictive Estimate</h2>
-            <div class="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">CostPredict Estimate</h2>
+            
+            <div id="print-summary" class="mb-6 p-4 bg-gray-50 rounded hidden print-only">
+                <p><strong>Type:</strong> <span id="sum-type"></span> | <strong>Zip:</strong> <span id="sum-zip"></span> | <strong>Quality:</strong> <span id="sum-qual"></span> | <strong>Date:</strong> <span id="sum-date"></span></p>
+            </div>
+            
+            <div class="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 no-print">
                 <label class="block text-lg font-bold text-brand-blue mb-2">Timeline Risk Shifter</label>
-                <p class="text-sm text-gray-700 mb-4">Simulate timeline delays to account for projected inflation and localized market escalation.</p>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm font-bold text-green-600">Target</span>
-                    <input type="range" id="risk-slider" min="0" max="12" step="3" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    <span class="text-sm font-bold text-red-600">+12 Months</span>
-                </div>
+                <input type="range" id="risk-slider" min="0" max="12" step="3" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                 <div class="text-center mt-2 font-bold text-brand-blue">Shift: +<span id="risk-display">0</span> Months</div>
             </div>
 
-            <div class="md:hidden text-center text-xs font-bold text-brand-blue bg-yellow-50 p-2 rounded mb-2">← Scroll Right to Read Full Estimate →</div>
             <div class="overflow-x-auto mb-8">
                 <table class="w-full text-left border-collapse" id="checkout-table">
-                    <thead><tr class="bg-gray-100 text-gray-700 text-sm uppercase">
-                        <th class="p-3 border-b-2">Item</th>
-                        <th class="p-3 border-b-2 text-center">Confidence<br>Score</th>
-                        <th class="p-3 border-b-2 text-right">Unit Cost x Qty</th>
-                        <th class="p-3 border-b-2 text-right text-green-700">Min</th>
-                        <th class="p-3 border-b-2 text-right text-brand-blue">Avg</th>
-                        <th class="p-3 border-b-2 text-right text-red-700">Max</th>
-                    </tr></thead>
+                    <thead><tr class="bg-gray-100 text-gray-700 text-sm uppercase"><th class="p-3 border-b-2">Item</th><th class="p-3 border-b-2 text-center">Confidence</th><th class="p-3 border-b-2 text-right">Unit Rate/Qty</th><th class="p-3 border-b-2 text-right">Min</th><th class="p-3 border-b-2 text-right">Avg</th><th class="p-3 border-b-2 text-right">Max</th></tr></thead>
                     <tbody id="checkout-items"></tbody>
                 </table>
             </div>
-            <button type="button" onclick="editEstimate()" class="edit-btn bg-gray-200 px-6 py-3 rounded-lg font-bold">← Back to Edit</button>
-            <button type="button" id="download-pdf-btn" onclick="window.print()" class="bg-brand-blue text-white px-6 py-3 rounded-lg font-bold">Print Predictive Report</button>
+
+            <div class="text-xs text-gray-500 mt-8 border-t pt-4">
+                LEGAL DISCLAIMER: All cost evaluations, asset measurements, and predictive material output parameters generated by CostPredict are automated configurations provided solely for baseline budgeting and scoping evaluations. Users must independently verify all bills of quantities with a licensed professional contractor prior to project execution.
+            </div>
+
+            <button type="button" onclick="editEstimate()" class="edit-btn bg-gray-200 px-6 py-3 rounded-lg font-bold mt-6">← Back to Edit</button>
+            <button type="button" onclick="window.print()" class="bg-brand-blue text-white px-6 py-3 rounded-lg font-bold mt-6">Print Predictive Report</button>
         </div>
     </main>
-
-    <footer class="bg-brand-blue text-white p-6 text-center mt-8">
-        <p class="text-sm font-bold">&copy; 2026 CostPredict. All rights reserved.</p>
-        <p class="text-xs mt-2 text-gray-300 max-w-4xl mx-auto text-justify">
-            LEGAL DISCLAIMER: All cost evaluations, asset measurements, and predictive material output parameters generated by CostPredict are automated configurations provided solely for baseline budgeting and scoping evaluations. These values do not constitute structural advice, architectural blueprints, shipping and freight, or binding contractual pricing guarantees. Actual regional material rates, labor availability, and construction engineering demands will vary by project conditions. Users must independently verify all bills of quantities with a licensed professional contractor prior to project execution.
-        </p>
-    </footer>
-
     <script>
-        let goldenCatalog = {};
-        let currentPayload = {}; 
-
+        let goldenCatalog = {}, currentPayload = {};
         document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch('/api/catalog');
             goldenCatalog = await response.json();
@@ -120,107 +86,43 @@
         });
 
         function renderTable(data) {
-            let rowsHtml = data.items.map(i => 
-                i.is_header ? `<tr class="bg-gray-100 font-bold border-b"><td colspan="6" class="p-3">${i.name}</td></tr>` 
-                : `<tr><td class="p-3 border-b">${i.type}</td><td class="p-3 border-b text-center font-bold">${i.conf_pct}%<br><span class="text-xs font-normal text-gray-500">${i.conf_label}</span></td><td class="p-3 border-b text-right">${i.u_cost}</td><td class="p-3 border-b text-right">$${i.min}</td><td class="p-3 border-b text-right">$${i.avg}</td><td class="p-3 border-b text-right">$${i.max}</td></tr>`
-            ).join('');
-            
-            let totalsHtml = `
-                <tr class="bg-gray-50 font-bold border-t-2"><td colspan="3" class="p-3">Material Subtotal</td><td class="text-right p-3">$${data.mat_sub_min}</td><td class="text-right p-3">$${data.mat_sub_avg}</td><td class="text-right p-3">$${data.mat_sub_max}</td></tr>
-                <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Labor Subtotal</td><td class="text-right p-3">$${data.lab_sub_min}</td><td class="text-right p-3">$${data.lab_sub_avg}</td><td class="text-right p-3">$${data.lab_sub_max}</td></tr>
-                <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Sales Tax (${data.tax_rate_display}%)</td><td class="text-right p-3">$${data.tax_min}</td><td class="text-right p-3">$${data.tax_avg}</td><td class="text-right p-3">$${data.tax_max}</td></tr>
-                <tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="3" class="p-3">Grand Total</td><td class="text-right p-3">$${data.tot_min}</td><td class="text-right p-3">$${data.tot_avg}</td><td class="text-right p-3">$${data.tot_max}</td></tr>
-            `;
-            
+            document.getElementById('sum-type').textContent = currentPayload.project_info.projectType;
+            document.getElementById('sum-zip').textContent = currentPayload.project_info.zipCode;
+            document.getElementById('sum-qual').textContent = currentPayload.project_info.qualityLevel;
+            document.getElementById('sum-date').textContent = currentPayload.project_info.startDate;
+            document.getElementById('print-summary').classList.remove('hidden');
+
+            let rowsHtml = data.items.map(i => i.is_header ? `<tr class="bg-gray-100 font-bold border-b"><td colspan="6" class="p-3">${i.name}</td></tr>` : `<tr><td class="p-3 border-b">${i.type}</td><td class="p-3 border-b text-center font-bold">${i.conf_pct}%</td><td class="p-3 border-b text-right">${i.u_cost}</td><td class="p-3 border-b text-right">$${i.min}</td><td class="p-3 border-b text-right">$${i.avg}</td><td class="p-3 border-b text-right">$${i.max}</td></tr>`).join('');
+            let totalsHtml = `<tr class="bg-gray-50 font-bold border-t-2"><td colspan="3" class="p-3">Material Subtotal</td><td class="text-right p-3">$${data.mat_sub_min}</td><td class="text-right p-3">$${data.mat_sub_avg}</td><td class="text-right p-3">$${data.mat_sub_max}</td></tr><tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Labor Subtotal</td><td class="text-right p-3">$${data.lab_sub_min}</td><td class="text-right p-3">$${data.lab_sub_avg}</td><td class="text-right p-3">$${data.lab_sub_max}</td></tr><tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="3" class="p-3">Grand Total</td><td class="text-right p-3">$${data.tot_min}</td><td class="text-right p-3">$${data.tot_avg}</td><td class="text-right p-3">$${data.tot_max}</td></tr>`;
             document.getElementById('checkout-items').innerHTML = rowsHtml + totalsHtml;
         }
 
         document.getElementById('risk-slider').addEventListener('input', async function() {
             document.getElementById('risk-display').textContent = this.value;
             currentPayload.risk_months = parseInt(this.value);
-            
-            try {
-                const response = await fetch('/api/calculate', { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify(currentPayload) 
-                });
-                const data = await response.json();
-                renderTable(data);
-            } catch (err) {
-                console.error("Live calculation failed.", err);
-            }
+            const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentPayload) });
+            renderTable(await response.json());
         });
 
         function addMaterialRow() {
-            const container = document.getElementById('materials-container');
             const rowId = 'row-' + Date.now();
-            container.insertAdjacentHTML('beforeend', `
-                <div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 p-5 border bg-gray-50 rounded-lg relative">
-                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-2 right-3 text-red-500 font-bold">×</button>
-                    <div class="col-span-12 md:col-span-3">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Main Material Category</label>
-                        <input list="cats-${rowId}" class="main-cat-input w-full p-2 border rounded" required>
-                        <datalist id="cats-${rowId}">${Object.keys(goldenCatalog).map(c => `<option value="${c}">`).join('')}</datalist>
-                    </div>
-                    <div class="col-span-12 md:col-span-3">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Material Subcategory</label>
-                        <input list="subs-${rowId}" class="sub-cat-input w-full p-2 border rounded" required disabled>
-                        <datalist id="subs-${rowId}"></datalist>
-                    </div>
-                    <div class="col-span-6 md:col-span-2"><label class="block text-xs font-bold text-brand-blue uppercase">Qty</label><input type="number" class="qty-input w-full p-2 border rounded" value="0"></div>
-                    <div class="col-span-6 md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Waste %</label>
-                        <select class="waste-input w-full p-2 border rounded">
-                            <option value="0">0%</option>
-                            <option value="5">5%</option>
-                            <option value="10">10%</option>
-                            <option value="15">15%</option>
-                            <option value="20">20%</option>
-                        </select>
-                    </div>
-                    <div class="col-span-12 md:col-span-2"><input type="checkbox" class="labor-input" checked> <label class="text-sm font-bold">Labor</label></div>
-                </div>`);
+            document.getElementById('materials-container').insertAdjacentHTML('beforeend', `<div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 p-5 border bg-gray-50 rounded-lg relative"><button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-2 right-3 text-red-500 font-bold">×</button><div class="col-span-12 md:col-span-3"><label class="block text-xs font-bold text-gray-500 uppercase">Category</label><input list="cats-${rowId}" class="main-cat-input w-full p-2 border rounded" required><datalist id="cats-${rowId}">${Object.keys(goldenCatalog).map(c => `<option value="${c}">`).join('')}</datalist></div><div class="col-span-12 md:col-span-3"><label class="block text-xs font-bold text-gray-500 uppercase">Subcategory</label><input list="subs-${rowId}" class="sub-cat-input w-full p-2 border rounded" required disabled><datalist id="subs-${rowId}"></datalist></div><div class="col-span-6 md:col-span-2"><label class="block text-xs font-bold text-brand-blue uppercase">Qty</label><input type="number" class="qty-input w-full p-2 border rounded" value="0"></div><div class="col-span-6 md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase">Waste %</label><select class="waste-input w-full p-2 border rounded"><option value="0">0%</option><option value="10">10%</option></select></div><div class="col-span-12 md:col-span-2"><input type="checkbox" class="labor-input" checked> <label class="text-sm font-bold">Labor</label></div></div>`);
             const row = document.getElementById(rowId);
             row.querySelector('.main-cat-input').addEventListener('input', function() {
-                const subInput = row.querySelector('.sub-cat-input');
-                subInput.disabled = false;
+                row.querySelector('.sub-cat-input').disabled = false;
                 document.getElementById('subs-'+rowId).innerHTML = (goldenCatalog[this.value]||[]).map(i => `<option value="${i.name}">`).join('');
             });
         }
 
         document.getElementById('estimate-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            currentPayload = {
-                project_info: { 
-                    projectType: document.getElementById('project-type').value, 
-                    zipCode: document.getElementById('zip-code').value, 
-                    qualityLevel: document.getElementById('quality-level').value,
-                    startDate: document.getElementById('start-date').value
-                },
-                risk_months: parseInt(document.getElementById('risk-display').textContent),
-                materials: Array.from(document.querySelectorAll('.grid.gap-4')).map(row => ({
-                    category: row.querySelector('.main-cat-input').value, 
-                    subcategory: row.querySelector('.sub-cat-input').value,
-                    quantity: parseFloat(row.querySelector('.qty-input').value) || 0, 
-                    waste: parseFloat(row.querySelector('.waste-input').value) || 0,
-                    labor: row.querySelector('.labor-input').checked
-                }))
-            };
-            try {
-                const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentPayload) });
-                const data = await response.json();
-                
-                renderTable(data);
-                document.getElementById('form-container').classList.add('hidden'); 
-                document.getElementById('checkout-section').classList.remove('hidden');
-            } catch (err) { alert("Calculation error. Please ensure all inputs are valid."); }
+            currentPayload = { project_info: { projectType: document.getElementById('project-type').value, zipCode: document.getElementById('zip-code').value, qualityLevel: document.getElementById('quality-level').value, startDate: document.getElementById('start-date').value }, risk_months: parseInt(document.getElementById('risk-display').textContent), materials: Array.from(document.querySelectorAll('.grid.gap-4')).map(row => ({ category: row.querySelector('.main-cat-input').value, subcategory: row.querySelector('.sub-cat-input').value, quantity: parseFloat(row.querySelector('.qty-input').value) || 0, waste: parseFloat(row.querySelector('.waste-input').value) || 0, labor: row.querySelector('.labor-input').checked })) };
+            const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentPayload) });
+            renderTable(await response.json());
+            document.getElementById('form-container').classList.add('hidden'); document.getElementById('checkout-section').classList.remove('hidden');
         });
 
-        function editEstimate() { 
-            document.getElementById('checkout-section').classList.add('hidden'); 
-            document.getElementById('form-container').classList.remove('hidden'); 
-        }
+        function editEstimate() { document.getElementById('checkout-section').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); }
     </script>
 </body>
 </html>
