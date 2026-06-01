@@ -4,6 +4,7 @@ import traceback
 import base64
 from flask import Flask, request, make_response, render_template, render_template_string, jsonify
 from weasyprint import HTML
+from weasyprint.text.fonts import FontConfiguration
 import datetime
 
 app = Flask(__name__)
@@ -643,9 +644,8 @@ def get_tax_rate(zip_code):
 
 def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {}) or {}
-    materials = payload.get('materials', []) or []
+    materials = payload.get('materials', []) or {}
     risk_months = int(payload.get('risk_months', 0))
-    risk_mult = 1 + (0.005 * risk_months)
     start_date_str = project_info.get('startDate', '')
     months_to_start = 0
     if start_date_str:
@@ -654,6 +654,7 @@ def calculate_estimate_data(payload):
             now = datetime.datetime.now()
             months_to_start = max(0, (start_d.year - now.year) * 12 + start_d.month - now.month)
         except: pass
+    
     zip_str = str(project_info.get('zipCode', '00000'))
     zip_penalty = sum(int(d) for d in zip_str if d.isdigit()) % 5
     q_level = project_info.get('qualityLevel', 'Standard Grade')
@@ -667,7 +668,7 @@ def calculate_estimate_data(payload):
         cat = item.get('category', 'Unknown'); sub = item.get('subcategory', 'Unknown')
         qty = float(item.get('quantity') or 0); waste = float(item.get('waste') or 0)
         labor_req = item.get('labor', False)
-        effective_rate = 15.00 * quality_mult * market_idx * risk_mult
+        effective_rate = 15.00 * quality_mult * market_idx * (1 + (0.005 * risk_months))
         final_qty = (qty * 1) * (1 + (waste / 100.0))
         mat_avg = final_qty * effective_rate; lab_avg = (mat_avg * 0.6) if labor_req else 0
         diff = "Medium"
@@ -675,8 +676,9 @@ def calculate_estimate_data(payload):
             for c_i in catalog[cat]:
                 if c_i["name"] == sub: diff = c_i.get("labor_difficulty", "Medium")
         d_p = 5 if diff == "High" else (2 if diff == "Medium" else 0)
-        mat_conf = max(15, int(95 - (months_to_start * 1.5) - zip_penalty))
-        lab_conf = max(10, int(92 - (months_to_start * 1.5) - zip_penalty - d_p))
+        # Confidence incorporates risk_months
+        mat_conf = max(15, int(95 - (months_to_start * 1.5) - zip_penalty - (risk_months * 1.5)))
+        lab_conf = max(10, int(92 - (months_to_start * 1.5) - zip_penalty - d_p - (risk_months * 1.5)))
         processed_items.append({"is_header": True, "name": f"{cat} - {sub}"})
         processed_items.append({"is_header": False, "type": "Material", "conf_pct": mat_conf, "conf_label": get_conf_label(mat_conf), "u_cost": f"${effective_rate:,.2f} x {final_qty:,.1f}", "min": f"{mat_avg*0.85:,.2f}", "avg": f"{mat_avg:,.2f}", "max": f"{mat_avg*1.25:,.2f}"})
         if labor_req:
@@ -705,7 +707,8 @@ def generate_report():
         if os.path.exists("CostPredict_Logo_White.png"):
             with open("CostPredict_Logo_White.png", "rb") as img: logo_b64 = base64.b64encode(img.read()).decode('utf-8')
         html = render_template_string(PDF_TEMPLATE, data=report_data, items_list=items_list, disclaimer=PDF_DISCLAIMER, logo_b64=logo_b64)
-        pdf = HTML(string=html).write_pdf()
+        font_config = FontConfiguration()
+        pdf = HTML(string=html).write_pdf(font_config=font_config, presentational_hints=True)
         resp = make_response(pdf)
         resp.headers['Content-Type'] = 'application/pdf'
         resp.headers['Content-Disposition'] = 'attachment; filename="CostPredict_Takeoff.pdf"'
