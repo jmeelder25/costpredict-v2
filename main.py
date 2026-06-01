@@ -569,41 +569,26 @@ def get_golden_catalog():
         ]
     }
 
-def get_conf_label(pct):
-    if pct >= 80: return "Great"
-    elif pct >= 60: return "Good"
-    elif pct >= 50: return "Toss-Up"
-    else: return "Poor"
-
-def get_tax_rate(zip_code):
-    return 0.0825
-
 # --- CALCULATOR LOGIC ---
 def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
-    risk_months = int(payload.get('risk_months', 0))
     
+    # Calculation Logic
     q_level = project_info.get('qualityLevel', 'Standard Grade')
     quality_mult = 1.30 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.00)
-    r_min, r_max = (0.90, 1.40) if q_level == 'Luxury Grade' else ((0.80, 1.10) if q_level == 'Budget Grade' else (0.85, 1.25))
-
-    zip_code = project_info.get('zipCode', '00000')
-    tax_rate = get_tax_rate(zip_code)
+    tax_rate = 0.0825 
     
     processed_items = []
-    mat_sub = [0.0, 0.0, 0.0]
-    lab_sub = [0.0, 0.0, 0.0]
+    mat_sub_total = 0.0
+    lab_sub_total = 0.0
     catalog = get_golden_catalog()
     
     for item in materials:
-        cat = item.get('category')
-        sub = item.get('subcategory')
-        qty = float(item.get('quantity', 0))
-        waste = float(item.get('waste', 0)) # Handles 0, 5, 10, 15, 20
+        cat = item.get('category'); sub = item.get('subcategory')
+        qty = float(item.get('quantity', 0)); waste = float(item.get('waste', 0))
         labor_req = item.get('labor', False)
         
-        # Unit lookup
         unit = "Unit"
         if cat in catalog:
             for c_i in catalog[cat]:
@@ -611,42 +596,33 @@ def calculate_estimate_data(payload):
         
         effective_rate = 15.00 * quality_mult
         final_qty = qty * (1 + (waste / 100.0))
-        
         mat_avg = final_qty * effective_rate
         lab_avg = (mat_avg * 0.6) if labor_req else 0
         
         processed_items.append({"is_header": True, "name": f"{cat} - {sub}"})
         processed_items.append({
-            "is_header": False, "type": "Material", "conf_pct": 85, 
-            "u_cost": f"${effective_rate:,.2f} / {unit} x {final_qty:,.1f}",
-            "min": f"{mat_avg*r_min:,.2f}", "avg": f"{mat_avg:,.2f}", "max": f"{mat_avg*r_max:,.2f}"
+            "is_header": False, "type": "Material", "u_cost": f"${effective_rate:,.2f} / {unit} x {final_qty:,.1f}",
+            "avg": f"{mat_avg:,.2f}"
         })
         
         if labor_req:
-            processed_items.append({
-                "is_header": False, "type": "Labor", "conf_pct": 85,
-                "u_cost": "-", "min": f"{lab_avg*r_min:,.2f}", "avg": f"{lab_avg:,.2f}", "max": f"{lab_avg*r_max:,.2f}"
-            })
+            processed_items.append({"is_header": False, "type": "Labor", "u_cost": "-", "avg": f"{lab_avg:,.2f}"})
             
-        mat_sub[0] += mat_avg*r_min; mat_sub[1] += mat_avg; mat_sub[2] += mat_avg*r_max
-        lab_sub[0] += lab_avg*r_min; lab_sub[1] += lab_avg; lab_sub[2] += lab_avg*r_max
-
-    tax_arr = [(mat_sub[i] + lab_sub[i]) * tax_rate for i in range(3)]
-    tot_arr = [(mat_sub[i] + lab_sub[i]) + tax_arr[i] for i in range(3)]
+        mat_sub_total += mat_avg
+        lab_sub_total += lab_avg
+        
+    tax_avg = (mat_sub_total + lab_sub_total) * tax_rate
+    tot_avg = (mat_sub_total + lab_sub_total) + tax_avg
     
     return {
         "items": processed_items,
         "tax_rate_display": f"{tax_rate*100:.2f}",
-        "tax_min": f"{tax_arr[0]:,.2f}", "tax_avg": f"{tax_arr[1]:,.2f}", "tax_max": f"{tax_arr[2]:,.2f}",
-        "tot_min": f"{tot_arr[0]:,.2f}", "tot_avg": f"{tot_arr[1]:,.2f}", "tot_max": f"{tot_arr[2]:,.2f}"
+        "tax_avg": f"{tax_avg:,.2f}",
+        "tot_avg": f"{tot_avg:,.2f}"
     }
 
-# --- ROUTES ---
 @app.route('/')
 def index(): return render_template('index.html')
-
-@app.route('/api/catalog', methods=['GET'])
-def get_catalog(): return jsonify(get_golden_catalog())
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
