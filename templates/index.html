@@ -112,7 +112,7 @@
             
             let totalsHtml = `<tr class="bg-gray-50 font-bold border-t-2"><td colspan="3" class="p-3">Material Subtotal</td><td class="text-right p-3">$${data.mat_sub[0]}</td><td class="text-right p-3">$${data.mat_sub[1]}</td><td class="text-right p-3">$${data.mat_sub[2]}</td></tr>
                 <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Labor Subtotal</td><td class="text-right p-3">$${data.lab_sub[0]}</td><td class="text-right p-3">$${data.lab_sub[1]}</td><td class="text-right p-3">$${data.lab_sub[2]}</td></tr>
-                <tr class="border-b font-bold"><td colspan="3" class="p-3">Sales Tax</td><td class="text-right p-3">$${data.tax[0]}</td><td class="text-right p-3">$${data.tax[1]}</td><td class="text-right p-3">$${data.tax[2]}</td></tr>
+                <tr class="border-b font-bold"><td colspan="3" class="p-3">${data.tax_label}</td><td class="text-right p-3">$${data.tax[0]}</td><td class="text-right p-3">$${data.tax[1]}</td><td class="text-right p-3">$${data.tax[2]}</td></tr>
                 <tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="3" class="p-3">Grand Total</td><td class="text-right p-3">$${data.tot[0]}</td><td class="text-right p-3">$${data.tot[1]}</td><td class="text-right p-3">$${data.tot[2]}</td></tr>`;
             
             document.getElementById('checkout-items').innerHTML = rowsHtml + totalsHtml;
