@@ -1,109 +1,52 @@
 print("--- APP STARTING ---")
 import os
-from flask import Flask, request, make_response, render_template, jsonify, render_template_string
+from flask import Flask, request, make_response, render_template_string, jsonify
 from weasyprint import HTML
 import datetime
 
 app = Flask(__name__)
 
-# Embedded PDF Template to guarantee it generates without missing file errors
+# Embedded PDF Template with Legal Disclaimer, Material/Labor Breakdown, and Copyright
 PDF_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body { font-family: Arial, sans-serif; color: #333; font-size: 12px; }
+        body { font-family: sans-serif; font-size: 11px; }
         .header { text-align: center; border-bottom: 2px solid #23408A; padding-bottom: 10px; margin-bottom: 20px; }
         .header h1 { color: #23408A; margin: 0; }
-        .info-grid { display: block; margin-bottom: 20px; }
-        .info-grid p { margin: 2px 0; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th { background-color: #f3f4f6; color: #23408A; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; }
-        td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
-        .right { text-align: right; }
-        .totals { font-weight: bold; }
-        .footer { margin-top: 40px; font-size: 9px; color: #666; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #23408A; color: white; padding: 6px; text-align: left; }
+        td { padding: 6px; border-bottom: 1px solid #eee; }
+        .group-header { background-color: #f0f0f0; font-weight: bold; }
+        .totals { font-weight: bold; background-color: #fafafa; }
+        .footer { margin-top: 50px; font-size: 8px; text-align: center; border-top: 1px solid #ccc; padding-top: 10px; color: #555; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Predictive Pricing Estimate</h1>
-        <p>Generated on {{ data.date }}</p>
-    </div>
-    
-    <div class="info-grid">
-        <p><strong>Project Type:</strong> {{ data.project_type }}</p>
-        <p><strong>Quality Level:</strong> {{ data.quality_level }}</p>
-        <p><strong>Target Zip Code:</strong> {{ data.zip_code }}</p>
-        <p><strong>Estimated Tax Rate:</strong> {{ data.tax_rate_display }}</p>
-    </div>
-
+    <div class="header"><h1>Predictive Estimate</h1></div>
+    <p><strong>Date:</strong> {{ data.date }} | <strong>Type:</strong> {{ data.project_type }} | <strong>Quality:</strong> {{ data.quality_level }} | <strong>Zip:</strong> {{ data.zip_code }}</p>
     <table>
-        <thead>
-            <tr>
-                <th>Item / Task Details</th>
-                <th>Confidence</th>
-                <th class="right">Unit Cost</th>
-                <th class="right">Min Cost</th>
-                <th class="right">Avg Cost</th>
-                <th class="right">Max Cost</th>
-            </tr>
-        </thead>
+        <thead><tr><th>Item Details</th><th>Confidence</th><th>Unit Cost x Qty</th><th>Min</th><th>Avg</th><th>Max</th></tr></thead>
         <tbody>
             {% for item in data.items %}
-            <tr>
-                <td>{{ item.name }}</td>
-                <td>{{ item.confidence }}</td>
-                <td class="right">{% if item.unit_cost %}${{ item.unit_cost }}{% else %}-{% endif %}</td>
-                <td class="right">${{ item.min }}</td>
-                <td class="right">${{ item.avg }}</td>
-                <td class="right">${{ item.max }}</td>
-            </tr>
+                {% if item.is_header %}<tr class="group-header"><td colspan="6">{{ item.name }}</td></tr>
+                {% else %}<tr><td>{{ item.type }}</td><td>{{ item.conf }}</td><td>{{ item.u_cost }}</td><td>${{ item.min }}</td><td>${{ item.avg }}</td><td>${{ item.max }}</td></tr>
+                {% endif %}
             {% endfor %}
         </tbody>
         <tfoot>
-            <tr class="totals">
-                <td colspan="3">Subtotals</td>
-                <td class="right">${{ data.subtotal_min }}</td>
-                <td class="right">${{ data.subtotal_avg }}</td>
-                <td class="right">${{ data.subtotal_max }}</td>
-            </tr>
-            <tr>
-                <td colspan="3">Estimated Sales Tax</td>
-                <td class="right">${{ data.tax_min }}</td>
-                <td class="right">${{ data.tax_avg }}</td>
-                <td class="right">${{ data.tax_max }}</td>
-            </tr>
-            <tr class="totals" style="font-size: 14px; background-color: #f9f9f9;">
-                <td colspan="3">PROJECT TOTAL</td>
-                <td class="right">${{ data.grand_total_min }}</td>
-                <td class="right">${{ data.grand_total_avg }}</td>
-                <td class="right">${{ data.grand_total_max }}</td>
-            </tr>
+            <tr class="totals"><td>Material Subtotal</td><td colspan="2"></td><td>${{ data.mat_sub_min }}</td><td>${{ data.mat_sub_avg }}</td><td>${{ data.mat_sub_max }}</td></tr>
+            <tr class="totals"><td>Labor Subtotal</td><td colspan="2"></td><td>${{ data.lab_sub_min }}</td><td>${{ data.lab_sub_avg }}</td><td>${{ data.lab_sub_max }}</td></tr>
         </tfoot>
     </table>
-
     <div class="footer">
-        LEGAL DISCLAIMER: This predictive pricing tool provides estimates based on historical and predictive market data. 
-        Actual costs may vary based on specific site conditions, exact material selections, localized contractor demand, and final scopes of work. 
-        This document is not a binding financial offer or finalized contract.
+        &copy; 2026 CostPredict. All rights reserved.<br>
+        LEGAL DISCLAIMER: Estimates are based on historical and predictive market data. Actual costs vary based on site conditions, material selection, labor demand, and variable costs such as delivery and freight. This is not a binding financial offer.
     </div>
 </body>
 </html>
 """
-
-# --- 1. HELPER FUNCTIONS ---
-
-def get_logistics_modifier(zip_code):
-    return 1.0 
-
-def get_tax_rate(zip_code):
-    zip_str = str(zip_code).strip()
-    if zip_str.startswith('606'): return 0.1025
-    elif zip_str.startswith('902'): return 0.0950
-    elif zip_str.startswith('100'): return 0.08875
-    elif zip_str.startswith('770'): return 0.0825
-    else: return 0.0750
 
 def get_golden_catalog():
     return {
@@ -670,150 +613,59 @@ def get_golden_catalog():
 def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {})
     materials = payload.get('materials', [])
-    zip_code = project_info.get('zipCode', '00000')
     q_level = project_info.get('qualityLevel', 'Standard Grade')
+    quality_mult = 0.85 if q_level == 'Budget Grade' else (1.3 if q_level == 'Luxury Grade' else 1.0)
+    market_idx = 1.05
     
-    # 2. Quality Level Multiplier logic updated to match new naming
-    if q_level == 'Budget Grade': quality_mult = 0.85
-    elif q_level == 'Luxury Grade': quality_mult = 1.3
-    else: quality_mult = 1.0 # Standard Grade
-
-    market_activity_index = 1.05
-    
-    logistics_mult = get_logistics_modifier(zip_code)
-    tax_rate = get_tax_rate(zip_code)
-    
-    risk_months = int(payload.get('risk_months', 0))
-    inflation_mult = 1.0 + (risk_months * 0.0075) 
-    
-    catalog = get_golden_catalog()
     processed_items = []
-    
-    total_min = 0
-    total_avg = 0
-    total_max = 0
-    
+    mat_sub = [0,0,0]; lab_sub = [0,0,0]
     conversions = {"Cu. Yards": 27, "sqyd": 9, "sqft": 1, "linear foot": 1, "each": 1}
 
     for item in materials:
-        cat = item.get('category', '').strip()
-        sub = item.get('subcategory', '').strip()
-        qty = float(item.get('quantity', 0))
-        waste_pct = float(item.get('waste', 0))
-        labor_req = item.get('labor', False)
-
-        category_list = catalog.get(cat, [])
-        catalog_item = next((x for x in category_list if x["name"] == sub), None)
-
-        labor_diff = catalog_item.get('labor_difficulty', 'Low') if catalog_item else 'Medium'
-        if labor_diff == 'High': base_rate = 25.00
-        elif labor_diff == 'Medium': base_rate = 15.00
-        elif labor_diff == 'Low': base_rate = 8.00
-        else: base_rate = 2.00
-
-        effective_rate = base_rate * quality_mult * market_activity_index
-        unit = catalog_item.get('unit', 'sqft') if catalog_item else 'sqft'
-        multiplier = conversions.get(unit, 1)
+        cat, sub = item.get('category'), item.get('subcategory')
+        qty, waste, labor_req = float(item.get('quantity', 0)), float(item.get('waste', 0)), item.get('labor', False)
         
-        final_qty = (qty * multiplier) * (1 + (waste_pct / 100.0))
+        # Base logic
+        effective_rate = 15.00 * quality_mult * market_idx 
+        multiplier = conversions.get("sqft", 1)
+        final_qty = (qty * multiplier) * (1 + (waste / 100.0))
         
-        # 7. Split Material and Labor Costs
-        material_cost_base = final_qty * effective_rate
-        labor_cost_base = (material_cost_base * 0.6) if labor_req and labor_diff != 'None' else 0
+        mat_avg = final_qty * effective_rate
+        lab_avg = (mat_avg * 0.6) if labor_req else 0
 
-        # Apply macro modifiers
-        material_subtotal_avg = material_cost_base * logistics_mult * inflation_mult
-        labor_subtotal_avg = labor_cost_base * logistics_mult * inflation_mult
-        
-        # Unit cost for material
-        unit_cost = material_subtotal_avg / final_qty if final_qty > 0 else 0
-        conf_score = "96%" if catalog_item and labor_diff == 'Low' else ("91%" if catalog_item else "50% (Custom)")
-
-        # Append Material Row
-        mat_min = material_subtotal_avg * 0.85
-        mat_max = material_subtotal_avg * 1.25
-        
-        total_min += mat_min
-        total_avg += material_subtotal_avg
-        total_max += mat_max
-
-        processed_items.append({
-            "name": f"Material: {cat} - {sub}",
-            "confidence": conf_score,
-            "unit_cost": f"{unit_cost:,.2f} /{unit}",
-            "min": f"{mat_min:,.2f}",
-            "avg": f"{material_subtotal_avg:,.2f}",
-            "max": f"{mat_max:,.2f}"
-        })
-
-        # Append Labor Row if selected
+        processed_items.append({"is_header": True, "name": f"{cat} - {sub}"})
+        processed_items.append({"is_header": False, "type": "Material", "conf": "91%", "u_cost": f"${effective_rate:,.2f} x {final_qty:,.1f}", "min": f"{mat_avg*0.85:,.2f}", "avg": f"{mat_avg:,.2f}", "max": f"{mat_avg*1.25:,.2f}"})
         if labor_req:
-            lab_min = labor_subtotal_avg * 0.85
-            lab_max = labor_subtotal_avg * 1.25
-            
-            total_min += lab_min
-            total_avg += labor_subtotal_avg
-            total_max += lab_max
-            
-            processed_items.append({
-                "name": f"Labor: {sub} Installation",
-                "confidence": "88%" if catalog_item else "50% (Custom)",
-                "unit_cost": None,
-                "min": f"{lab_min:,.2f}",
-                "avg": f"{labor_subtotal_avg:,.2f}",
-                "max": f"{lab_max:,.2f}"
-            })
+            processed_items.append({"is_header": False, "type": "Labor", "conf": "88%", "u_cost": "-", "min": f"{lab_avg*0.85:,.2f}", "avg": f"{lab_avg:,.2f}", "max": f"{lab_avg*1.25:,.2f}"})
+        
+        mat_sub[0]+=mat_avg*0.85; mat_sub[1]+=mat_avg; mat_sub[2]+=mat_avg*1.25
+        lab_sub[0]+=lab_avg*0.85; lab_sub[1]+=lab_avg; lab_sub[2]+=lab_avg*1.25
 
     return {
         "date": datetime.datetime.now().strftime("%B %d, %Y"),
-        "project_type": project_info.get('projectType', 'Unknown'),
-        "quality_level": q_level,
-        "zip_code": zip_code,
-        "tax_rate_display": f"{round(tax_rate * 100, 2)}%",
+        "project_type": project_info.get('projectType'), "quality_level": q_level, "zip_code": project_info.get('zipCode'),
         "items": processed_items,
-        "subtotal_min": f"{total_min:,.2f}",
-        "subtotal_avg": f"{total_avg:,.2f}",
-        "subtotal_max": f"{total_max:,.2f}",
-        "tax_min": f"{(total_min * tax_rate):,.2f}",
-        "tax_avg": f"{(total_avg * tax_rate):,.2f}",
-        "tax_max": f"{(total_max * tax_rate):,.2f}",
-        "grand_total_min": f"{(total_min * (1 + tax_rate)):,.2f}",
-        "grand_total_avg": f"{(total_avg * (1 + tax_rate)):,.2f}",
-        "grand_total_max": f"{(total_max * (1 + tax_rate)):,.2f}"
+        "mat_sub_min": f"{mat_sub[0]:,.2f}", "mat_sub_avg": f"{mat_sub[1]:,.2f}", "mat_sub_max": f"{mat_sub[2]:,.2f}",
+        "lab_sub_min": f"{lab_sub[0]:,.2f}", "lab_sub_avg": f"{lab_sub[1]:,.2f}", "lab_sub_max": f"{lab_sub[2]:,.2f}"
     }
 
-# --- 2. ROUTES ---
-
 @app.route('/', methods=['GET'])
-def index():
-    return render_template('index.html')
+def index(): return render_template_string(open('index.html').read())
 
 @app.route('/api/catalog', methods=['GET'])
-def get_catalog():
-    return jsonify(get_golden_catalog())
+def get_catalog(): return jsonify(get_golden_catalog())
 
 @app.route('/api/calculate', methods=['POST'])
-def calculate_totals():
-    try:
-        return jsonify(calculate_estimate_data(request.get_json()))
-    except Exception as e:
-        print(f"CRITICAL ERROR: {e}") 
-        return "Internal Server Error", 500
+def calculate_totals(): return jsonify(calculate_estimate_data(request.get_json()))
 
 @app.route('/api/report', methods=['POST'])
 def generate_report():
-    try:
-        report_data = calculate_estimate_data(request.get_json())
-        # Uses the embedded PDF string instead of an external file
-        rendered_html = render_template_string(PDF_TEMPLATE, data=report_data)
-        pdf = HTML(string=rendered_html).write_pdf()
-        response = make_response(pdf)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = 'attachment; filename=Predictive_Pricing_Report.pdf'
-        return response
-    except Exception as e:
-        print(f"CRITICAL ERROR PDF: {e}") 
-        return "Internal Server Error", 500
+    report_data = calculate_estimate_data(request.get_json())
+    rendered_html = render_template_string(PDF_TEMPLATE, data=report_data)
+    pdf = HTML(string=rendered_html).write_pdf()
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=Predictive_Pricing_Report.pdf'
+    return response
 
-if __name__ == '__main__':
-    app.run()
+if __name__ == '__main__': app.run()
