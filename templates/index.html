@@ -15,74 +15,88 @@
             header, #form-container, .edit-btn, #download-pdf-btn, .no-print, footer, .mobile-hint { display: none !important; }
             #checkout-section { border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; display: block !important; }
             body { background: white !important; }
+            .print-only { display: block !important; }
         }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
-    <main class="flex-grow max-w-5xl mx-auto w-full p-4 md:p-8">
-        <div id="form-container" class="bg-white p-8 rounded-xl shadow-lg border">
+    <main class="flex-grow max-w-5xl mx-auto w-full p-8">
+        <div id="form-container">
             <form id="estimate-form">
-                <section class="mb-8">
-                    <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Project Information</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div><label class="block text-sm font-bold">Type</label><select id="project-type" class="w-full p-3 border rounded"><option value="Residential">Residential</option><option value="Commercial">Commercial</option></select></div>
-                        <div><label class="block text-sm font-bold">Zip Code</label><input type="text" id="zip-code" class="w-full p-3 border rounded" required></div>
-                        <div><label class="block text-sm font-bold">Quality</label><select id="quality-level" class="w-full p-3 border rounded"><option>Budget Grade</option><option>Standard Grade</option><option>Luxury Grade</option></select></div>
-                        <div><label class="block text-sm font-bold">Date</label><input type="date" id="start-date" class="w-full p-3 border rounded" required></div>
-                    </div>
-                </section>
                 <div id="materials-container"></div>
                 <button type="button" onclick="addMaterialRow()" class="mt-4 bg-gray-100 text-brand-blue font-bold px-6 py-3 rounded-lg">+ Add Another Material</button>
-                <button type="submit" class="w-full bg-brand-blue text-white py-4 rounded-lg mt-6 font-bold">Calculate Pricing</button>
+                <button type="submit" class="w-full bg-brand-blue text-white py-4 rounded-lg mt-4">Calculate Pricing</button>
             </form>
         </div>
 
         <div id="checkout-section" class="hidden bg-white p-8 rounded-xl shadow-lg border-2 border-brand-blue">
-            <h2 class="text-2xl font-bold text-brand-blue mb-6">CostPredict Estimate</h2>
-            <p class="mobile-hint md:hidden text-center text-xs font-bold text-brand-blue bg-yellow-50 p-2 mb-4 rounded italic">Tip: Rotate your device or scroll right to view full estimate details.</p>
-            
-            <div class="overflow-x-auto mb-8">
-                <table class="w-full text-left" id="checkout-table">
-                    <thead><tr class="bg-gray-100 uppercase text-sm"><th class="p-3">Item</th><th class="p-3">Rate/Qty</th><th class="p-3 text-right">Min</th><th class="p-3 text-right">Avg</th><th class="p-3 text-right">Max</th></tr></thead>
-                    <tbody id="checkout-items"></tbody>
-                </table>
+            <h2 class="text-2xl font-bold text-brand-blue mb-4">CostPredict Estimate</h2>
+            <div id="print-summary" class="mb-4 text-sm hidden print-only">
+                <strong>Project:</strong> <span id="sum-type"></span> | <strong>Zip:</strong> <span id="sum-zip"></span>
             </div>
-            <button type="button" onclick="editEstimate()" class="edit-btn bg-gray-200 px-6 py-3 rounded-lg">← Back to Edit</button>
-            <button type="button" onclick="window.print()" class="bg-brand-blue text-white px-6 py-3 rounded-lg">Print Predictive Report</button>
+            
+            <p class="mobile-hint md:hidden text-center text-xs font-bold text-brand-blue bg-yellow-50 p-2 mb-4 rounded italic">Tip: Scroll right to view full estimate details.</p>
+
+            <div id="risk-container" class="no-print mb-6">
+                <input type="range" id="risk-slider" min="0" max="12" step="3" value="0" class="w-full">
+            </div>
+
+            <table class="w-full text-left" id="checkout-table">
+                <thead><tr class="bg-gray-100 uppercase text-sm"><th class="p-3">Item</th><th class="p-3">Unit Rate/Qty</th><th class="p-3 text-right">Avg</th></tr></thead>
+                <tbody id="checkout-items"></tbody>
+            </table>
+
+            <div class="text-xs text-gray-500 mt-8 border-t pt-4">LEGAL DISCLAIMER: ...</div>
+            <button type="button" onclick="editEstimate()" class="edit-btn bg-gray-200 px-6 py-3 rounded-lg mt-4">Back to Edit</button>
+            <button type="button" onclick="window.print()" class="bg-brand-blue text-white px-6 py-3 rounded-lg mt-4">Print Predictive Report</button>
         </div>
     </main>
 
     <script>
+        let goldenCatalog = {}, currentPayload = {};
+        
         function addMaterialRow() {
+            const container = document.getElementById('materials-container');
             const rowId = 'row-' + Date.now();
-            document.getElementById('materials-container').insertAdjacentHTML('beforeend', `
+            container.insertAdjacentHTML('beforeend', `
                 <div id="${rowId}" class="grid grid-cols-12 gap-4 mb-4 p-4 border rounded relative">
                     <button type="button" onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500">×</button>
-                    <div class="col-span-3"><input class="main-cat-input w-full p-2 border" placeholder="Cat" required></div>
-                    <div class="col-span-3"><input class="sub-cat-input w-full p-2 border" placeholder="Sub" required></div>
+                    <div class="col-span-4"><input class="main-cat-input w-full p-2 border" placeholder="Category" required></div>
+                    <div class="col-span-3"><input class="sub-cat-input w-full p-2 border" placeholder="Subcategory" required></div>
                     <div class="col-span-2"><input type="number" class="qty-input w-full p-2 border" value="0"></div>
-                    <div class="col-span-2"><select class="waste-input w-full p-2 border"><option value="0">0%</option><option value="5">5%</option><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option></select></div>
-                    <div class="col-span-2"><input type="checkbox" class="labor-input" checked> Labor</div>
+                    <div class="col-span-3">
+                        <select class="waste-input w-full p-2 border">
+                            <option value="0">0%</option><option value="5">5%</option>
+                            <option value="10">10%</option><option value="15">15%</option>
+                            <option value="20">20%</option>
+                        </select>
+                    </div>
                 </div>`);
         }
 
         document.getElementById('estimate-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            // ... [Assume your payload logic exists here] ...
-            const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({/*payload*/}) });
+            // Assuming currentPayload is built here from inputs
+            const response = await fetch('/api/calculate', { method: 'POST', body: JSON.stringify(currentPayload), headers: {'Content-Type': 'application/json'} });
             const data = await response.json();
             
-            let html = data.items.map(i => i.is_header ? `<tr class="bg-gray-100 font-bold"><td colspan="5">${i.name}</td></tr>` : `<tr><td>${i.type}</td><td>${i.u_cost}</td><td class="text-right">$${i.min}</td><td class="text-right">$${i.avg}</td><td class="text-right">$${i.max}</td></tr>`).join('');
+            let html = data.items.map(i => 
+                i.is_header ? `<tr class="font-bold bg-gray-100"><td colspan="3">${i.name}</td></tr>` 
+                : `<tr><td>${i.type}</td><td>${i.u_cost}</td><td class="text-right">$${i.avg}</td></tr>`
+            ).join('');
             
-            // Tax line included exactly as requested
-            html += `<tr class="font-bold border-t"><td colspan="2">Sales Tax (${data.tax_rate_display}%)</td><td class="text-right">$${data.tax_min}</td><td class="text-right">$${data.tax_avg}</td><td class="text-right">$${data.tax_max}</td></tr>`;
-            html += `<tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="2">Grand Total</td><td class="text-right">$${data.tot_min}</td><td class="text-right">$${data.tot_avg}</td><td class="text-right">$${data.tot_max}</td></tr>`;
+            html += `<tr class="font-bold border-t"><td colspan="2">Sales Tax (${data.tax_rate_display}%)</td><td class="text-right">$${data.tax_avg}</td></tr>`;
+            html += `<tr class="bg-brand-blue text-white font-bold"><td colspan="2">Grand Total</td><td class="text-right">$${data.tot_avg}</td></tr>`;
             
             document.getElementById('checkout-items').innerHTML = html;
             document.getElementById('form-container').classList.add('hidden');
             document.getElementById('checkout-section').classList.remove('hidden');
         });
-        function editEstimate() { document.getElementById('checkout-section').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); }
+
+        function editEstimate() {
+            document.getElementById('checkout-section').classList.add('hidden');
+            document.getElementById('form-container').classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
