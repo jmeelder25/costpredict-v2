@@ -34,7 +34,7 @@ PDF_TEMPLATE = """
 </head>
 <body>
     <div class="header">
-        <img src="CostPredict_Logo_White.png" class="logo" alt="CostPredict Logo">
+        <img src="{{ logo_uri }}" class="logo" alt="CostPredict Logo">
         <h1 style="margin: 0; font-size: 20px;">Predictive Estimate</h1>
     </div>
     <p><strong>Date Printed:</strong> {{ data.date }} | <strong>Type:</strong> {{ data.project_type }} | <strong>Quality:</strong> {{ data.quality_level }} | <strong>Zip:</strong> {{ data.zip_code }}</p>
@@ -752,10 +752,19 @@ def calculate_totals():
 def generate_report():
     try:
         report_data = calculate_estimate_data(request.get_json())
-        html_content = render_template_string(PDF_TEMPLATE, data=report_data, disclaimer=PDF_DISCLAIMER)
         
-        # Ensure WeasyPrint looks in the root directory for CostPredict_Logo_White.png
-        pdf = HTML(string=html_content, base_url=os.getcwd()).write_pdf()
+        # FIX 1: Generate absolute local path so WeasyPrint never fails to find it
+        local_logo_path = os.path.abspath("CostPredict_Logo_White.png")
+        logo_uri = f"file://{local_logo_path}"
+        
+        html_content = render_template_string(
+            PDF_TEMPLATE, 
+            data=report_data, 
+            disclaimer=PDF_DISCLAIMER, 
+            logo_uri=logo_uri
+        )
+        
+        pdf = HTML(string=html_content).write_pdf()
         
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
