@@ -1,13 +1,13 @@
-
 print("--- APP STARTING ---")
 import os
-from flask import Flask, request, make_response, render_template_string, jsonify
+import traceback
+from flask import Flask, request, make_response, render_template, render_template_string, jsonify
 from weasyprint import HTML
 import datetime
 
 app = Flask(__name__)
 
-# Embedded PDF Template with Legal Disclaimer, Material/Labor Breakdown, and Copyright
+# Embedded PDF Template
 PDF_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -612,8 +612,8 @@ def get_golden_catalog():
     }
 
 def calculate_estimate_data(payload):
-    project_info = payload.get('project_info', {})
-    materials = payload.get('materials', [])
+    project_info = payload.get('project_info', {}) or {}
+    materials = payload.get('materials', []) or []
     q_level = project_info.get('qualityLevel', 'Standard Grade')
     quality_mult = 0.85 if q_level == 'Budget Grade' else (1.3 if q_level == 'Luxury Grade' else 1.0)
     market_idx = 1.05
@@ -623,10 +623,18 @@ def calculate_estimate_data(payload):
     conversions = {"Cu. Yards": 27, "sqyd": 9, "sqft": 1, "linear foot": 1, "each": 1}
 
     for item in materials:
-        cat, sub = item.get('category'), item.get('subcategory')
-        qty, waste, labor_req = float(item.get('quantity', 0)), float(item.get('waste', 0)), item.get('labor', False)
+        cat = item.get('category', 'Unknown')
+        sub = item.get('subcategory', 'Unknown')
         
-        # Base logic
+        # Safely parse floats to avoid NoneType math errors
+        try:
+            qty = float(item.get('quantity') or 0)
+            waste = float(item.get('waste') or 0)
+        except ValueError:
+            qty, waste = 0.0, 0.0
+            
+        labor_req = item.get('labor', False)
+        
         effective_rate = 15.00 * quality_mult * market_idx 
         multiplier = conversions.get("sqft", 1)
         final_qty = (qty * multiplier) * (1 + (waste / 100.0))
@@ -644,29 +652,51 @@ def calculate_estimate_data(payload):
 
     return {
         "date": datetime.datetime.now().strftime("%B %d, %Y"),
-        "project_type": project_info.get('projectType'), "quality_level": q_level, "zip_code": project_info.get('zipCode'),
+        "project_type": project_info.get('projectType', 'N/A'), 
+        "quality_level": q_level, 
+        "zip_code": project_info.get('zipCode', 'N/A'),
         "items": processed_items,
         "mat_sub_min": f"{mat_sub[0]:,.2f}", "mat_sub_avg": f"{mat_sub[1]:,.2f}", "mat_sub_max": f"{mat_sub[2]:,.2f}",
         "lab_sub_min": f"{lab_sub[0]:,.2f}", "lab_sub_avg": f"{lab_sub[1]:,.2f}", "lab_sub_max": f"{lab_sub[2]:,.2f}"
     }
 
+# --- THIS IS THE FIX ---
 @app.route('/', methods=['GET'])
-def index(): return render_template_string(open('index.html').read())
+def index(): 
+    try:
+        # This properly looks inside your 'templates' folder for index.html
+        return render_template('index.html')
+    except Exception as e:
+        print(f"Template Error: {e}")
+        return f"Cannot load HTML: {e}", 500
 
 @app.route('/api/catalog', methods=['GET'])
-def get_catalog(): return jsonify(get_golden_catalog())
+def get_catalog(): 
+    return jsonify(get_golden_catalog())
 
 @app.route('/api/calculate', methods=['POST'])
-def calculate_totals(): return jsonify(calculate_estimate_data(request.get_json()))
+def calculate_totals(): 
+    try:
+        return jsonify(calculate_estimate_data(request.get_json()))
+    except Exception as e:
+        print("CALCULATION ERROR:")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/report', methods=['POST'])
 def generate_report():
-    report_data = calculate_estimate_data(request.get_json())
-    rendered_html = render_template_string(PDF_TEMPLATE, data=report_data)
-    pdf = HTML(string=rendered_html).write_pdf()
-    response = make_response(pdf)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'attachment; filename=Predictive_Pricing_Report.pdf'
-    return response
+    try:
+        report_data = calculate_estimate_data(request.get_json())
+        rendered_html = render_template_string(PDF_TEMPLATE, data=report_data)
+        pdf = HTML(string=rendered_html).write_pdf()
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=Predictive_Pricing_Report.pdf'
+        return response
+    except Exception as e:
+        print("PDF ERROR:")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__': app.run()
+if __name__ == '__main__': 
+    app.run()
