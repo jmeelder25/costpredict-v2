@@ -569,33 +569,25 @@ def get_golden_catalog():
         ]
     }
 
-# --- CALCULATOR LOGIC ---
 def calculate_estimate_data(payload):
-    # Extract data with safe fallbacks
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
     risk = int(payload.get('risk_months', 0))
-    
-    # 1% cost increase per month of risk
     risk_mult = 1 + (risk * 0.01)
     
     q_level = project_info.get('quality', 'Standard Grade')
     q_m = 1.3 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.0)
     
     processed_items = []
-    # Using arrays to hold [Min, Avg, Max] for total calculations
     totals = {"mat": [0.0, 0.0, 0.0], "lab": [0.0, 0.0, 0.0]}
     
     for item in materials:
         waste = float(item.get('waste', 0)) / 100
         qty = float(item.get('quantity', 0)) * (1 + waste)
         rate = 15.00 * q_m
-        
-        # Calculate base costs
         mat_avg = qty * rate * risk_mult
         lab_avg = (mat_avg * 0.6) if item.get('labor') else 0
         
-        # Define ranges
         m_vals = [mat_avg * 0.9, mat_avg, mat_avg * 1.1]
         l_vals = [lab_avg * 0.9, lab_avg, lab_avg * 1.1]
         
@@ -605,23 +597,19 @@ def calculate_estimate_data(payload):
             "u_cost": f"${rate:,.2f} x {qty:,.1f}", 
             "min": f"{m_vals[0]:,.2f}", "avg": f"{m_vals[1]:,.2f}", "max": f"{m_vals[2]:,.2f}"
         })
-        
         if item.get('labor'):
             processed_items.append({
                 "is_header": False, "type": "Labor", "conf_pct": 85,
                 "u_cost": "-", 
                 "min": f"{l_vals[0]:,.2f}", "avg": f"{l_vals[1]:,.2f}", "max": f"{l_vals[2]:,.2f}"
             })
-        
-        # Aggregate subtotals
         for i in range(3):
             totals["mat"][i] += m_vals[i]
             totals["lab"][i] += l_vals[i]
 
     tax = 0.0825
     return {
-        "items": processed_items,
-        "tax_rate_display": "8.25",
+        "items": processed_items, "tax_rate_display": "8.25",
         "mat_sub": [f"{v:,.2f}" for v in totals["mat"]],
         "lab_sub": [f"{v:,.2f}" for v in totals["lab"]],
         "tax": [f"{(totals['mat'][i] + totals['lab'][i]) * tax:,.2f}" for i in range(3)],
@@ -630,10 +618,8 @@ def calculate_estimate_data(payload):
 
 @app.route('/')
 def index(): return render_template('index.html')
-
-@app.route('/api/catalog', methods=['GET'])
+@app.route('/api/catalog')
 def get_catalog(): return jsonify(get_golden_catalog())
-
 @app.route('/api/calculate', methods=['POST'])
 def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
 
