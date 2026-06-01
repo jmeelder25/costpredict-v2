@@ -14,9 +14,13 @@
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+    
     <header class="bg-white py-6 shadow-sm border-b-4 border-brand-yellow">
         <div class="max-w-5xl mx-auto px-4 flex flex-col items-center">
-            <p class="text-brand-blue font-bold text-lg tracking-wide uppercase">Contractor Predictive Pricing</p>
+            <div class="text-3xl font-extrabold text-brand-blue mb-1">
+                Cost<span class="text-brand-yellow">Predict</span>
+            </div>
+            <p class="text-gray-500 font-bold text-sm tracking-wide uppercase">Contractor Predictive Pricing</p>
         </div>
     </header>
 
@@ -55,7 +59,8 @@
                     <div id="materials-container"></div>
                     <button type="button" onclick="addMaterialRow()" class="mt-4 bg-gray-100 text-brand-blue font-bold px-6 py-3 rounded-lg hover:bg-brand-yellow transition">+ Add Another Material</button>
                 </section>
-                <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition shadow-lg text-lg">Project Complete (Calculate Pricing)</button>
+                
+                <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition shadow-lg text-lg">Calculate Pricing</button>
             </form>
         </div>
 
@@ -76,8 +81,11 @@
             <div class="overflow-x-auto mb-8">
                 <table class="w-full text-left border-collapse" id="checkout-table">
                     <thead><tr class="bg-gray-100 text-gray-700 text-sm uppercase">
-                        <th class="p-3 border-b-2">Item</th><th class="p-3 border-b-2">Conf</th><th class="p-3 border-b-2 text-right">Unit Cost x Qty</th>
-                        <th class="p-3 border-b-2 text-right text-green-700">Min</th><th class="p-3 border-b-2 text-right text-brand-blue">Avg</th>
+                        <th class="p-3 border-b-2">Item</th>
+                        <th class="p-3 border-b-2 text-center">Confidence<br>Score</th>
+                        <th class="p-3 border-b-2 text-right">Unit Cost x Qty</th>
+                        <th class="p-3 border-b-2 text-right text-green-700">Min</th>
+                        <th class="p-3 border-b-2 text-right text-brand-blue">Avg</th>
                         <th class="p-3 border-b-2 text-right text-red-700">Max</th>
                     </tr></thead>
                     <tbody id="checkout-items"></tbody>
@@ -90,11 +98,15 @@
 
     <footer class="bg-brand-blue text-white p-6 text-center mt-8">
         <p class="text-sm font-bold">&copy; 2026 CostPredict. All rights reserved.</p>
-        <p class="text-xs mt-2 opacity-80">Note: Costs are estimates. Delivery and freight are variable costs not included in base pricing.</p>
+        <p class="text-xs mt-2 text-gray-300 max-w-3xl mx-auto">
+            LEGAL DISCLAIMER: Estimates are based on historical and predictive market data. Actual costs vary based on site conditions, material selection, labor demand, and variable costs such as delivery and freight. This is not a binding financial offer.
+        </p>
     </footer>
 
     <script>
         let goldenCatalog = {};
+        let currentPayload = {}; // Saved to generate PDF later
+
         document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch('/api/catalog');
             goldenCatalog = await response.json();
@@ -136,7 +148,7 @@
 
         document.getElementById('estimate-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const payload = {
+            currentPayload = {
                 project_info: { 
                     projectType: document.getElementById('project-type').value, 
                     zipCode: document.getElementById('zip-code').value, 
@@ -152,14 +164,53 @@
                 }))
             };
             try {
-                const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentPayload) });
                 const data = await response.json();
-                document.getElementById('checkout-items').innerHTML = data.items.map(i => i.is_header ? `<tr class="bg-gray-100 font-bold"><td colspan="6">${i.name}</td></tr>` : `<tr><td>${i.type}</td><td>${i.conf}</td><td class="text-right">${i.u_cost}</td><td class="text-right">$${i.min}</td><td class="text-right">$${i.avg}</td><td class="text-right">$${i.max}</td></tr>`).join('');
-                document.getElementById('form-container').classList.add('hidden'); document.getElementById('checkout-section').classList.remove('hidden');
+                
+                // Restored Math Render block
+                let rowsHtml = data.items.map(i => 
+                    i.is_header ? `<tr class="bg-gray-100 font-bold border-b"><td colspan="6" class="p-3">${i.name}</td></tr>` 
+                    : `<tr><td class="p-3 border-b">${i.type}</td><td class="p-3 border-b text-center font-bold">${i.conf_pct}%<br><span class="text-xs font-normal text-gray-500">${i.conf_label}</span></td><td class="p-3 border-b text-right">${i.u_cost}</td><td class="p-3 border-b text-right">$${i.min}</td><td class="p-3 border-b text-right">$${i.avg}</td><td class="p-3 border-b text-right">$${i.max}</td></tr>`
+                ).join('');
+                
+                let totalsHtml = `
+                    <tr class="bg-gray-50 font-bold border-t-2"><td colspan="3" class="p-3">Material Subtotal</td><td class="text-right p-3">$${data.mat_sub_min}</td><td class="text-right p-3">$${data.mat_sub_avg}</td><td class="text-right p-3">$${data.mat_sub_max}</td></tr>
+                    <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Labor Subtotal</td><td class="text-right p-3">$${data.lab_sub_min}</td><td class="text-right p-3">$${data.lab_sub_avg}</td><td class="text-right p-3">$${data.lab_sub_max}</td></tr>
+                    <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Sales Tax (${data.tax_rate_display}%)</td><td class="text-right p-3">$${data.tax_min}</td><td class="text-right p-3">$${data.tax_avg}</td><td class="text-right p-3">$${data.tax_max}</td></tr>
+                    <tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="3" class="p-3">Grand Total</td><td class="text-right p-3">$${data.tot_min}</td><td class="text-right p-3">$${data.tot_avg}</td><td class="text-right p-3">$${data.tot_max}</td></tr>
+                `;
+                
+                document.getElementById('checkout-items').innerHTML = rowsHtml + totalsHtml;
+                document.getElementById('form-container').classList.add('hidden'); 
+                document.getElementById('checkout-section').classList.remove('hidden');
             } catch (err) { alert("Calculation error. Please ensure all inputs are valid."); }
         });
 
         function editEstimate() { document.getElementById('checkout-section').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); }
+
+        // PDF Wiring Fix
+        document.getElementById('download-pdf-btn').addEventListener('click', async () => {
+            try {
+                const btn = document.getElementById('download-pdf-btn');
+                btn.textContent = "Generating...";
+                const response = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(currentPayload)
+                });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Predictive_Pricing_Report.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                btn.textContent = "Print Predictive Report (PDF)";
+            } catch (err) {
+                alert("Error generating PDF.");
+            }
+        });
     </script>
 </body>
 </html>
