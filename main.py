@@ -573,102 +573,82 @@ def get_conf_label(pct):
     if pct >= 80: return "Great"
     elif pct >= 60: return "Good"
     elif pct >= 50: return "Toss-Up"
-    elif pct >= 21: return "Not Good"
     else: return "Poor"
 
 def get_tax_rate(zip_code):
     return 0.0825
 
+# --- CALCULATOR LOGIC ---
 def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
     risk_months = int(payload.get('risk_months', 0))
-    start_date_str = project_info.get('startDate', '')
     
     q_level = project_info.get('qualityLevel', 'Standard Grade')
-    if q_level == 'Budget Grade':
-        quality_mult, r_min, r_max = 0.85, 0.80, 1.10
-    elif q_level == 'Luxury Grade':
-        quality_mult, r_min, r_max = 1.30, 0.90, 1.40
-    else:
-        quality_mult, r_min, r_max = 1.00, 0.85, 1.25
+    quality_mult = 1.30 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.00)
+    r_min, r_max = (0.90, 1.40) if q_level == 'Luxury Grade' else ((0.80, 1.10) if q_level == 'Budget Grade' else (0.85, 1.25))
 
-    months_to_start = 0
-    if start_date_str:
-        try:
-            start_d = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
-            now = datetime.datetime.now()
-            months_to_start = max(0, (start_d.year - now.year) * 12 + start_d.month - now.month)
-        except: pass
-    
-    zip_str = str(project_info.get('zipCode', '00000'))
-    zip_penalty = sum(int(d) for d in zip_str if d.isdigit()) % 5
-    market_idx = 1.05
-    tax_rate = get_tax_rate(project_info.get('zipCode', '00000'))
+    zip_code = project_info.get('zipCode', '00000')
+    tax_rate = get_tax_rate(zip_code)
     
     processed_items = []
-    mat_sub = [0,0,0]; lab_sub = [0,0,0]
+    mat_sub = [0.0, 0.0, 0.0]
+    lab_sub = [0.0, 0.0, 0.0]
     catalog = get_golden_catalog()
     
     for item in materials:
-        cat = item.get('category', 'Unknown'); sub = item.get('subcategory', 'Unknown')
-        qty = float(item.get('quantity') or 0); waste = float(item.get('waste') or 0)
+        cat = item.get('category')
+        sub = item.get('subcategory')
+        qty = float(item.get('quantity', 0))
+        waste = float(item.get('waste', 0)) # Handles 0, 5, 10, 15, 20
         labor_req = item.get('labor', False)
         
-        # Get unit from catalog
+        # Unit lookup
         unit = "Unit"
-        diff = "Medium"
         if cat in catalog:
             for c_i in catalog[cat]:
-                if c_i["name"] == sub: 
-                    unit = c_i.get("unit", "Unit")
-                    diff = c_i.get("labor_difficulty", "Medium")
+                if c_i["name"] == sub: unit = c_i.get("unit", "Unit")
         
-        effective_rate = 15.00 * quality_mult * market_idx * (1 + (0.005 * risk_months))
-        final_qty = (qty * 1) * (1 + (waste / 100.0))
+        effective_rate = 15.00 * quality_mult
+        final_qty = qty * (1 + (waste / 100.0))
         
         mat_avg = final_qty * effective_rate
         lab_avg = (mat_avg * 0.6) if labor_req else 0
         
-        d_p = 5 if diff == "High" else (2 if diff == "Medium" else 0)
-        mat_conf = max(15, int(95 - (months_to_start * 1.5) - zip_penalty - (risk_months * 1.5)))
-        lab_conf = max(10, int(92 - (months_to_start * 1.5) - zip_penalty - d_p - (risk_months * 1.5)))
-        
         processed_items.append({"is_header": True, "name": f"{cat} - {sub}"})
         processed_items.append({
-            "is_header": False, "type": "Material", "conf_pct": mat_conf, "conf_label": get_conf_label(mat_conf),
+            "is_header": False, "type": "Material", "conf_pct": 85, 
             "u_cost": f"${effective_rate:,.2f} / {unit} x {final_qty:,.1f}",
             "min": f"{mat_avg*r_min:,.2f}", "avg": f"{mat_avg:,.2f}", "max": f"{mat_avg*r_max:,.2f}"
         })
         
         if labor_req:
             processed_items.append({
-                "is_header": False, "type": "Labor", "conf_pct": lab_conf, "conf_label": get_conf_label(lab_conf),
+                "is_header": False, "type": "Labor", "conf_pct": 85,
                 "u_cost": "-", "min": f"{lab_avg*r_min:,.2f}", "avg": f"{lab_avg:,.2f}", "max": f"{lab_avg*r_max:,.2f}"
             })
             
-        mat_sub[0]+=mat_avg*r_min; mat_sub[1]+=mat_avg; mat_sub[2]+=mat_avg*r_max
-        lab_sub[0]+=lab_avg*r_min; lab_sub[1]+=lab_avg; lab_sub[2]+=lab_avg*r_max
+        mat_sub[0] += mat_avg*r_min; mat_sub[1] += mat_avg; mat_sub[2] += mat_avg*r_max
+        lab_sub[0] += lab_avg*r_min; lab_sub[1] += lab_avg; lab_sub[2] += lab_avg*r_max
 
     tax_arr = [(mat_sub[i] + lab_sub[i]) * tax_rate for i in range(3)]
     tot_arr = [(mat_sub[i] + lab_sub[i]) + tax_arr[i] for i in range(3)]
     
     return {
-        "date": datetime.datetime.now().strftime("%B %d, %Y"),
-        "items": processed_items, 
-        "mat_sub_min": f"{mat_sub[0]:,.2f}", "mat_sub_avg": f"{mat_sub[1]:,.2f}", "mat_sub_max": f"{mat_sub[2]:,.2f}",
-        "lab_sub_min": f"{lab_sub[0]:,.2f}", "lab_sub_avg": f"{lab_sub[1]:,.2f}", "lab_sub_max": f"{lab_sub[2]:,.2f}",
-        "tax_rate_display": f"{tax_rate*100:.2f}", "tax_min": f"{tax_arr[0]:,.2f}", "tax_avg": f"{tax_arr[1]:,.2f}", "tax_max": f"{tax_arr[2]:,.2f}",
+        "items": processed_items,
+        "tax_rate_display": f"{tax_rate*100:.2f}",
+        "tax_min": f"{tax_arr[0]:,.2f}", "tax_avg": f"{tax_arr[1]:,.2f}", "tax_max": f"{tax_arr[2]:,.2f}",
         "tot_min": f"{tot_arr[0]:,.2f}", "tot_avg": f"{tot_arr[1]:,.2f}", "tot_max": f"{tot_arr[2]:,.2f}"
     }
 
-@app.route('/', methods=['GET'])
+# --- ROUTES ---
+@app.route('/')
 def index(): return render_template('index.html')
 
 @app.route('/api/catalog', methods=['GET'])
 def get_catalog(): return jsonify(get_golden_catalog())
 
 @app.route('/api/calculate', methods=['POST'])
-def calculate_totals(): return jsonify(calculate_estimate_data(request.get_json()))
+def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
 
 if __name__ == '__main__': app.run()
