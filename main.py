@@ -571,48 +571,61 @@ def get_golden_catalog():
 
 # --- CALCULATOR LOGIC ---
 def calculate_estimate_data(payload):
+    # Extract data with safe fallbacks
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
+    risk = int(payload.get('risk_months', 0))
     
-    # Quality multipliers
+    # 1% cost increase per month of risk
+    risk_mult = 1 + (risk * 0.01)
+    
     q_level = project_info.get('quality', 'Standard Grade')
-    quality_mult = 1.30 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.00)
-    tax_rate = 0.0825 # Adjust as needed
+    q_m = 1.3 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.0)
     
     processed_items = []
-    mat_sub_avg = 0.0
+    # Using arrays to hold [Min, Avg, Max] for total calculations
+    totals = {"mat": [0.0, 0.0, 0.0], "lab": [0.0, 0.0, 0.0]}
     
     for item in materials:
-        cat = item.get('category')
-        sub = item.get('subcategory')
-        qty = float(item.get('quantity', 0))
-        waste = float(item.get('waste', 0)) # Now correctly picks up 0, 5, 10, 15, 20
+        waste = float(item.get('waste', 0)) / 100
+        qty = float(item.get('quantity', 0)) * (1 + waste)
+        rate = 15.00 * q_m
         
-        # Calculation
-        effective_rate = 15.00 * quality_mult
-        # Apply waste percentage to quantity
-        final_qty = qty * (1 + (waste / 100.0))
-        mat_avg = final_qty * effective_rate
+        # Calculate base costs
+        mat_avg = qty * rate * risk_mult
+        lab_avg = (mat_avg * 0.6) if item.get('labor') else 0
         
-        processed_items.append({"is_header": True, "name": f"{cat} - {sub}"})
+        # Define ranges
+        m_vals = [mat_avg * 0.9, mat_avg, mat_avg * 1.1]
+        l_vals = [lab_avg * 0.9, lab_avg, lab_avg * 1.1]
+        
+        processed_items.append({"is_header": True, "name": f"{item['category']} - {item['subcategory']}"})
         processed_items.append({
-            "is_header": False, 
-            "type": "Material", 
-            "u_cost": f"${effective_rate:,.2f} x {final_qty:,.1f}", 
-            "min": f"{mat_avg * 0.9:,.2f}", 
-            "avg": f"{mat_avg:,.2f}", 
-            "max": f"{mat_avg * 1.1:,.2f}"
+            "is_header": False, "type": "Material", "conf_pct": 85,
+            "u_cost": f"${rate:,.2f} x {qty:,.1f}", 
+            "min": f"{m_vals[0]:,.2f}", "avg": f"{m_vals[1]:,.2f}", "max": f"{m_vals[2]:,.2f}"
         })
-        mat_sub_avg += mat_avg
         
-    tax_avg = mat_sub_avg * tax_rate
-    tot_avg = mat_sub_avg + tax_avg
-    
+        if item.get('labor'):
+            processed_items.append({
+                "is_header": False, "type": "Labor", "conf_pct": 85,
+                "u_cost": "-", 
+                "min": f"{l_vals[0]:,.2f}", "avg": f"{l_vals[1]:,.2f}", "max": f"{l_vals[2]:,.2f}"
+            })
+        
+        # Aggregate subtotals
+        for i in range(3):
+            totals["mat"][i] += m_vals[i]
+            totals["lab"][i] += l_vals[i]
+
+    tax = 0.0825
     return {
         "items": processed_items,
-        "tax_rate_display": f"{tax_rate*100:.2f}",
-        "tax_avg": f"{tax_avg:,.2f}",
-        "tot_avg": f"{tot_avg:,.2f}"
+        "tax_rate_display": "8.25",
+        "mat_sub": [f"{v:,.2f}" for v in totals["mat"]],
+        "lab_sub": [f"{v:,.2f}" for v in totals["lab"]],
+        "tax": [f"{(totals['mat'][i] + totals['lab'][i]) * tax:,.2f}" for i in range(3)],
+        "tot": [f"{(totals['mat'][i] + totals['lab'][i]) * (1 + tax):,.2f}" for i in range(3)]
     }
 
 @app.route('/')
@@ -624,4 +637,4 @@ def get_catalog(): return jsonify(get_golden_catalog())
 @app.route('/api/calculate', methods=['POST'])
 def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
 
-if __name__ == '__main__': app.run()
+if __name__ == '__main__': app.run(debug=True)
