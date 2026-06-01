@@ -567,13 +567,43 @@ def get_golden_catalog():
         ]
     }
 
-def calculate_confidence(quality_level, quantity):
-    # Dynamic confidence scoring logic
-    score = 80
-    if quality_level == 'Luxury Grade': score -= 10
-    elif quality_level == 'Budget Grade': score += 5
-    if quantity > 1000: score -= 5
-    return min(max(score, 50), 99)
+def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, quantity):
+    # Dynamic confidence scoring algorithm demonstrating predictive variable analysis
+    score = 85 # Base starting confidence
+    
+    # 1. Evaluate Quality Level Complexity
+    if quality_level == 'Luxury Grade': 
+        score -= 10 # Harder to predict custom/luxury supply chains
+    elif quality_level == 'Budget Grade': 
+        score += 5  # Standardized items are easier to predict
+        
+    # 2. Evaluate Regional (Zip Code) Volatility
+    if zip_code.startswith('6'): 
+        score -= 3 # Example: Assume midwest zip codes currently have volatile shipping 
+    else: 
+        score += 2
+        
+    # 3. Evaluate Time Decay (Estimated Purchase Date)
+    try:
+        if start_date_str:
+            start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
+            days_away = (start_date - datetime.datetime.now()).days
+            if days_away > 0:
+                # Lose 1.5% confidence for every 30 days out
+                score -= int(days_away / 30) * 1.5 
+    except:
+        pass # Silently proceed if date parsing fails
+        
+    # 4. Evaluate User-Defined Timeline Risk
+    # Reduces confidence by 2% for every month shifted on the slider
+    score -= (risk_months * 2) 
+    
+    # 5. Evaluate Quantity Scale Risk
+    if quantity > 1000: 
+        score -= 5 # Massive orders may face bulk scarcity
+        
+    # Clamp final score between 50% and 99%
+    return min(max(int(score), 50), 99)
 
 def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {}) or {}
@@ -581,11 +611,13 @@ def calculate_estimate_data(payload):
     risk = int(payload.get('risk_months', 0))
     risk_mult = 1 + (risk * 0.01)
     
-    # Zip-based tax logic
     zip_code = project_info.get('zipCode', '00000')
+    q_level = project_info.get('qualityLevel', 'Standard Grade')
+    start_date = project_info.get('startDate', '')
+    
+    # Zip-based tax logic
     tax_rate = 0.09 if zip_code.startswith('6') else 0.0825
     
-    q_level = project_info.get('qualityLevel', 'Standard Grade')
     q_m = 1.3 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.0)
     
     processed_items = []
@@ -601,8 +633,8 @@ def calculate_estimate_data(payload):
         m_vals = [round(mat_avg * 0.9, 2), round(mat_avg, 2), round(mat_avg * 1.1, 2)]
         l_vals = [round(lab_avg * 0.9, 2), round(lab_avg, 2), round(lab_avg * 1.1, 2)]
         
-        # Dynamic Confidence Score
-        conf = calculate_confidence(q_level, float(item.get('quantity', 0)))
+        # Calculate dynamic confidence using all project variables
+        conf = calculate_confidence(zip_code, q_level, start_date, risk, float(item.get('quantity', 0)))
         
         processed_items.append({"is_header": True, "name": f"{item['category']} - {item['subcategory']}"})
         processed_items.append({
