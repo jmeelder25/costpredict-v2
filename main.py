@@ -7,7 +7,7 @@ import datetime
 
 app = Flask(__name__)
 
-# Embedded PDF Template
+# Embedded PDF Template (Restored Logo, Legal Footer, Confidence Score, Tax, and Totals)
 PDF_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -15,30 +15,58 @@ PDF_TEMPLATE = """
     <style>
         body { font-family: sans-serif; font-size: 11px; }
         .header { text-align: center; border-bottom: 2px solid #23408A; padding-bottom: 10px; margin-bottom: 20px; }
-        .header h1 { color: #23408A; margin: 0; }
+        .header h1 { color: #23408A; margin: 0; font-size: 24px; }
+        .logo { font-size: 28px; font-weight: 900; color: #23408A; margin-bottom: 5px; }
+        .logo span { color: #FFC113; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background-color: #23408A; color: white; padding: 6px; text-align: left; }
+        th.center { text-align: center; }
         td { padding: 6px; border-bottom: 1px solid #eee; }
+        td.center { text-align: center; }
         .group-header { background-color: #f0f0f0; font-weight: bold; }
         .totals { font-weight: bold; background-color: #fafafa; }
+        .grand-total { font-weight: bold; background-color: #23408A; color: white; }
         .footer { margin-top: 50px; font-size: 8px; text-align: center; border-top: 1px solid #ccc; padding-top: 10px; color: #555; }
     </style>
 </head>
 <body>
-    <div class="header"><h1>Predictive Estimate</h1></div>
+    <div class="header">
+        <div class="logo">Cost<span>Predict</span></div>
+        <h1>Predictive Estimate</h1>
+    </div>
     <p><strong>Date:</strong> {{ data.date }} | <strong>Type:</strong> {{ data.project_type }} | <strong>Quality:</strong> {{ data.quality_level }} | <strong>Zip:</strong> {{ data.zip_code }}</p>
     <table>
-        <thead><tr><th>Item Details</th><th>Confidence</th><th>Unit Cost x Qty</th><th>Min</th><th>Avg</th><th>Max</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Item Details</th>
+                <th class="center">CONFIDENCE<br>SCORE</th>
+                <th>Unit Cost x Qty</th>
+                <th>Min</th>
+                <th>Avg</th>
+                <th>Max</th>
+            </tr>
+        </thead>
         <tbody>
             {% for item in data.items %}
-                {% if item.is_header %}<tr class="group-header"><td colspan="6">{{ item.name }}</td></tr>
-                {% else %}<tr><td>{{ item.type }}</td><td>{{ item.conf }}</td><td>{{ item.u_cost }}</td><td>${{ item.min }}</td><td>${{ item.avg }}</td><td>${{ item.max }}</td></tr>
+                {% if item.is_header %}
+                    <tr class="group-header"><td colspan="6">{{ item.name }}</td></tr>
+                {% else %}
+                    <tr>
+                        <td>{{ item.type }}</td>
+                        <td class="center">{{ item.conf_pct }}%<br><span style="font-size:9px">{{ item.conf_label }}</span></td>
+                        <td>{{ item.u_cost }}</td>
+                        <td>${{ item.min }}</td>
+                        <td>${{ item.avg }}</td>
+                        <td>${{ item.max }}</td>
+                    </tr>
                 {% endif %}
             {% endfor %}
         </tbody>
         <tfoot>
             <tr class="totals"><td>Material Subtotal</td><td colspan="2"></td><td>${{ data.mat_sub_min }}</td><td>${{ data.mat_sub_avg }}</td><td>${{ data.mat_sub_max }}</td></tr>
             <tr class="totals"><td>Labor Subtotal</td><td colspan="2"></td><td>${{ data.lab_sub_min }}</td><td>${{ data.lab_sub_avg }}</td><td>${{ data.lab_sub_max }}</td></tr>
+            <tr class="totals"><td>Sales Tax ({{ data.tax_rate_display }}%)</td><td colspan="2"></td><td>${{ data.tax_min }}</td><td>${{ data.tax_avg }}</td><td>${{ data.tax_max }}</td></tr>
+            <tr class="grand-total"><td>Grand Total</td><td colspan="2"></td><td>${{ data.tot_min }}</td><td>${{ data.tot_avg }}</td><td>${{ data.tot_max }}</td></tr>
         </tfoot>
     </table>
     <div class="footer">
@@ -611,12 +639,25 @@ def get_golden_catalog():
         ]
     }
 
+def get_conf_label(pct):
+    if pct >= 80: return "Great"
+    elif pct >= 60: return "Good"
+    elif pct >= 50: return "Toss-Up"
+    elif pct >= 21: return "Not Good"
+    else: return "Poor"
+
+def get_tax_rate(zip_code):
+    # Simulated tax rate lookup based on location
+    return 0.0825
+
 def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
     q_level = project_info.get('qualityLevel', 'Standard Grade')
     quality_mult = 0.85 if q_level == 'Budget Grade' else (1.3 if q_level == 'Luxury Grade' else 1.0)
     market_idx = 1.05
+    
+    tax_rate = get_tax_rate(project_info.get('zipCode', '00000'))
     
     processed_items = []
     mat_sub = [0,0,0]; lab_sub = [0,0,0]
@@ -626,7 +667,6 @@ def calculate_estimate_data(payload):
         cat = item.get('category', 'Unknown')
         sub = item.get('subcategory', 'Unknown')
         
-        # Safely parse floats to avoid NoneType math errors
         try:
             qty = float(item.get('quantity') or 0)
             waste = float(item.get('waste') or 0)
@@ -643,12 +683,30 @@ def calculate_estimate_data(payload):
         lab_avg = (mat_avg * 0.6) if labor_req else 0
 
         processed_items.append({"is_header": True, "name": f"{cat} - {sub}"})
-        processed_items.append({"is_header": False, "type": "Material", "conf": "91%", "u_cost": f"${effective_rate:,.2f} x {final_qty:,.1f}", "min": f"{mat_avg*0.85:,.2f}", "avg": f"{mat_avg:,.2f}", "max": f"{mat_avg*1.25:,.2f}"})
+        
+        mat_conf = 91
+        processed_items.append({
+            "is_header": False, "type": "Material", 
+            "conf_pct": mat_conf, "conf_label": get_conf_label(mat_conf), 
+            "u_cost": f"${effective_rate:,.2f} x {final_qty:,.1f}", 
+            "min": f"{mat_avg*0.85:,.2f}", "avg": f"{mat_avg:,.2f}", "max": f"{mat_avg*1.25:,.2f}"
+        })
+        
         if labor_req:
-            processed_items.append({"is_header": False, "type": "Labor", "conf": "88%", "u_cost": "-", "min": f"{lab_avg*0.85:,.2f}", "avg": f"{lab_avg:,.2f}", "max": f"{lab_avg*1.25:,.2f}"})
+            lab_conf = 88
+            processed_items.append({
+                "is_header": False, "type": "Labor", 
+                "conf_pct": lab_conf, "conf_label": get_conf_label(lab_conf), 
+                "u_cost": "-", 
+                "min": f"{lab_avg*0.85:,.2f}", "avg": f"{lab_avg:,.2f}", "max": f"{lab_avg*1.25:,.2f}"
+            })
         
         mat_sub[0]+=mat_avg*0.85; mat_sub[1]+=mat_avg; mat_sub[2]+=mat_avg*1.25
         lab_sub[0]+=lab_avg*0.85; lab_sub[1]+=lab_avg; lab_sub[2]+=lab_avg*1.25
+
+    # Tax and Totals Math
+    tax_arr = [(mat_sub[i] + lab_sub[i]) * tax_rate for i in range(3)]
+    tot_arr = [(mat_sub[i] + lab_sub[i]) + tax_arr[i] for i in range(3)]
 
     return {
         "date": datetime.datetime.now().strftime("%B %d, %Y"),
@@ -657,14 +715,15 @@ def calculate_estimate_data(payload):
         "zip_code": project_info.get('zipCode', 'N/A'),
         "items": processed_items,
         "mat_sub_min": f"{mat_sub[0]:,.2f}", "mat_sub_avg": f"{mat_sub[1]:,.2f}", "mat_sub_max": f"{mat_sub[2]:,.2f}",
-        "lab_sub_min": f"{lab_sub[0]:,.2f}", "lab_sub_avg": f"{lab_sub[1]:,.2f}", "lab_sub_max": f"{lab_sub[2]:,.2f}"
+        "lab_sub_min": f"{lab_sub[0]:,.2f}", "lab_sub_avg": f"{lab_sub[1]:,.2f}", "lab_sub_max": f"{lab_sub[2]:,.2f}",
+        "tax_rate_display": f"{tax_rate*100:.2f}",
+        "tax_min": f"{tax_arr[0]:,.2f}", "tax_avg": f"{tax_arr[1]:,.2f}", "tax_max": f"{tax_arr[2]:,.2f}",
+        "tot_min": f"{tot_arr[0]:,.2f}", "tot_avg": f"{tot_arr[1]:,.2f}", "tot_max": f"{tot_arr[2]:,.2f}"
     }
 
-# --- THIS IS THE FIX ---
 @app.route('/', methods=['GET'])
 def index(): 
     try:
-        # This properly looks inside your 'templates' folder for index.html
         return render_template('index.html')
     except Exception as e:
         print(f"Template Error: {e}")
@@ -700,3 +759,223 @@ def generate_report():
 
 if __name__ == '__main__': 
     app.run()
+2. Updated index.html (inside your templates folder)
+This correctly renders the new math (Tax/Grand Total), shows the logo, updates the button text, dynamically styles the Confidence Score, and most importantly, makes the PDF button actually work.
+
+HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostPredict - Contractor Predictive Pricing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bg-brand-blue { background-color: #23408A; }
+        .text-brand-blue { color: #23408A; }
+        .bg-brand-yellow { background-color: #FFC113; }
+        .border-brand-yellow { border-color: #FFC113; }
+        .border-brand-blue { border-color: #23408A; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+    
+    <header class="bg-white py-6 shadow-sm border-b-4 border-brand-yellow">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col items-center">
+            <div class="text-3xl font-extrabold text-brand-blue mb-1">
+                Cost<span class="text-brand-yellow">Predict</span>
+            </div>
+            <p class="text-gray-500 font-bold text-sm tracking-wide uppercase">Contractor Predictive Pricing</p>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto w-full p-4 md:p-8">
+        <div id="form-container" class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+            <form id="estimate-form">
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Project Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Project Type</label>
+                            <select id="project-type" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none">
+                                <option value="Residential">Residential</option><option value="Commercial">Commercial</option>
+                                <option value="Mixed-Use">Mixed-Use</option><option value="Industrial">Industrial</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Project Zip Code</label>
+                            <input type="text" id="zip-code" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Quality Level</label>
+                            <select id="quality-level" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none">
+                                <option value="Budget Grade">Budget Grade</option><option value="Standard Grade">Standard Grade</option>
+                                <option value="Luxury Grade">Luxury Grade</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Purchase Date</label>
+                            <input type="date" id="start-date" class="w-full p-3 border-2 border-gray-200 rounded-lg outline-none" required>
+                        </div>
+                    </div>
+                </section>
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Material & Labor Specifications</h2>
+                    <div id="materials-container"></div>
+                    <button type="button" onclick="addMaterialRow()" class="mt-4 bg-gray-100 text-brand-blue font-bold px-6 py-3 rounded-lg hover:bg-brand-yellow transition">+ Add Another Material</button>
+                </section>
+                
+                <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition shadow-lg text-lg">Calculate Pricing</button>
+            </form>
+        </div>
+
+        <div id="checkout-section" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg border-2 border-brand-blue">
+            <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Predictive Estimate</h2>
+            <div class="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <label class="block text-lg font-bold text-brand-blue mb-2">Timeline Risk Shifter</label>
+                <p class="text-sm text-gray-700 mb-4">Simulate timeline delays to account for projected inflation and localized market escalation.</p>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-bold text-green-600">Target</span>
+                    <input type="range" id="risk-slider" min="0" max="12" step="3" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span class="text-sm font-bold text-red-600">+12 Months</span>
+                </div>
+                <div class="text-center mt-2 font-bold text-brand-blue">Shift: +<span id="risk-display">0</span> Months</div>
+            </div>
+
+            <div class="md:hidden text-center text-xs font-bold text-brand-blue bg-yellow-50 p-2 rounded mb-2">← Scroll Right to Read Full Estimate →</div>
+            <div class="overflow-x-auto mb-8">
+                <table class="w-full text-left border-collapse" id="checkout-table">
+                    <thead><tr class="bg-gray-100 text-gray-700 text-sm uppercase">
+                        <th class="p-3 border-b-2">Item</th>
+                        <th class="p-3 border-b-2 text-center">Confidence<br>Score</th>
+                        <th class="p-3 border-b-2 text-right">Unit Cost x Qty</th>
+                        <th class="p-3 border-b-2 text-right text-green-700">Min</th>
+                        <th class="p-3 border-b-2 text-right text-brand-blue">Avg</th>
+                        <th class="p-3 border-b-2 text-right text-red-700">Max</th>
+                    </tr></thead>
+                    <tbody id="checkout-items"></tbody>
+                </table>
+            </div>
+            <button type="button" onclick="editEstimate()" class="bg-gray-200 px-6 py-3 rounded-lg font-bold">← Back to Edit</button>
+            <button type="button" id="download-pdf-btn" class="bg-brand-blue text-white px-6 py-3 rounded-lg font-bold">Print Predictive Report (PDF)</button>
+        </div>
+    </main>
+
+    <footer class="bg-brand-blue text-white p-6 text-center mt-8">
+        <p class="text-sm font-bold">&copy; 2026 CostPredict. All rights reserved.</p>
+        <p class="text-xs mt-2 text-gray-300 max-w-3xl mx-auto">
+            LEGAL DISCLAIMER: Estimates are based on historical and predictive market data. Actual costs vary based on site conditions, material selection, labor demand, and variable costs such as delivery and freight. This is not a binding financial offer.
+        </p>
+    </footer>
+
+    <script>
+        let goldenCatalog = {};
+        let currentPayload = {}; // Saved to generate PDF later
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const response = await fetch('/api/catalog');
+            goldenCatalog = await response.json();
+            document.getElementById('start-date').setAttribute('min', new Date().toISOString().split('T')[0]);
+            addMaterialRow();
+        });
+
+        document.getElementById('risk-slider').addEventListener('input', function() {
+            document.getElementById('risk-display').textContent = this.value;
+        });
+
+        function addMaterialRow() {
+            const container = document.getElementById('materials-container');
+            const rowId = 'row-' + Date.now();
+            container.insertAdjacentHTML('beforeend', `
+                <div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 p-5 border bg-gray-50 rounded-lg relative">
+                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-2 right-3 text-red-500 font-bold">×</button>
+                    <div class="col-span-12 md:col-span-3">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Main Material Category</label>
+                        <input list="cats-${rowId}" class="main-cat-input w-full p-2 border rounded" required>
+                        <datalist id="cats-${rowId}">${Object.keys(goldenCatalog).map(c => `<option value="${c}">`).join('')}</datalist>
+                    </div>
+                    <div class="col-span-12 md:col-span-3">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Material Subcategory</label>
+                        <input list="subs-${rowId}" class="sub-cat-input w-full p-2 border rounded" required disabled>
+                        <datalist id="subs-${rowId}"></datalist>
+                    </div>
+                    <div class="col-span-6 md:col-span-2"><label class="block text-xs font-bold text-brand-blue uppercase">Qty</label><input type="number" class="qty-input w-full p-2 border rounded" value="0"></div>
+                    <div class="col-span-6 md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase">Waste %</label><select class="waste-input w-full p-2 border rounded"><option value="5">5%</option><option value="10">10%</option></select></div>
+                    <div class="col-span-12 md:col-span-2"><input type="checkbox" class="labor-input" checked> <label class="text-sm font-bold">Labor</label></div>
+                </div>`);
+            const row = document.getElementById(rowId);
+            row.querySelector('.main-cat-input').addEventListener('input', function() {
+                const subInput = row.querySelector('.sub-cat-input');
+                subInput.disabled = false;
+                document.getElementById('subs-'+rowId).innerHTML = (goldenCatalog[this.value]||[]).map(i => `<option value="${i.name}">`).join('');
+            });
+        }
+
+        document.getElementById('estimate-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            currentPayload = {
+                project_info: { 
+                    projectType: document.getElementById('project-type').value, 
+                    zipCode: document.getElementById('zip-code').value, 
+                    qualityLevel: document.getElementById('quality-level').value 
+                },
+                risk_months: parseInt(document.getElementById('risk-display').textContent),
+                materials: Array.from(document.querySelectorAll('.grid.gap-4')).map(row => ({
+                    category: row.querySelector('.main-cat-input').value, 
+                    subcategory: row.querySelector('.sub-cat-input').value,
+                    quantity: parseFloat(row.querySelector('.qty-input').value) || 0, 
+                    waste: parseFloat(row.querySelector('.waste-input').value) || 0,
+                    labor: row.querySelector('.labor-input').checked
+                }))
+            };
+            try {
+                const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentPayload) });
+                const data = await response.json();
+                
+                // Restored Math Render block
+                let rowsHtml = data.items.map(i => 
+                    i.is_header ? `<tr class="bg-gray-100 font-bold border-b"><td colspan="6" class="p-3">${i.name}</td></tr>` 
+                    : `<tr><td class="p-3 border-b">${i.type}</td><td class="p-3 border-b text-center font-bold">${i.conf_pct}%<br><span class="text-xs font-normal text-gray-500">${i.conf_label}</span></td><td class="p-3 border-b text-right">${i.u_cost}</td><td class="p-3 border-b text-right">$${i.min}</td><td class="p-3 border-b text-right">$${i.avg}</td><td class="p-3 border-b text-right">$${i.max}</td></tr>`
+                ).join('');
+                
+                let totalsHtml = `
+                    <tr class="bg-gray-50 font-bold border-t-2"><td colspan="3" class="p-3">Material Subtotal</td><td class="text-right p-3">$${data.mat_sub_min}</td><td class="text-right p-3">$${data.mat_sub_avg}</td><td class="text-right p-3">$${data.mat_sub_max}</td></tr>
+                    <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Labor Subtotal</td><td class="text-right p-3">$${data.lab_sub_min}</td><td class="text-right p-3">$${data.lab_sub_avg}</td><td class="text-right p-3">$${data.lab_sub_max}</td></tr>
+                    <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Sales Tax (${data.tax_rate_display}%)</td><td class="text-right p-3">$${data.tax_min}</td><td class="text-right p-3">$${data.tax_avg}</td><td class="text-right p-3">$${data.tax_max}</td></tr>
+                    <tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="3" class="p-3">Grand Total</td><td class="text-right p-3">$${data.tot_min}</td><td class="text-right p-3">$${data.tot_avg}</td><td class="text-right p-3">$${data.tot_max}</td></tr>
+                `;
+                
+                document.getElementById('checkout-items').innerHTML = rowsHtml + totalsHtml;
+                document.getElementById('form-container').classList.add('hidden'); 
+                document.getElementById('checkout-section').classList.remove('hidden');
+            } catch (err) { alert("Calculation error. Please ensure all inputs are valid."); }
+        });
+
+        function editEstimate() { document.getElementById('checkout-section').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); }
+
+        // PDF Wiring Fix
+        document.getElementById('download-pdf-btn').addEventListener('click', async () => {
+            try {
+                const btn = document.getElementById('download-pdf-btn');
+                btn.textContent = "Generating...";
+                const response = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(currentPayload)
+                });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Predictive_Pricing_Report.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                btn.textContent = "Print Predictive Report (PDF)";
+            } catch (err) {
+                alert("Error generating PDF.");
+            }
+        });
+    </script>
+</body>
+</html>
