@@ -570,23 +570,19 @@ def get_golden_catalog():
 def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, quantity, catalog_item):
     score = 85 
     
-    # Safe dictionary access using .get() to prevent KeyErrors
     volatility = catalog_item.get('volatility', 1.0) if catalog_item else 1.0
     winter_risk = catalog_item.get('winter_risk', False) if catalog_item else False
     
-    # 1. Evaluate Quality Level Complexity (Weighted)
     if quality_level == 'Luxury Grade': 
         score -= (10 * volatility) 
     elif quality_level == 'Budget Grade': 
         score += 5  
         
-    # 2. Evaluate Regional Volatility
     if zip_code.startswith('6'): 
         score -= 3 
     else: 
         score += 2
         
-    # 3. Evaluate Time Decay & Seasonality
     try:
         if start_date_str:
             start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
@@ -599,10 +595,8 @@ def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, q
     except:
         pass 
         
-    # 4. Evaluate User-Defined Timeline Risk (Weighted)
     score -= (risk_months * 2 * volatility) 
     
-    # 5. Evaluate Quantity Scale Risk
     if quantity > 1000: 
         score -= 5 
         
@@ -644,7 +638,6 @@ def calculate_estimate_data(payload):
         cat_items = catalog.get(cat_name, [])
         catalog_item = next((i for i in cat_items if i.get('name') == sub_name), None)
         
-        # FIXED: Swapped direct bracket lookups for safe .get() defaults to prevent schema crashes
         base_rate = catalog_item.get('base_mat_rate', 15.00) if catalog_item else 15.00
         hrs_per_unit = catalog_item.get('hrs_per_unit', 0.1) if catalog_item else 0.1
         
@@ -654,8 +647,8 @@ def calculate_estimate_data(payload):
             waste = 0.0
             
         try:
-            qty = float(item.get('quantity') or 0) * (1 + waste)
             qty_pure = float(item.get('quantity') or 0)
+            qty = qty_pure * (1 + waste)
         except (ValueError, TypeError):
             qty = 0.0
             qty_pure = 0.0
@@ -664,7 +657,9 @@ def calculate_estimate_data(payload):
         mat_avg = qty * rate * risk_mult
         
         if item.get('labor'):
-            total_hours = qty * hrs_per_unit
+            # FIXED: Changed from 'qty' to 'qty_pure' so labor hours 
+            # ignore material waste factors entirely.
+            total_hours = qty_pure * hrs_per_unit
             if q_level == 'Luxury Grade': 
                 total_hours *= 1.2 
             lab_avg = total_hours * regional_wage * risk_mult
