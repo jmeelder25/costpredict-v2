@@ -112,7 +112,6 @@
             addMaterialRow();
         });
 
-        // Helper function to build the table dynamically
         function renderTable(data) {
             let rowsHtml = data.items.map(i => 
                 i.is_header ? `<tr class="bg-gray-100 font-bold border-b"><td colspan="6" class="p-3">${i.name}</td></tr>` 
@@ -129,13 +128,11 @@
             document.getElementById('checkout-items').innerHTML = rowsHtml + totalsHtml;
         }
 
-        // FIX 2: Live Slider Update Logic
         document.getElementById('risk-slider').addEventListener('input', async function() {
             document.getElementById('risk-display').textContent = this.value;
             currentPayload.risk_months = parseInt(this.value);
             
             try {
-                // Silently call backend and re-render table with new math instantly
                 const response = await fetch('/api/calculate', { 
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'}, 
@@ -187,11 +184,13 @@
 
         document.getElementById('estimate-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            // Payload updated to include startDate
             currentPayload = {
                 project_info: { 
                     projectType: document.getElementById('project-type').value, 
                     zipCode: document.getElementById('zip-code').value, 
-                    qualityLevel: document.getElementById('quality-level').value 
+                    qualityLevel: document.getElementById('quality-level').value,
+                    startDate: document.getElementById('start-date').value
                 },
                 risk_months: parseInt(document.getElementById('risk-display').textContent),
                 materials: Array.from(document.querySelectorAll('.grid.gap-4')).map(row => ({
