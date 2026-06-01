@@ -570,8 +570,9 @@ def get_golden_catalog():
 def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, quantity, catalog_item):
     score = 85 
     
-    volatility = catalog_item['volatility'] if catalog_item else 1.0
-    winter_risk = catalog_item['winter_risk'] if catalog_item else False
+    # Safe dictionary access using .get() to prevent KeyErrors
+    volatility = catalog_item.get('volatility', 1.0) if catalog_item else 1.0
+    winter_risk = catalog_item.get('winter_risk', False) if catalog_item else False
     
     # 1. Evaluate Quality Level Complexity (Weighted)
     if quality_level == 'Luxury Grade': 
@@ -643,8 +644,9 @@ def calculate_estimate_data(payload):
         cat_items = catalog.get(cat_name, [])
         catalog_item = next((i for i in cat_items if i.get('name') == sub_name), None)
         
-        base_rate = catalog_item['base_mat_rate'] if catalog_item else 15.00
-        hrs_per_unit = catalog_item['hrs_per_unit'] if catalog_item else 0.1
+        # FIXED: Swapped direct bracket lookups for safe .get() defaults to prevent schema crashes
+        base_rate = catalog_item.get('base_mat_rate', 15.00) if catalog_item else 15.00
+        hrs_per_unit = catalog_item.get('hrs_per_unit', 0.1) if catalog_item else 0.1
         
         try:
             waste = float(item.get('waste') or 0) / 100
