@@ -567,6 +567,14 @@ def get_golden_catalog():
         ]
     }
 
+def calculate_confidence(quality_level, quantity):
+    # Dynamic confidence scoring logic
+    score = 80
+    if quality_level == 'Luxury Grade': score -= 10
+    elif quality_level == 'Budget Grade': score += 5
+    if quantity > 1000: score -= 5
+    return min(max(score, 50), 99)
+
 def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
@@ -593,15 +601,18 @@ def calculate_estimate_data(payload):
         m_vals = [round(mat_avg * 0.9, 2), round(mat_avg, 2), round(mat_avg * 1.1, 2)]
         l_vals = [round(lab_avg * 0.9, 2), round(lab_avg, 2), round(lab_avg * 1.1, 2)]
         
+        # Dynamic Confidence Score
+        conf = calculate_confidence(q_level, float(item.get('quantity', 0)))
+        
         processed_items.append({"is_header": True, "name": f"{item['category']} - {item['subcategory']}"})
         processed_items.append({
-            "is_header": False, "type": "Material", "conf_pct": 85,
+            "is_header": False, "type": "Material", "conf_pct": conf,
             "u_cost": f"${rate:,.2f} x {qty:,.1f}", 
             "min": f"{m_vals[0]:,.2f}", "avg": f"{m_vals[1]:,.2f}", "max": f"{m_vals[2]:,.2f}"
         })
         if item.get('labor'):
             processed_items.append({
-                "is_header": False, "type": "Labor", "conf_pct": 85,
+                "is_header": False, "type": "Labor", "conf_pct": conf,
                 "u_cost": "-", 
                 "min": f"{l_vals[0]:,.2f}", "avg": f"{l_vals[1]:,.2f}", "max": f"{l_vals[2]:,.2f}"
             })
