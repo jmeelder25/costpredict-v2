@@ -568,65 +568,73 @@ def get_golden_catalog():
     }
 
 # =====================================================================
-# 2. CONFIDENCE CALCULATION ENGINE
+# 2. REGIONAL SETTINGS (11-STATE TEST)
+# =====================================================================
+def get_regional_settings(zip_code):
+    # Default National Settings
+    settings = {"tax_rate": 0.0825, "wage": 65.00}
+    
+    # First digit map for your 11 states
+    regional_map = {
+        '0': {"tax_rate": 0.088, "wage": 75.00}, # NY
+        '2': {"tax_rate": 0.060, "wage": 58.00}, # VA, NC
+        '3': {"tax_rate": 0.070, "wage": 55.00}, # FL, GA
+        '4': {"tax_rate": 0.070, "wage": 60.00}, # IN
+        '5': {"tax_rate": 0.075, "wage": 70.00}, # WI
+        '6': {"tax_rate": 0.090, "wage": 85.00}, # IL
+        '7': {"tax_rate": 0.080, "wage": 60.00}, # TX
+        '8': {"tax_rate": 0.085, "wage": 62.00}, # AZ
+        '9': {"tax_rate": 0.095, "wage": 95.00}, # CA
+    }
+    
+    prefix = str(zip_code)[:1]
+    return regional_map.get(prefix, settings)
+
+# =====================================================================
+# 3. CONFIDENCE CALCULATION ENGINE
 # =====================================================================
 def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, quantity, catalog_item):
     score = 85 
-    
     volatility = catalog_item.get('volatility', 1.0) if catalog_item else 1.0
     winter_risk = catalog_item.get('winter_risk', False) if catalog_item else False
     
-    if quality_level == 'Luxury Grade': 
-        score -= (10 * volatility) 
-    elif quality_level == 'Budget Grade': 
-        score += 5  
+    if quality_level == 'Luxury Grade': score -= (10 * volatility) 
+    elif quality_level == 'Budget Grade': score += 5  
         
-    if zip_code.startswith('6'): 
-        score -= 3 
-    else: 
-        score += 2
+    if zip_code.startswith('6'): score -= 3 
+    else: score += 2
         
     try:
         if start_date_str:
             start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
             days_away = (start_date - datetime.datetime.now()).days
-            if days_away > 0:
-                score -= int(days_away / 30) * 1.5 
-                
-            if winter_risk and start_date.month in [12, 1, 2] and zip_code.startswith('6'):
-                score -= 15 
-    except:
-        pass 
+            if days_away > 0: score -= int(days_away / 30) * 1.5 
+            if winter_risk and start_date.month in [12, 1, 2] and zip_code.startswith('6'): score -= 15 
+    except: pass 
         
     score -= (risk_months * 2 * volatility) 
-    
-    if quantity > 1000: 
-        score -= 5 
-        
+    if quantity > 1000: score -= 5 
     return min(max(int(score), 50), 99)
 
 # =====================================================================
-# 3. MAIN ESTIMATE CALCULATOR (WITH DECOUPLED LAB/MAT & FUZZY MATCHING)
+# 4. MAIN ESTIMATE CALCULATOR
 # =====================================================================
 def calculate_estimate_data(payload):
-    if not payload:
-        payload = {}
-        
+    if not payload: payload = {}
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
     
-    try:
-        risk = int(payload.get('risk_months') or 0)
-    except (ValueError, TypeError):
-        risk = 0
+    try: risk = int(payload.get('risk_months') or 0)
+    except (ValueError, TypeError): risk = 0
     risk_mult = 1 + (risk * 0.01)
     
     zip_code = str(project_info.get('zipCode') or '00000').strip()
     q_level = str(project_info.get('qualityLevel') or 'Standard Grade').strip()
     start_date = str(project_info.get('startDate') or '').strip()
     
-    tax_rate = 0.09 if zip_code.startswith('6') else 0.0825
-    regional_wage = 85.00 if zip_code.startswith('6') else 65.00
+    # Get regional rates
+    reg = get_regional_settings(zip_code)
+    tax_rate, regional_wage = reg['tax_rate'], reg['wage']
     
     q_m = 1.3 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.0)
     
@@ -635,52 +643,35 @@ def calculate_estimate_data(payload):
     catalog = get_golden_catalog()
     
     for item in materials:
-        if not item:
-            continue
-            
-        # Clean incoming strings from frontend to prevent formatting mismatches
-        cat_name = str(item.get('category') or '')
-        sub_name = str(item.get('subcategory') or '')
-        cat_name_clean = cat_name.strip().lower()
-        sub_name_clean = sub_name.strip().lower()
+        if not item: continue
         
-        # Look up category case-insensitively
+        # Fuzzy Match Lookup
+        cat_name_clean = str(item.get('category') or '').strip().lower()
+        sub_name_clean = str(item.get('subcategory') or '').strip().lower()
+        
         cat_items = []
         for key, val in catalog.items():
             if str(key).strip().lower() == cat_name_clean:
                 cat_items = val
                 break
-                
-        # Look up subcategory case-insensitively
-        catalog_item = next(
-            (i for i in cat_items if str(i.get('name', '')).strip().lower() == sub_name_clean), 
-            None
-        )
         
-        # Establish fallback rates securely if no catalog item matches
+        catalog_item = next((i for i in cat_items if str(i.get('name', '')).strip().lower() == sub_name_clean), None)
+        
         base_rate = catalog_item.get('base_mat_rate', 15.00) if catalog_item else 15.00
         hrs_per_unit = catalog_item.get('hrs_per_unit', 0.1) if catalog_item else 0.1
         
-        try:
-            waste = float(item.get('waste') or 0) / 100
-        except (ValueError, TypeError):
-            waste = 0.0
-            
-        try:
-            qty_pure = float(item.get('quantity') or 0)
-            qty = qty_pure * (1 + waste)
-        except (ValueError, TypeError):
-            qty = 0.0
-            qty_pure = 0.0
+        # Calculate quantities
+        waste = float(item.get('waste') or 0) / 100
+        qty_pure = float(item.get('quantity') or 0)
+        qty = qty_pure * (1 + waste)
         
+        # Calculate costs
         rate = base_rate * q_m
         mat_avg = qty * rate * risk_mult
         
         if item.get('labor'):
-            # Labor hours track qty_pure to bypass material waste inflation
             total_hours = qty_pure * hrs_per_unit
-            if q_level == 'Luxury Grade': 
-                total_hours *= 1.2 
+            if q_level == 'Luxury Grade': total_hours *= 1.2 
             lab_avg = total_hours * regional_wage * risk_mult
         else:
             total_hours = 0
@@ -688,10 +679,9 @@ def calculate_estimate_data(payload):
         
         m_vals = [round(mat_avg * 0.9, 2), round(mat_avg, 2), round(mat_avg * 1.1, 2)]
         l_vals = [round(lab_avg * 0.9, 2), round(lab_avg, 2), round(lab_avg * 1.1, 2)]
-        
         conf = calculate_confidence(zip_code, q_level, start_date, risk, qty_pure, catalog_item)
         
-        processed_items.append({"is_header": True, "name": f"{cat_name} - {sub_name}"})
+        processed_items.append({"is_header": True, "name": f"{cat_name_clean.title()} - {sub_name_clean.title()}"})
         processed_items.append({
             "is_header": False, "type": "Material", "conf_pct": conf,
             "u_cost": f"${rate:,.2f} x {qty:,.1f}", 
@@ -720,23 +710,14 @@ def calculate_estimate_data(payload):
         "tot": [f"{v:,.2f}" for v in tot]
     }
 
-# =====================================================================
-# 4. FLASK ROUTE ROUTERS
-# =====================================================================
 @app.route('/')
-def index(): 
-    return render_template('index.html')
+def index(): return render_template('index.html')
 
 @app.route('/api/catalog', methods=['GET'])
-def get_catalog(): 
-    return jsonify(get_golden_catalog())
+def get_catalog(): return jsonify(get_golden_catalog())
 
 @app.route('/api/calculate', methods=['POST'])
-def calculate(): 
-    return jsonify(calculate_estimate_data(request.get_json()))
-
-if __name__ == '__main__':
-    app.run(debug=True)
+def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
 
 if __name__ == '__main__':
     app.run(debug=True)
