@@ -14,13 +14,12 @@
         @media print {
             header, #form-container, .edit-btn, #download-pdf-btn, footer, .mobile-hint { display: none !important; }
             #checkout-section { border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; display: block !important; }
-            body { background: white !important; color: black !important; }
-            table { width: 100% !important; border-collapse: collapse !important; }
+            body { background: white !important; }
+            .print-block { display: block !important; }
         }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
-    
     <header class="bg-white py-6 shadow-sm border-b-4 border-brand-yellow">
         <div class="max-w-5xl mx-auto px-4 flex flex-col items-center">
             <p class="text-gray-500 font-bold text-sm tracking-wide uppercase">Contractor Predictive Pricing</p>
@@ -32,13 +31,11 @@
             <form id="estimate-form">
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-brand-blue mb-6 border-b-2 border-brand-yellow pb-2">Project Information</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div><label class="block text-sm font-bold text-gray-700">Project Type</label>
-                            <select id="project-type" class="w-full p-3 border-2 rounded-lg"><option>Residential</option><option>Commercial</option></select></div>
-                        <div><label class="block text-sm font-bold text-gray-700">Zip Code</label><input type="text" id="zip-code" class="w-full p-3 border-2 rounded-lg" required></div>
-                        <div><label class="block text-sm font-bold text-gray-700">Quality</label>
-                            <select id="quality-level" class="w-full p-3 border-2 rounded-lg"><option>Budget Grade</option><option>Standard Grade</option><option>Luxury Grade</option></select></div>
-                        <div><label class="block text-sm font-bold text-gray-700">Date</label><input type="date" id="start-date" class="w-full p-3 border-2 rounded-lg" required></div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div><label class="block text-sm font-bold">Type</label><select id="project-type" class="w-full p-2 border rounded"><option>Residential</option><option>Commercial</option></select></div>
+                        <div><label class="block text-sm font-bold">Zip</label><input type="text" id="zip-code" class="w-full p-2 border rounded" required></div>
+                        <div><label class="block text-sm font-bold">Quality</label><select id="quality-level" class="w-full p-2 border rounded"><option>Budget</option><option>Standard</option><option>Luxury</option></select></div>
+                        <div><label class="block text-sm font-bold">Date</label><input type="date" id="start-date" class="w-full p-2 border rounded" required></div>
                     </div>
                 </section>
                 <div id="materials-container"></div>
@@ -49,14 +46,13 @@
 
         <div id="checkout-section" class="hidden bg-white p-8 rounded-xl shadow-lg border-2 border-brand-blue">
             <h2 class="text-2xl font-bold text-brand-blue mb-4">CostPredict Estimate</h2>
-            <div id="print-header" class="mb-4 p-4 bg-gray-50 border rounded hidden print-block">
-                <h3 class="font-bold text-brand-blue text-sm">Project Summary</h3>
-                <p id="summary-text" class="text-xs"></p>
+            <div id="print-header" class="hidden print-block p-4 bg-gray-50 mb-4 rounded border text-xs">
+                <p id="summary-text"></p>
             </div>
             <div class="mb-6 bg-blue-50 p-4 rounded border">
                 <label class="font-bold text-brand-blue">Timeline Risk Shifter</label>
                 <input type="range" id="risk-slider" min="0" max="12" step="3" value="0" class="w-full">
-                <div class="text-center font-bold text-brand-blue">Shift: +<span id="risk-display">0</span> Months</div>
+                <p class="text-center font-bold text-brand-blue">Shift: +<span id="risk-display">0</span> Months</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left" id="checkout-table">
@@ -64,38 +60,32 @@
                     <tbody id="checkout-items"></tbody>
                 </table>
             </div>
-            <div class="text-xs text-gray-500 mt-8 border-t pt-4">LEGAL DISCLAIMER: Automated configuration for baseline budgeting only. Verify all quantities with a professional.</div>
+            <div class="text-xs text-gray-500 mt-8 border-t pt-4">LEGAL DISCLAIMER: All cost evaluations are estimates only.</div>
             <button onclick="editEstimate()" class="edit-btn bg-gray-200 px-6 py-3 rounded mt-4">← Back to Edit</button>
             <button onclick="window.print()" class="bg-brand-blue text-white px-6 py-3 rounded mt-4">Print Report</button>
         </div>
     </main>
 
     <script>
-        let goldenCatalog = {};
-        document.addEventListener('DOMContentLoaded', async () => {
-            const res = await fetch('/api/catalog'); goldenCatalog = await res.json();
-            addMaterialRow();
-        });
-
         function addMaterialRow() {
-            const rowId = 'row-' + Date.now();
             document.getElementById('materials-container').insertAdjacentHTML('beforeend', `
-                <div id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 p-4 border bg-gray-50 rounded relative">
-                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute top-0 right-2 text-red-500">×</button>
-                    <div class="col-span-3"><input class="main-cat-input w-full p-2 border" placeholder="Cat" required></div>
-                    <div class="col-span-3"><input class="sub-cat-input w-full p-2 border" placeholder="Sub" required></div>
-                    <div class="col-span-2"><input type="number" class="qty-input w-full p-2 border" value="0"></div>
-                    <div class="col-span-2"><select class="waste-input w-full p-2 border"><option value="0">0%</option><option value="5">5%</option><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option></select></div>
-                    <div class="col-span-2"><input type="checkbox" class="labor-input" checked> Labor</div>
+                <div class="grid grid-cols-12 gap-2 mb-2 p-2 border bg-gray-50 rounded row relative">
+                    <button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 text-red-500 bg-white rounded-full px-2">×</button>
+                    <input class="col-span-3 main-cat-input border p-1" placeholder="Cat">
+                    <input class="col-span-3 sub-cat-input border p-1" placeholder="Sub">
+                    <input type="number" class="col-span-2 qty-input border p-1" value="1">
+                    <select class="col-span-2 waste-input border p-1"><option value="0">0%</option><option value="20">20%</option></select>
+                    <div class="col-span-2 flex items-center"><input type="checkbox" class="labor-input" checked> Labor</div>
                 </div>`);
         }
+        addMaterialRow();
 
-        document.getElementById('estimate-form').addEventListener('submit', async (e) => {
+        document.getElementById('estimate-form').onsubmit = async (e) => {
             e.preventDefault();
             const payload = {
                 project_info: { type: document.getElementById('project-type').value, zip: document.getElementById('zip-code').value, quality: document.getElementById('quality-level').value },
                 risk_months: parseInt(document.getElementById('risk-display').textContent),
-                materials: Array.from(document.querySelectorAll('#materials-container > div')).map(r => ({
+                materials: Array.from(document.querySelectorAll('.row')).map(r => ({
                     category: r.querySelector('.main-cat-input').value, subcategory: r.querySelector('.sub-cat-input').value,
                     quantity: r.querySelector('.qty-input').value, waste: r.querySelector('.waste-input').value, labor: r.querySelector('.labor-input').checked
                 }))
@@ -104,25 +94,21 @@
             const res = await fetch('/api/calculate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
             const data = await res.json();
             
-            let html = data.items.map(i => i.is_header ? `<tr class="bg-gray-100 font-bold"><td colspan="6" class="p-3">${i.name}</td></tr>` : `<tr><td class="p-3">${i.type}</td><td class="text-center">${i.conf_pct}%</td><td class="text-right">${i.u_cost}</td><td class="text-right text-green-700">$${i.min}</td><td class="text-right text-brand-blue font-bold">$${i.avg}</td><td class="text-right text-red-700">$${i.max}</td></tr>`).join('');
-            html += `<tr class="border-t font-bold"><td>Material</td><td colspan="2"></td><td class="text-right">$${data.mat_sub[0]}</td><td class="text-right">$${data.mat_sub[1]}</td><td class="text-right">$${data.mat_sub[2]}</td></tr>`;
-            html += `<tr class="font-bold"><td>Labor</td><td colspan="2"></td><td class="text-right">$${data.lab_sub[0]}</td><td class="text-right">$${data.lab_sub[1]}</td><td class="text-right">$${data.lab_sub[2]}</td></tr>`;
-            html += `<tr class="font-bold text-gray-500"><td>Tax</td><td colspan="2"></td><td class="text-right">$${data.tax[0]}</td><td class="text-right">$${data.tax[1]}</td><td class="text-right">$${data.tax[2]}</td></tr>`;
-            html += `<tr class="bg-brand-blue text-white font-bold"><td colspan="3">Grand Total</td><td class="text-right">$${data.tot[0]}</td><td class="text-right">$${data.tot[1]}</td><td class="text-right">$${data.tot[2]}</td></tr>`;
+            let html = data.items.map(i => i.is_header ? `<tr class="bg-gray-100 font-bold"><td colspan="6" class="p-2">${i.name}</td></tr>` : 
+                `<tr><td class="p-2">${i.type}</td><td class="p-2">${i.conf_pct}%</td><td class="p-2 text-right">${i.u_cost}</td><td class="p-2 text-right text-green-700">$${i.min}</td><td class="p-2 text-right text-brand-blue font-bold">$${i.avg}</td><td class="p-2 text-right text-red-700">$${i.max}</td></tr>`).join('');
+            
+            html += `<tr class="border-t font-bold"><td>Material</td><td colspan="2"></td><td class="text-right">$${data.mat_sub[0]}</td><td class="text-right">$${data.mat_sub[1]}</td><td class="text-right">$${data.mat_sub[2]}</td></tr>
+                     <tr class="font-bold"><td>Labor</td><td colspan="2"></td><td class="text-right">$${data.lab_sub[0]}</td><td class="text-right">$${data.lab_sub[1]}</td><td class="text-right">$${data.lab_sub[2]}</td></tr>
+                     <tr class="font-bold text-gray-500"><td>Tax</td><td colspan="2"></td><td class="text-right">$${data.tax[0]}</td><td class="text-right">$${data.tax[1]}</td><td class="text-right">$${data.tax[2]}</td></tr>
+                     <tr class="bg-brand-blue text-white font-bold"><td colspan="3">Grand Total</td><td class="text-right">$${data.tot[0]}</td><td class="text-right">$${data.tot[1]}</td><td class="text-right">$${data.tot[2]}</td></tr>`;
             
             document.getElementById('checkout-items').innerHTML = html;
             document.getElementById('form-container').classList.add('hidden');
             document.getElementById('checkout-section').classList.remove('hidden');
-        });
+        };
 
-        document.getElementById('risk-slider').addEventListener('input', (e) => {
-            document.getElementById('risk-display').textContent = e.target.value;
-        });
-
-        function editEstimate() {
-            document.getElementById('checkout-section').classList.add('hidden');
-            document.getElementById('form-container').classList.remove('hidden');
-        }
+        document.getElementById('risk-slider').oninput = (e) => document.getElementById('risk-display').textContent = e.target.value;
+        function editEstimate() { document.getElementById('checkout-section').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); }
     </script>
 </body>
 </html>
