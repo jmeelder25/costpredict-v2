@@ -574,45 +574,39 @@ def calculate_estimate_data(payload):
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
     
-    # Calculation Logic
-    q_level = project_info.get('qualityLevel', 'Standard Grade')
+    # Quality multipliers
+    q_level = project_info.get('quality', 'Standard Grade')
     quality_mult = 1.30 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.00)
-    tax_rate = 0.0825 
+    tax_rate = 0.0825 # Adjust as needed
     
     processed_items = []
-    mat_sub_total = 0.0
-    lab_sub_total = 0.0
-    catalog = get_golden_catalog()
+    mat_sub_avg = 0.0
     
     for item in materials:
-        cat = item.get('category'); sub = item.get('subcategory')
-        qty = float(item.get('quantity', 0)); waste = float(item.get('waste', 0))
-        labor_req = item.get('labor', False)
+        cat = item.get('category')
+        sub = item.get('subcategory')
+        qty = float(item.get('quantity', 0))
+        waste = float(item.get('waste', 0)) # Now correctly picks up 0, 5, 10, 15, 20
         
-        unit = "Unit"
-        if cat in catalog:
-            for c_i in catalog[cat]:
-                if c_i["name"] == sub: unit = c_i.get("unit", "Unit")
-        
+        # Calculation
         effective_rate = 15.00 * quality_mult
+        # Apply waste percentage to quantity
         final_qty = qty * (1 + (waste / 100.0))
         mat_avg = final_qty * effective_rate
-        lab_avg = (mat_avg * 0.6) if labor_req else 0
         
         processed_items.append({"is_header": True, "name": f"{cat} - {sub}"})
         processed_items.append({
-            "is_header": False, "type": "Material", "u_cost": f"${effective_rate:,.2f} / {unit} x {final_qty:,.1f}",
-            "avg": f"{mat_avg:,.2f}"
+            "is_header": False, 
+            "type": "Material", 
+            "u_cost": f"${effective_rate:,.2f} x {final_qty:,.1f}", 
+            "min": f"{mat_avg * 0.9:,.2f}", 
+            "avg": f"{mat_avg:,.2f}", 
+            "max": f"{mat_avg * 1.1:,.2f}"
         })
+        mat_sub_avg += mat_avg
         
-        if labor_req:
-            processed_items.append({"is_header": False, "type": "Labor", "u_cost": "-", "avg": f"{lab_avg:,.2f}"})
-            
-        mat_sub_total += mat_avg
-        lab_sub_total += lab_avg
-        
-    tax_avg = (mat_sub_total + lab_sub_total) * tax_rate
-    tot_avg = (mat_sub_total + lab_sub_total) + tax_avg
+    tax_avg = mat_sub_avg * tax_rate
+    tot_avg = mat_sub_avg + tax_avg
     
     return {
         "items": processed_items,
@@ -623,6 +617,9 @@ def calculate_estimate_data(payload):
 
 @app.route('/')
 def index(): return render_template('index.html')
+
+@app.route('/api/catalog', methods=['GET'])
+def get_catalog(): return jsonify(get_golden_catalog())
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
