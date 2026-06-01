@@ -112,8 +112,40 @@
             addMaterialRow();
         });
 
-        document.getElementById('risk-slider').addEventListener('input', function() {
+        // Helper function to build the table dynamically
+        function renderTable(data) {
+            let rowsHtml = data.items.map(i => 
+                i.is_header ? `<tr class="bg-gray-100 font-bold border-b"><td colspan="6" class="p-3">${i.name}</td></tr>` 
+                : `<tr><td class="p-3 border-b">${i.type}</td><td class="p-3 border-b text-center font-bold">${i.conf_pct}%<br><span class="text-xs font-normal text-gray-500">${i.conf_label}</span></td><td class="p-3 border-b text-right">${i.u_cost}</td><td class="p-3 border-b text-right">$${i.min}</td><td class="p-3 border-b text-right">$${i.avg}</td><td class="p-3 border-b text-right">$${i.max}</td></tr>`
+            ).join('');
+            
+            let totalsHtml = `
+                <tr class="bg-gray-50 font-bold border-t-2"><td colspan="3" class="p-3">Material Subtotal</td><td class="text-right p-3">$${data.mat_sub_min}</td><td class="text-right p-3">$${data.mat_sub_avg}</td><td class="text-right p-3">$${data.mat_sub_max}</td></tr>
+                <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Labor Subtotal</td><td class="text-right p-3">$${data.lab_sub_min}</td><td class="text-right p-3">$${data.lab_sub_avg}</td><td class="text-right p-3">$${data.lab_sub_max}</td></tr>
+                <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Sales Tax (${data.tax_rate_display}%)</td><td class="text-right p-3">$${data.tax_min}</td><td class="text-right p-3">$${data.tax_avg}</td><td class="text-right p-3">$${data.tax_max}</td></tr>
+                <tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="3" class="p-3">Grand Total</td><td class="text-right p-3">$${data.tot_min}</td><td class="text-right p-3">$${data.tot_avg}</td><td class="text-right p-3">$${data.tot_max}</td></tr>
+            `;
+            
+            document.getElementById('checkout-items').innerHTML = rowsHtml + totalsHtml;
+        }
+
+        // FIX 2: Live Slider Update Logic
+        document.getElementById('risk-slider').addEventListener('input', async function() {
             document.getElementById('risk-display').textContent = this.value;
+            currentPayload.risk_months = parseInt(this.value);
+            
+            try {
+                // Silently call backend and re-render table with new math instantly
+                const response = await fetch('/api/calculate', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(currentPayload) 
+                });
+                const data = await response.json();
+                renderTable(data);
+            } catch (err) {
+                console.error("Live calculation failed.", err);
+            }
         });
 
         function addMaterialRow() {
@@ -174,19 +206,7 @@
                 const response = await fetch('/api/calculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentPayload) });
                 const data = await response.json();
                 
-                let rowsHtml = data.items.map(i => 
-                    i.is_header ? `<tr class="bg-gray-100 font-bold border-b"><td colspan="6" class="p-3">${i.name}</td></tr>` 
-                    : `<tr><td class="p-3 border-b">${i.type}</td><td class="p-3 border-b text-center font-bold">${i.conf_pct}%<br><span class="text-xs font-normal text-gray-500">${i.conf_label}</span></td><td class="p-3 border-b text-right">${i.u_cost}</td><td class="p-3 border-b text-right">$${i.min}</td><td class="p-3 border-b text-right">$${i.avg}</td><td class="p-3 border-b text-right">$${i.max}</td></tr>`
-                ).join('');
-                
-                let totalsHtml = `
-                    <tr class="bg-gray-50 font-bold border-t-2"><td colspan="3" class="p-3">Material Subtotal</td><td class="text-right p-3">$${data.mat_sub_min}</td><td class="text-right p-3">$${data.mat_sub_avg}</td><td class="text-right p-3">$${data.mat_sub_max}</td></tr>
-                    <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Labor Subtotal</td><td class="text-right p-3">$${data.lab_sub_min}</td><td class="text-right p-3">$${data.lab_sub_avg}</td><td class="text-right p-3">$${data.lab_sub_max}</td></tr>
-                    <tr class="bg-gray-50 font-bold"><td colspan="3" class="p-3">Sales Tax (${data.tax_rate_display}%)</td><td class="text-right p-3">$${data.tax_min}</td><td class="text-right p-3">$${data.tax_avg}</td><td class="text-right p-3">$${data.tax_max}</td></tr>
-                    <tr class="bg-brand-blue text-white font-bold text-lg"><td colspan="3" class="p-3">Grand Total</td><td class="text-right p-3">$${data.tot_min}</td><td class="text-right p-3">$${data.tot_avg}</td><td class="text-right p-3">$${data.tot_max}</td></tr>
-                `;
-                
-                document.getElementById('checkout-items').innerHTML = rowsHtml + totalsHtml;
+                renderTable(data);
                 document.getElementById('form-container').classList.add('hidden'); 
                 document.getElementById('checkout-section').classList.remove('hidden');
             } catch (err) { alert("Calculation error. Please ensure all inputs are valid."); }
