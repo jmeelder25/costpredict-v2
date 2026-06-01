@@ -567,38 +567,58 @@ def get_golden_catalog():
         ]
     }
 
-# --- CONFIDENCE CALCULATION ---
+# =====================================================================
+# 2. CONFIDENCE CALCULATION ENGINE
+# =====================================================================
 def calculate_confidence(zip_code, quality_level, start_date_str, risk_months, quantity, catalog_item):
     score = 85 
+    
     volatility = catalog_item.get('volatility', 1.0) if catalog_item else 1.0
     winter_risk = catalog_item.get('winter_risk', False) if catalog_item else False
     
-    if quality_level == 'Luxury Grade': score -= (10 * volatility) 
-    elif quality_level == 'Budget Grade': score += 5  
+    if quality_level == 'Luxury Grade': 
+        score -= (10 * volatility) 
+    elif quality_level == 'Budget Grade': 
+        score += 5  
         
-    if zip_code.startswith('6'): score -= 3 
-    else: score += 2
+    if zip_code.startswith('6'): 
+        score -= 3 
+    else: 
+        score += 2
         
     try:
         if start_date_str:
             start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
             days_away = (start_date - datetime.datetime.now()).days
-            if days_away > 0: score -= int(days_away / 30) * 1.5 
-            if winter_risk and start_date.month in [12, 1, 2] and zip_code.startswith('6'): score -= 15 
-    except: pass 
+            if days_away > 0:
+                score -= int(days_away / 30) * 1.5 
+                
+            if winter_risk and start_date.month in [12, 1, 2] and zip_code.startswith('6'):
+                score -= 15 
+    except:
+        pass 
         
     score -= (risk_months * 2 * volatility) 
-    if quantity > 1000: score -= 5 
+    
+    if quantity > 1000: 
+        score -= 5 
+        
     return min(max(int(score), 50), 99)
 
-# --- CORE CALCULATION ENGINE ---
+# =====================================================================
+# 3. MAIN ESTIMATE CALCULATOR (WITH DECOUPLED LAB/MAT & FUZZY MATCHING)
+# =====================================================================
 def calculate_estimate_data(payload):
-    if not payload: payload = {}
+    if not payload:
+        payload = {}
+        
     project_info = payload.get('project_info', {}) or {}
     materials = payload.get('materials', []) or []
     
-    try: risk = int(payload.get('risk_months') or 0)
-    except (ValueError, TypeError): risk = 0
+    try:
+        risk = int(payload.get('risk_months') or 0)
+    except (ValueError, TypeError):
+        risk = 0
     risk_mult = 1 + (risk * 0.01)
     
     zip_code = str(project_info.get('zipCode') or '00000').strip()
@@ -607,6 +627,7 @@ def calculate_estimate_data(payload):
     
     tax_rate = 0.09 if zip_code.startswith('6') else 0.0825
     regional_wage = 85.00 if zip_code.startswith('6') else 65.00
+    
     q_m = 1.3 if q_level == 'Luxury Grade' else (0.85 if q_level == 'Budget Grade' else 1.0)
     
     processed_items = []
@@ -614,29 +635,52 @@ def calculate_estimate_data(payload):
     catalog = get_golden_catalog()
     
     for item in materials:
-        if not item: continue
+        if not item:
+            continue
+            
+        # Clean incoming strings from frontend to prevent formatting mismatches
         cat_name = str(item.get('category') or '')
         sub_name = str(item.get('subcategory') or '')
+        cat_name_clean = cat_name.strip().lower()
+        sub_name_clean = sub_name.strip().lower()
         
-        cat_items = catalog.get(cat_name, [])
-        catalog_item = next((i for i in cat_items if i.get('name') == sub_name), None)
+        # Look up category case-insensitively
+        cat_items = []
+        for key, val in catalog.items():
+            if str(key).strip().lower() == cat_name_clean:
+                cat_items = val
+                break
+                
+        # Look up subcategory case-insensitively
+        catalog_item = next(
+            (i for i in cat_items if str(i.get('name', '')).strip().lower() == sub_name_clean), 
+            None
+        )
         
+        # Establish fallback rates securely if no catalog item matches
         base_rate = catalog_item.get('base_mat_rate', 15.00) if catalog_item else 15.00
         hrs_per_unit = catalog_item.get('hrs_per_unit', 0.1) if catalog_item else 0.1
         
-        # Calculate quantities
-        waste = float(item.get('waste') or 0) / 100
-        qty_pure = float(item.get('quantity') or 0)
-        qty = qty_pure * (1 + waste)
+        try:
+            waste = float(item.get('waste') or 0) / 100
+        except (ValueError, TypeError):
+            waste = 0.0
+            
+        try:
+            qty_pure = float(item.get('quantity') or 0)
+            qty = qty_pure * (1 + waste)
+        except (ValueError, TypeError):
+            qty = 0.0
+            qty_pure = 0.0
         
-        # Calculate costs
         rate = base_rate * q_m
         mat_avg = qty * rate * risk_mult
         
         if item.get('labor'):
-            # Labor is now decoupled from waste (using qty_pure)
+            # Labor hours track qty_pure to bypass material waste inflation
             total_hours = qty_pure * hrs_per_unit
-            if q_level == 'Luxury Grade': total_hours *= 1.2 
+            if q_level == 'Luxury Grade': 
+                total_hours *= 1.2 
             lab_avg = total_hours * regional_wage * risk_mult
         else:
             total_hours = 0
@@ -644,6 +688,7 @@ def calculate_estimate_data(payload):
         
         m_vals = [round(mat_avg * 0.9, 2), round(mat_avg, 2), round(mat_avg * 1.1, 2)]
         l_vals = [round(lab_avg * 0.9, 2), round(lab_avg, 2), round(lab_avg * 1.1, 2)]
+        
         conf = calculate_confidence(zip_code, q_level, start_date, risk, qty_pure, catalog_item)
         
         processed_items.append({"is_header": True, "name": f"{cat_name} - {sub_name}"})
@@ -675,14 +720,23 @@ def calculate_estimate_data(payload):
         "tot": [f"{v:,.2f}" for v in tot]
     }
 
+# =====================================================================
+# 4. FLASK ROUTE ROUTERS
+# =====================================================================
 @app.route('/')
-def index(): return render_template('index.html')
+def index(): 
+    return render_template('index.html')
 
 @app.route('/api/catalog', methods=['GET'])
-def get_catalog(): return jsonify(get_golden_catalog())
+def get_catalog(): 
+    return jsonify(get_golden_catalog())
 
 @app.route('/api/calculate', methods=['POST'])
-def calculate(): return jsonify(calculate_estimate_data(request.get_json()))
+def calculate(): 
+    return jsonify(calculate_estimate_data(request.get_json()))
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
